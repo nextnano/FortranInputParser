@@ -13,10 +13,11 @@ The input parser is compatible to the [nextnanomat](https://www.nextnano.com/nex
 ### Example
 
 ```
-%x_min  =  0.0  ! (DisplayUnit:nm)(DoNotShowInUserInterface)
-%x_max  = 50.0  ! (DisplayUnit:nm)(HighlightInUserInterface)
-%length = 20.0  ! (DisplayUnit:nm)(ListOfValues:20.0,30.0,40.0)
-%width  = 20.0  ! (DisplayUnit:nm)(RangeOfValues:From=20.0,To=30.0,Steps=2.0)
+%x_min    =  0.0                      ! (DisplayUnit:nm)(DoNotShowInUserInterface)
+%x_max    = 50.0                      ! (DisplayUnit:nm)(HighlightInUserInterface)
+%length   = 20.0                      ! (DisplayUnit:nm)(ListOfValues:20.0,30.0,40.0)
+%width    = 20.0                      ! (DisplayUnit:nm)(RangeOfValues:From=20.0,To=30.0,Steps=2.0)
+%FILENAME = doping_concentration.dat                            !
 
 !-----------------------------------------------------------------------------!
 $simulation-dimension                                                         ! (keyword)
@@ -66,6 +67,16 @@ $electric-field                                                               !
  strength       = 1.0e5                                                       !
 $end_electric-field                                                           !
 !-----------------------------------------------------------------------------!
+
+!---------------------------------------------------------------------------!
+! This is the output for the material parameters, doping concentration.     !
+!---------------------------------------------------------------------------!
+$output-material-parameters                                                 !
+!directory            = ./                                                  !
+ directory            = material_parameters/                                !
+ doping-concentration = %FILENAME                                           !
+$end_material-parameters                                                    !
+!---------------------------------------------------------------------------!
 
 ```
 
