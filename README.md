@@ -133,12 +133,12 @@ data_type:
 ```
 
 ### Restrictions
-- The % sign indicates that that you define a variable.
-- When the input file is processed, all occurences of %variable_name are replaced by the according strings.
-- A comment sign '!' is allowed in this line.
-- Blanks are allowed within the string which is useful for reading in arrays of numbers, e.g. %variable1 = %xmin %xmax
+- The `%` sign indicates that that you define a variable.
+- When the input file is processed, all occurences of `%variable_name` are replaced by the according strings.
+- A comment sign `!` is allowed in this line.
+- Blanks are allowed within the string which is useful for reading in arrays of numbers, e.g. `%variable1 = %xmin %xmax`
 - Variables and their definitions are case sensitive.
-- A variable name must not contain a `-` sign, e.g. %effective-mass = 0.5 is not allowed.
+- A variable name must not contain a `-` sign, e.g. `%effective-mass = 0.5` is not allowed.
 - In one line only one variable can be initialized.
 
 Dr. Stefan Birner
