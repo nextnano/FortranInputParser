@@ -1,5 +1,4 @@
 # FortranInputParser
-Fortran Input Parser
 
 This is the Fortran Input Parser of the nextnano3 software.
 
@@ -9,12 +8,11 @@ Applications:
 
 A typical application is the reading in of input flags and material parameters from a text file for e.g. scientific codes.
 
-The input parser is compatible to the nextnanomat graphical user interface.
+The input parser is compatible to the [nextnanomat](https://www.nextnano.com/nextnanomat/) graphical user interface.
 
-=======
-Example
-=======
+### Example
 
+```
 !-----------------------------------------------------------------------------!
 $simulation-dimension                                                         !
  dimension   = 2                                                              ! (integer)
@@ -45,7 +43,7 @@ $material                                                                     !
  material-number = 4        material-name =
                                             GaAs                              ! (line brake is allowed)
 !-----------------------------------------------------------------------------!
-
+```
 
 Dr. Stefan Birner
 nextnano GmbH
