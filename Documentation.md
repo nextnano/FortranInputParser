@@ -19,9 +19,9 @@ The general syntax to define keywords and specifiers in keywords.val is as follo
 
 ```
 keyword
- specifier1    data type   optional
- specifier2    data type   optional
- specifier3    data type   optional
+ specifier1    data_type   optional
+ specifier2    data_type   optional
+ specifier3    data_type   optional
  ...
 end_keyword
 ```
@@ -33,8 +33,8 @@ Special characters used to identify a keyword are defined in module parameters.
 *keyword*
 
 Each keyword must start with a predefined special character.
-This special character is currently set to $ (but can be changed) and is allowed only as the first character of a keyword.
-Otherwise, the keyword is an arbitrary string, containing no blanks and no "=" signs.
+This special character is currently set to `$` (but can be changed) and is allowed only as the first character of a keyword.
+Otherwise, the keyword is an arbitrary string, containing no blanks and no `=` signs.
 
 *specifier*
 
@@ -47,7 +47,7 @@ Must match the starting keyword as follows: $keyword -> $end_keyword
 *data_type*
 
 Each specifier has a fixed data type.
-This data type must be defined by a string in the keyword definition file at the position of *data type*.
+This data type must be defined by a string in the keyword definition file at the position of `data_type`.
 
 The following data types are supported:
 
@@ -65,30 +65,29 @@ double_array:  array of double precision real numbers
 *optional*
 
 Defines specifier to be optional input or required input.
-For the string optional one of the two logical values must be substituted.
+For the string `optional` one of the two logical values are possible.
 
 ```
-optional specifier is optional input (meaning .FALSE.)
-required specifier is required input (meaning .TRUE.)
+optional: specifier is optional input (meaning .FALSE.)
+required: specifier is required input (meaning .TRUE.)
 ```
 
-*Input file name*
+**Input file name**
 
-The input file name is specified due to the first entry sequence in file keywords.val.
-This must look like (everything after the "!" is just comment and can be removed):
+The input file name is specified due to the **first** entry sequence in file keywords.val.
+This must look like this.
 
 ```
 ! only to specify input file name
-!----------------------------------------
-$input_filename
- my_input_file.in    character   required
-$end_input_filename
-!----------------------------------------
+!-------------------------------------------!
+$input_filename                             !
+ my_input_file.in    character   required   ! The first string in this line is the name of the input file.
+$end_input_filename                         !
+!-------------------------------------------!
 ```
 
-any keyword with valid syntax
-the first string in this line is the name of the input file
-corresponding end_keyword with valid syntax
+Everything after the "!" is just comment and can be removed.
+
 
 *Example*
 Several examples are given in the README.md file.
@@ -96,7 +95,7 @@ Several examples are given in the README.md file.
 ```
 !---------------------------------------------------------------------!
 $material                                                 required    !
- material-number                         integer          required    !
+ material-number                         integer          required    ! first entry is separator for new input sequence
  cluster-numbers                         integer_array    required    !
  material-name                           character        required    !
  alloy-function                          character        optional      CHOICE[constant,linear]
@@ -109,7 +108,8 @@ $end_material                                             required    !
 !---------------------------------------------------------------------!
 ```
 
-**Note: The first specifier after the starting keyword must be required input.**
+**Note: The first specifier after the starting keyword must be required input.
+Additionally, it acts the separator for the new input sequence within a keyword.**
 
 An input file looks like this:
 
@@ -117,25 +117,25 @@ An input file looks like this:
 !---------------------------------------------------------------------!
 ! You can write comments.
 # This is also a comment.
-/* This is also a comment.
+/* This is also a comment. */
 !---------------------------------------------------------------------!
-$material
+$material                                                             ! begin of input sequence for this keyword
 
  material-number                         = 1                          ! material no. 1
- cluster-numbers                         = 1 3 5 6
- material-name                           = Al(x)Ga(1-x)As
- alloy-function                          = constant
- growth-coordinate-axis                  = 0 0 1
+ cluster-numbers                         = 1 3 5 6                    ! an array of integers
+ material-name                           = Al(x)Ga(1-x)As             ! a string
+ alloy-function                          = constant                   ! a string
+ growth-coordinate-axis                  = 0 0 1                      ! an array of integers
  alloy-concentration                     = 0.3    ! You can write 0.3, 0.3d0 or 0.3e0. It will always be treated as double.
- band-gaps                               = 1.4  2.0  3.0
- crystal-type                            = zincblende
- use-material-parameters-from-database   = .TRUE.
+ band-gaps                               = 1.4  2.0  3.0              ! an array of double values
+ crystal-type                            = zincblende                 ! a string
+ use-material-parameters-from-database   = .TRUE.                     ! a boolean
 
  !-----------------------------------------------------------------------------------
  ! Now we define material no. 2.
  ! The first specifier 'material-number' acts as a separator for new input sequence.
  !-----------------------------------------------------------------------------------
- material-number                         = 2
+ material-number                         = 2                          ! separator for new input sequence
  cluster-numbers                         = 2 4
  material-name                           = GaAs
 
@@ -143,7 +143,7 @@ $material
  cluster-numbers                         = 7 8
  material-name                           = AlAs
 
- material-number = 4   cluster-numbers = 9    material-name = GaAs    ! This is a comment.
+ material-number = 4   cluster-numbers = 9    material-name = GaAs    ! This is a comment. You can specify several specifiers in one line.
  material-number = 5   cluster-numbers = 10   material-name = AlAs
  material-number = 6   cluster-numbers = 11   material-name = GaAs
 
@@ -160,7 +160,7 @@ If the same specifier appears twice or more within one input sequence, the last 
 For array valued input, the additional values are added.
 However, for the separation specifiers (for a definition see below), this rule does not apply by definition.
 
-You can define predefined options using the optional argument CHOICE e.g. CHOICE[.TRUE.,.FALSE.], CHOICE[1 0 0,0 1 0,0 0 1] or CHOICE.[zincblende,wurtzite].
+You can define predefined options using the optional argument `CHOICE` e.g. `CHOICE[.TRUE.,.FALSE.]`, `CHOICE[1 0 0,0 1 0,0 0 1]` or `CHOICE.[zincblende,wurtzite]`.
 
 If the executable with the option -debuglevel 1000, then the file keywords.xml is generated which includes all allowed keywords, specifiers and choices which are used by nextnanomat for its auto completion feature.
 
@@ -178,61 +178,84 @@ For input of array type, the numbers must be separated by blanks.
 
 ## Parser usage
 
-To read and analyze the input file, a call to SUBROUTINE read_and_analyze_input is required. No argument list is required.
+To read and analyze the input file, a call to `SUBROUTINE read_and_analyze_input` is required.
+No argument list is required.
 
-*Data value extraction*
+**Data value extraction**
 
-To extract data for a given specifier, a generic subroutine get_data(....) is supplied.
+To extract data for a given specifier, a generic subroutine `get_data(...)` is supplied.
 
-```
-SUBROUTINE get_data(keyword,new,specifier,cont,data,pres,line,last)
+``` fortran
+SUBROUTINE get_data(keywordC,newL,specifierC,continueL,data,presentL,line,lastL)
 ```
 
 In the calling routine, two modules must be included by the USE statement:
 
-```
-USE parameters, ONLY: Data_len
-USE generic_get_data
-```
-length specification for character variables keyword and specifier
-interface to generic subroutine get_data(....)
-
-Argument list: Input variables
-```
-LOGICAL               :: new
-LOGICAL               :: cont
-CHARACTER(Data_len/3) :: keyword
-CHARACTER(Data_len/3) :: specifier 
+``` fortran
+USE parameters      ,ONLY:Data_len ! length specification for character variables keywordC and specifierC
+USE generic_get_data,ONLY:get_data ! interface to generic subroutine get_data(....)
 ```
 
-new: .TRUE.  start new search for keyword
-new: .FALSE. stay at actual keyword
-At first entry in subroutine get_data new must be set to .TRUE.
-cont
+
+**Argument list: Input variables**
+
+``` fortran
+LOGICAL               :: newL
+LOGICAL               :: continueL
+CHARACTER(Data_len/3) :: keywordC
+CHARACTER(Data_len/3) :: specifierC
+```
+
+*new*
+
+At first entry in `subroutine get_data` `new` must be set to `.TRUE.`.
+
+```
+newL: .TRUE.  start new search for keyword
+newL: .FALSE. stay at actual keyword
+```
+
+*continueL*
+
+```
 .TRUE.  search for specifier in next input sequence
 .FALSE. search in actual input sequence
-keyword
+```
+
+*keywordC*
+
 string, containing keyword to be searched for (maximum length 267/3)
-specifier
+
+*specifierC*
+
 string, containing specifier, for which data value is requested (maximum length 267/3)
 
-Informative output variables:
 
-```
+**Informative output variables**
+
+``` fortran
 INTEGER :: line
-LOGICAL :: pres
-LOGICAL :: last 
+LOGICAL :: presentL
+LOGICAL :: lastL
 ```
 
-line: line number in input file, where value was found.
-pres: .TRUE. if a value for actual specifier was found; .FALSE. otherwise
-last: .TRUE. if last input sequence for given keyword was read.
+*line*
 
-*Generic output*
+line number in input file, where value was found.
 
-The variable data in the argument list is representative for one of the possible data type listed beneath for a generic call.
+*presentL*
 
-```
+`.TRUE.` if a value for actual specifier was found, `.FALSE.` otherwise.
+
+*lastL*
+
+`.TRUE.` if last input sequence for given keyword was read, `.FALSE.` otherwise.
+
+**Generic output**
+
+The variable `data` in the argument list is representative for one of the possible data type listed beneath for a generic call.
+
+``` fortran
 INTEGER                       :: ival
 REAL(4)                       :: xsval   ! single
 LOGICAL                       :: loval
@@ -251,24 +274,22 @@ The generic argument must be of the same type as the data type of the requested 
 This is a description how the main driving routine (MODULE input_driver_module) works (used for reading input parameters, database information as well as processing and checking the corresponding quantities).
 The main driving routine for reading input parameters, database information as well as processing and checking the corresponding quantities is input_driver.f90.
 
-```
+``` fortran
 !---------------------------------------------------!
-    CALL read_and_analyze_input                     ! file: parser.f90 
+ CALL read_and_analyze_input                        ! input file
 !---------------------------------------------------!
-! requires only modules contained in file parser.f90
 
 !---------------------------------------------------!
-    CALL d_read_and_analyze_input                   ! file: data_base_builder.f90 
+ CALL d_read_and_analyze_input                      ! material database
 !---------------------------------------------------!
 ! requires only modules contained in file data_base_builder.f90
 
 !---------------------------------------------------!
-    CALL warnings_on_off(warning)                   ! file: warnings_on_off.f90 
+ CALL warnings_on_off(warning)
 !---------------------------------------------------!
 
 !---------------------------------------------------!
-    CALL read_constants_and_scaling                 !
-!        file: read_constants_and_scaling.f90 
+ CALL read_constants_and_scaling
 !---------------------------------------------------!
 ```
 
