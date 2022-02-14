@@ -18,11 +18,14 @@ New keywords and specifiers can be added without the need of recompilation.
 The general syntax to define keywords and specifiers in keywords.val is as follows:
 
 ```
+!------------------------
+! Syntax definition file
+!------------------------
 keyword
- specifier1    data_type   optional
+ specifier1    data_type   required
  specifier2    data_type   optional
  specifier3    data_type   optional
- ...
+ ...           ...         ...
 end_keyword
 ```
 
@@ -38,11 +41,11 @@ Otherwise, the keyword is an arbitrary string, containing no blanks and no `=` s
 
 *specifier*
 
-Arbitrary string, containing no blanks, no "$" (which is the special character of the *keyword*), and no "=" sign.
+Arbitrary string, containing no blanks, no `$` (which is the special character of the *keyword*), and no `=` sign.
 
 *end_keyword*
 
-Must match the starting keyword as follows: $keyword -> $end_keyword
+Must match the starting keyword as follows: `$keyword` ==> `$end_keyword`
 
 *data_type*
 
@@ -53,44 +56,27 @@ The following data types are supported:
 
 ```
 integer:       integer number
+integer_array: array of integer numbers
 real:          single precision real number
+real_array:    array of single precision real numbers
 double:        double precision real number
+double_array:  array of double precision real numbers
 character:     character string
 logical:       boolean (.TRUE./.FALSE.)
-integer_array: array of integer numbers
-real_array:    array of single precision real numbers
-double_array:  array of double precision real numbers
 ```
 
-*optional*
+Instead of `logical` we recommend using `yes` or `no` instead as this is more readable to the human eye.
 
-Defines specifier to be optional input or required input.
-For the string `optional` one of the two logical values are possible.
+*optional* / *required*
+
+Defines specifier to be *optional* input or *required* input.
 
 ```
 optional: specifier is optional input (meaning .FALSE.)
 required: specifier is required input (meaning .TRUE.)
 ```
 
-**Input file name**
-
-The input file name is specified due to the **first** entry sequence in file keywords.val.
-This must look like this.
-
-```
-! only to specify input file name
-!-------------------------------------------!
-$input_filename                             !
- my_input_file.in    character   required   ! The first string in this line is the name of the input file.
-$end_input_filename                         !
-!-------------------------------------------!
-```
-
-Everything after the "!" is just comment and can be removed.
-
-
 *Example*
-Several examples are given in the README.md file.
 
 ```
 !---------------------------------------------------------------------!
@@ -104,12 +90,18 @@ $material                                                 required    !
  lattice-constants                       double_array     optional    !
  crystal-type                            character        optional      CHOICE[zincblende,wurtzite]
  use-material-parameters-from-database   logical          optional      CHOICE[.TRUE.,.FALSE.]
+!use-material-parameters-from-database   character        optional      CHOICE[yes,no]
 $end_material                                             required    !
 !---------------------------------------------------------------------!
 ```
 
+- `$`: special sign indicating a keyword  ($ can be replaced by the user with a user-defined symbol)
+- `!`: special sign indicating a comment  (! can be replaced by the user with a user-defined symbol)
+- `%`: special sign indicating a variable (% can be replaced by the user with a user-defined symbol)
+
+
 **Note: The first specifier after the starting keyword must be required input.
-Additionally, it acts the separator for the new input sequence within a keyword.**
+Additionally, it acts as the separator for the new input sequence within a keyword.**
 
 An input file looks like this:
 
@@ -164,17 +156,28 @@ You can define predefined options using the optional argument `CHOICE` e.g. `CHO
 
 If the executable with the option -debuglevel 1000, then the file keywords.xml is generated which includes all allowed keywords, specifiers and choices which are used by nextnanomat for its auto completion feature.
 
-*Rules*
+### Rules
 
-In the input file, the first specifier after the starting keyword must be the same as the first specifier after the starting keyword in the definition file keywords.val.
-Due to this limitation, this specifier can be used as a separator for a new input sequence within a start and end keyword structure.
-Each time, this specifier appears, the beginning of a new input sequence is assumed.
-These special specifiers are named *separation specifiers*.
-Otherwise, the ordering is arbitrary.
-Keywords and specifiers may be in the same line or spread over multiple input lines.
-Line breaks are allowed before and after any data value, the = signs and before and after keywords and specifiers.
-Blanks at the beginning of a line are not significant.
-For input of array type, the numbers must be separated by blanks.
+- In the input file, the first specifier after the starting keyword must be the same as the first specifier after the starting keyword in the definition file `keywords_inputfile.val`.
+  Due to this limitation, this specifier can be used as a separator for a new input sequence within a start and end keyword structure.
+  Each time, this specifier appears, the beginning of a new input sequence is assumed.
+  These special specifiers are named *separation specifiers*.
+  Otherwise, the ordering is arbitrary.
+- Keywords and specifiers may be in the same line or spread over multiple input lines.
+- Line breaks are allowed before and after any data value, the = signs and before and after keywords and specifiers.
+- Blanks at the beginning of a line are not significant.
+- For input of array type, the numbers must be separated by blanks.
+- Keywords and specifiers are case-sensitive.
+
+### Rules for variables
+
+- The `%` sign indicates that that you define a variable.
+- When the input file is processed, all occurrences of `%variable_name` are replaced by the according strings.
+- A comment sign `!` is allowed in this line.
+- Blanks are allowed within the string which is useful for reading in arrays of numbers, e.g. `%variable1 = %xmin %xmax`
+- Variables and their definitions are case sensitive.
+- A variable name must not contain a `-` sign, e.g. `%effective-mass = 0.5` is not allowed.
+- In one line only one variable can be initialized.
 
 ## Parser usage
 
@@ -271,48 +274,31 @@ The generic argument must be of the same type as the data type of the requested 
 
 ## Input parser: General program flow
 
-This is a description how the main driving routine (MODULE input_driver_module) works (used for reading input parameters, database information as well as processing and checking the corresponding quantities).
+This is a description how the main driving routine (MODULE input_driver_module) works which is used for reading input parameters and database information as well as processing and checking the corresponding quantities.
 The main driving routine for reading input parameters, database information as well as processing and checking the corresponding quantities is input_driver.f90.
 
 ``` fortran
-!---------------------------------------------------!
- CALL read_and_analyze_input                        ! input file
-!---------------------------------------------------!
 
-!---------------------------------------------------!
- CALL d_read_and_analyze_input                      ! material database
-!---------------------------------------------------!
-! requires only modules contained in file data_base_builder.f90
+ CALL InputDriver(    InputFilenameC , SetInputFileViaCommandLineL, &
+                   DatabaseFilenameC ,  SetDatabaseViaCommandLineL    )
 
-!---------------------------------------------------!
- CALL warnings_on_off(warning)
-!---------------------------------------------------!
+ CALL Collect_Database_Entries
 
-!---------------------------------------------------!
- CALL read_constants_and_scaling
-!---------------------------------------------------!
-```
-
-## Input parser: Keywords - General introduction to some of the keywords and specifiers including some examples
-
-*Specification of input file name*
-
-The specification of the input filename is done as a first entry in file keywords.val as follows:
+ CALL Collect_Inputfile_Entries
 
 ```
-!---------------------------------------------------!
-$input_filename                        optional     !
- input-filename         character      optional     !
-$end_input_filename                    optional     !
-!---------------------------------------------------!
-```
+
+## Input file name
+
+The specification of the input filename is done as a first entry in file `keywords_inputfile.val`.
+It must be the first entry sequence in this validation file.
 
 Example
 
 ```
 !---------------------------------------------------!
 $input_filename                        optional     !
- my_input_file.in       character      optional     ! Reads in "my_input_file.in".
+ input_file.in          character      optional     ! reads in default input file "inputfile.in"
 $end_input_filename                    optional     !
 !---------------------------------------------------!
 ```
