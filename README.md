@@ -1,6 +1,6 @@
-# FortranInputParser
+# Fortran Input Parser
 
-This is the Fortran Input Parser of the nextnano3 software.
+This is the Fortran Input Parser of the nextnano³ software.
 
 (c) 2022, nextnano GmbH, Germany, www.nextnano.com (BSD license)
 
@@ -84,7 +84,7 @@ $end_regions                                                                  !
 $electric-field                                                               !
  electric-field = on                                                          ! CHOICE[on,off]
  direction      = x                                                           ! CHOICE[x,y,z]
- strength       = 1.0e5                                                       !
+ strength       = 1.0e-1                                                      !
 $end_electric-field                                                           !
 !-----------------------------------------------------------------------------!
 
@@ -112,13 +112,13 @@ $end_material-parameters                                                      !
 
 ### Example 2
 
-- see `inputfile.in`.
-- see `database.in`.
+- See `inputfile.in` in this folder.
+- See `database.in` in this folder.
 
 
 ### Documentation
 
-- see Documentation.md
+- See `Documentation.md` in this folder.
 
 
 ### How to compile and run the Fortran Input Parser.
@@ -126,14 +126,16 @@ $end_material-parameters                                                      !
 These source files produce a simple test example for the Fortran Input Parser.
 
 - Compatibility: The Fortran Input Parser works on Windows, Linux and macOS.
-- Use 'make' (i.e. Makefile) to compile the *.f90 files.
+- Use `make` (i.e. read in `Makefile`) to compile the `*.f90` files.
   Alternatively, a solution file for Microsoft Visual Studio Community for the Intel Fortran Compiler is included.
-- The 'keywords_inputfile.val' file contains the name of the input file to be read in (here: 'inputfile.in').
-- The 'keywords_inputfile.val' file contains the syntax definiton of arbitrary input files.
-- Once compiled, type './FortranInputParser.exe' to execute the program, which reads in input file definition
-  ('keywords_inputfile.val') and input file ('inputfile.in').
+- The `keywords_inputfile.val` file contains the name of the input file to be read in (here: `inputfile.in`).
+- The `keywords_inputfile.val` file contains the syntax definiton of arbitrary input files.
+- Once compiled, type `.\FortranInputParser.exe` (Windows) or `./FortranInputParser.exe` (Linux/macOS) to execute the program, which reads in input file definition
+  (`keywords_inputfile.val`) and input file (`inputfile.in`).
 
 - The following screen output will be produced:
+
+```
   +++++++++++++++++++++++++++++++++++++++++++++ 
 
  ------------------------------------------------------------------------------
@@ -163,3 +165,4 @@ These source files produce a simple test example for the Fortran Input Parser.
     cluster-numbers                       =            1           3           5
            6
  ...
+```
