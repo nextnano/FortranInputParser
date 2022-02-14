@@ -1,4 +1,4 @@
-# Input parser manual
+# Fortran Input Parser - Manual
 
 This input parser reads and analyzes an input file according to predefined syntactical rules.
 It is written in Fortran.
