@@ -112,6 +112,40 @@ Additionally, it acts as the separator for the new input sequence within a keywo
 An input file looks like this:
 
 ```
+#++++++++++++++++++ 
+# Variable section
+#++++++++++++++++++ 
+
+#----------------------------------------------------------------
+# By default, we do not evaluate functions.
+# Everything is just a simple "Find & Replace String" operation.
+#----------------------------------------------------------------
+
+# The % sign indicates that you define a variable which is case-sensitive.
+ %Material_1     = AlAs      # a string variable
+ %ClusterNumbers = 7 8       # another string variable containing '7 8' including the blank
+
+ %Temperature = 300.0        # temperature             (DisplayUnit:K)
+ %alpha = 0.5405e-3          # Varshni parameter alpha (DisplayUnit:eV/K)
+ %beta  = 204.0              # Varshni parameter beta  (DisplayUnit:K)
+ %BandGap_0K   = 1.519       # band gap at 0 K         (DisplayUnit:eV)
+
+ %Include_InAs = .TRUE.      # if .TRUE., include material InAs
+#%Include_InAs = .FALSE.     # if .TRUE., include material InAs
+
+# The statement '%FunctionParser = yes' switches the function parser on (default: off).
+!-----------------------------
+ %FunctionParser = yes       # needed to evaluate functions (DoNotShowInUserInterface)
+!-----------------------------
+
+ %BandGap_300K = %BandGap_0K - %alpha * %Temperature^2 / ( %Temperature + %beta ) # band gap at 300 K (DisplayUnit:eV)
+
+ %Material_2     = 'GaAs'    # a string variable after '%FunctionParser = yes' needs quotations marks
+
+ %TWO   = 2.0
+ %SEVEN = INT( 5.0 + %TWO )  # INT(...) must be used to convert a float to an integer
+
+
 !---------------------------------------------------------------------!
 $magnetic-field                                                       !
  magnetic-field-on        = yes                                       ! 'yes'/'no'
@@ -121,9 +155,12 @@ $end_magnetic-field                                                   !
 !---------------------------------------------------------------------!
 
 !---------------------------------------------------------------------!
-! You can write comments.
-# This is also a comment.
+!  You can write comments.
+#  This is also a comment.
+// This is also a comment.
 /* This is also a comment. */
+// Note: No line breaks are allowed for the comments /* ... */. 
+< This is also a comment. >
 !---------------------------------------------------------------------!
 $material                                                             ! begin of input sequence for this keyword
 
@@ -145,12 +182,16 @@ $material                                                             ! begin of
  material-name                           = GaAs
 
  material-number                         = 3                          ! material no. 3
- cluster-numbers                         = 7 8
- material-name                           = AlAs
+ cluster-numbers                         = %ClusterNumbers
+ material-name                           = %Material_1
 
- material-number = 4   cluster-numbers = 9    material-name = GaAs    ! This is a comment. You can specify several specifiers in one line.
+ material-number = 4   cluster-numbers = 9    material-name = %Material_2 ! This is a comment. You can specify several specifiers in one line.
  material-number = 5   cluster-numbers = 10   material-name = AlAs
- material-number = 6   cluster-numbers = 11   material-name = GaAs   band-gaps = 1.8  1.9  2.1
+ material-number = 6   cluster-numbers = 11   material-name = GaAs   band-gaps = %BandGap_300K  1.9  2.1
+
+ material-number = %SEVEN  cluster-numbers = 11   material-name = GaAs
+
+#IF %Include_InAs material-number = 8   cluster-numbers = 12   material-name = InAs
 
 $end_material                                                         ! This is matching end keyword.
 !---------------------------------------------------------------------!
