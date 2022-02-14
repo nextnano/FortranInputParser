@@ -1,0 +1,6 @@
+!-----------------------------------------------------------------------------!
+$physical-constants                                                           ! SI units from 2019-05-10: https://physics.nist.gov/cuu/Constants/index.html
+ electron-charge          = -1.6021766208e-19                                 ! [C]  -1.6021766208(98)e-19
+ Planck-constant          =  6.626070040e-34                                  ! [Js]  6.626070040(81)e-34
+$end_physical-constants                                                       !
+!-----------------------------------------------------------------------------!

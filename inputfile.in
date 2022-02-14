@@ -1,0 +1,42 @@
+!---------------------------------------------------------------------!
+$magnetic-field                                                       !
+ magnetic-field-on        = yes                                       ! 'yes'/'no'
+ magnetic-field-strength  = 5.0                                       ! 5.0 T ==> T = [Tesla]
+ magnetic-field-direction = 0 0 1                                     ! for [001] direction
+$end_magnetic-field                                                   !
+!---------------------------------------------------------------------!
+
+!---------------------------------------------------------------------!
+! You can write comments.
+# This is also a comment.
+/* This is also a comment. */
+!---------------------------------------------------------------------!
+$material                                                             ! begin of input sequence for this keyword
+
+ material-number                         = 1                          ! material no. 1
+ cluster-numbers                         = 1 3 5 6                    ! an array of integers
+ material-name                           = Al(x)Ga(1-x)As             ! a string
+ alloy-function                          = constant                   ! a string
+ alloy-concentration                     = 0.3    ! You can write 0.3, 0.3d0 or 0.3e0. It will always be treated as double.
+ band-gaps                               = 1.4  2.0  3.0              ! an array of double values
+ crystal-type                            = zincblende                 ! a string
+ use-material-parameters-from-database   = .TRUE.                     ! a boolean
+
+ !-----------------------------------------------------------------------------------
+ ! Now we define material no. 2.
+ ! The first specifier 'material-number' acts as a separator for new input sequence.
+ !-----------------------------------------------------------------------------------
+ material-number                         = 2                          ! separator for new input sequence
+ cluster-numbers                         = 2 4
+ material-name                           = GaAs
+
+ material-number                         = 3                          ! material no. 3
+ cluster-numbers                         = 7 8
+ material-name                           = AlAs
+
+ material-number = 4   cluster-numbers = 9    material-name = GaAs    ! This is a comment. You can specify several specifiers in one line.
+ material-number = 5   cluster-numbers = 10   material-name = AlAs
+ material-number = 6   cluster-numbers = 11   material-name = GaAs   band-gaps = 1.8  1.9  2.1
+
+$end_material                                                         ! This is matching end keyword.
+!---------------------------------------------------------------------!
