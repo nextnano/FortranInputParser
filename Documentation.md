@@ -79,20 +79,26 @@ required: specifier is required input (meaning .TRUE.)
 *Example*
 
 ```
-!---------------------------------------------------------------------!
-$material                                                 required    !
- material-number                         integer          required    ! first entry is separator for new input sequence
- cluster-numbers                         integer_array    required    !
- material-name                           character        required    !
- alloy-function                          character        optional      CHOICE[constant,linear]
- growth-coordinate-axis                  integer_array    optional      CHOICE[0 0 1,1 0 0,0 1 0]
- alloy-concentration                     double           optional    !
- lattice-constants                       double_array     optional    !
- crystal-type                            character        optional      CHOICE[zincblende,wurtzite]
- use-material-parameters-from-database   logical          optional      CHOICE[.TRUE.,.FALSE.]
-!use-material-parameters-from-database   character        optional      CHOICE[yes,no]
-$end_material                                             required    !
-!---------------------------------------------------------------------!
+!-----------------------------------------------------------------------------!
+$magnetic-field                                  optional                     !
+ magnetic-field-on                               character        required      CHOICE[yes,no]
+ magnetic-field-strength                         double           required    !
+ magnetic-field-direction                        integer_array    required      CHOICE[1 0 0,0 1 0,0 0 1]
+$end_magnetic-field                              optional                     !
+!-----------------------------------------------------------------------------!
+
+!-----------------------------------------------------------------------------!
+$material                                                         required    !
+ material-number                                 integer          required    ! first entry is separator for new input sequence
+ cluster-numbers                                 integer_array    required    !
+ material-name                                   character        required    !
+ alloy-function                                  character        optional      CHOICE[constant,linear]
+ alloy-concentration                             double           optional    !
+ band-gaps                                       double_array     optional    !
+ crystal-type                                    character        optional      CHOICE[zincblende,wurtzite]
+ use-material-parameters-from-database           logical          optional      CHOICE[.TRUE.,.FALSE.]
+$end_material                                                     required    !
+!-----------------------------------------------------------------------------!
 ```
 
 - `$`: special sign indicating a keyword  ($ can be replaced by the user with a user-defined symbol)
@@ -107,6 +113,14 @@ An input file looks like this:
 
 ```
 !---------------------------------------------------------------------!
+$magnetic-field                                                       !
+ magnetic-field-on        = yes                                       ! 'yes'/'no'
+ magnetic-field-strength  = 5.0                                       ! 5.0 T ==> T = [Tesla]
+ magnetic-field-direction = 0 0 1                                     ! for [001] direction
+$end_magnetic-field                                                   !
+!---------------------------------------------------------------------!
+
+!---------------------------------------------------------------------!
 ! You can write comments.
 # This is also a comment.
 /* This is also a comment. */
@@ -117,7 +131,6 @@ $material                                                             ! begin of
  cluster-numbers                         = 1 3 5 6                    ! an array of integers
  material-name                           = Al(x)Ga(1-x)As             ! a string
  alloy-function                          = constant                   ! a string
- growth-coordinate-axis                  = 0 0 1                      ! an array of integers
  alloy-concentration                     = 0.3    ! You can write 0.3, 0.3d0 or 0.3e0. It will always be treated as double.
  band-gaps                               = 1.4  2.0  3.0              ! an array of double values
  crystal-type                            = zincblende                 ! a string
@@ -137,7 +150,7 @@ $material                                                             ! begin of
 
  material-number = 4   cluster-numbers = 9    material-name = GaAs    ! This is a comment. You can specify several specifiers in one line.
  material-number = 5   cluster-numbers = 10   material-name = AlAs
- material-number = 6   cluster-numbers = 11   material-name = GaAs
+ material-number = 6   cluster-numbers = 11   material-name = GaAs   band-gaps = 1.8  1.9  2.1
 
 $end_material                                                         ! This is matching end keyword.
 !---------------------------------------------------------------------!
@@ -296,9 +309,13 @@ It must be the first entry sequence in this validation file.
 Example
 
 ```
-!---------------------------------------------------!
-$input_filename                        optional     !
- input_file.in          character      optional     ! reads in default input file "inputfile.in"
-$end_input_filename                    optional     !
-!---------------------------------------------------!
+!-----------------------------------------------------------------------------!
+! This must be the first keyword. Do not change the order.
+!-----------------------------------------------------------------------------!
+$input_filename                                                    optional   ! Do not change this. This must be the first keyword in this file. Do not change the order.
+ inputfile.in                                    character         optional   ! Do not change this. This must be the first specifier in case no input file is specified.
+$end_input_filename                                                optional   !
+!-----------------------------------------------------------------------------!
+! End of first keyword. Now the order does not matter.
+!-----------------------------------------------------------------------------!
 ```
