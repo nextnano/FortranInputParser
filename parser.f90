@@ -433,11 +433,12 @@
  INTEGER,PARAMETER                         :: char_length_specifier_content = 267  ! A specifier content can contain up to 267 characters.
 
  TYPE  :: type_data
-  REAL(4)                                  :: single
-  REAL(8)                                  :: double
-  REAL(8),DIMENSION(:),POINTER             :: double_arrayV
   INTEGER                                  :: int
   INTEGER,DIMENSION(:),POINTER             :: int_arrayV
+  REAL(4)                                  :: single
+  REAL(4),DIMENSION(:),POINTER             :: single_arrayV
+  REAL(8)                                  :: double
+  REAL(8),DIMENSION(:),POINTER             :: double_arrayV
   LOGICAL                                  :: booleanL
   CHARACTER(char_length_specifier_content) :: stringC ! to allow for long strings, e.g. long directory names
 ! CHARACTER(len=:),ALLOCATABLE             :: stringC ! to allow for long strings, e.g. long directory names  <= does not work

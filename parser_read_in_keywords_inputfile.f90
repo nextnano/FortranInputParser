@@ -158,6 +158,17 @@
      END IF
 
      !----------------------------------------------------------------------------
+     specifierC = 'alloy-concentration'
+     !----------------------------------------------------------------------------
+     newL = .FALSE.  ;  continueL = .FALSE.
+     CALL get_from_inputfile(keywordC,newL,specifierC,continueL,value%double,presentL,line,lastL)
+     IF (presentL) THEN
+      MaterialV(value%int)%AlloyConcentration = value%double
+     ELSE
+      MaterialV(value%int)%AlloyConcentration = 0d0
+     END IF
+
+     !----------------------------------------------------------------------------
      specifierC = 'material-name'
      !----------------------------------------------------------------------------
      newL = .FALSE.  ;  continueL = .FALSE.
@@ -342,8 +353,8 @@
     WRITE(*,*)     "   cluster-numbers                       = ",     MaterialV(i)%ClusterNumbersV
     WRITE(*,*)     "   material-name                         = ",TRIM(MaterialV(i)%NameC)
    IF ( TRIM(MaterialV(i)%AlloyFunctionC) /= '' ) THEN
-    WRITE(*,*)    "   alloy-function                        = ",TRIM(MaterialV(i)%AlloyFunctionC)
-    WRITE(*,*)     "  alloy-concentration                   = ",     MaterialV(i)%AlloyConcentration
+    WRITE(*,*)     "   alloy-function                        = ",TRIM(MaterialV(i)%AlloyFunctionC)
+    WRITE(*,*)     "   alloy-concentration                   = ",     MaterialV(i)%AlloyConcentration
    END IF
     WRITE(*,*)     "   crystal-type                          = ",TRIM(MaterialV(i)%CrystalC)
     WRITE(*,*)     "   use-material-parameters-from-database = ",     MaterialV(i)%from_DatabaseL
