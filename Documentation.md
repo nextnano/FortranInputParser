@@ -224,7 +224,7 @@ CHARACTER(Data_len/3) :: specifierC
 
 *new*
 
-At first entry in `subroutine get_data` `new` must be set to `.TRUE.`.
+At first entry in `subroutine get_from_inputfile` `newL` must be set to `.TRUE.`.
 
 ```
 newL: .TRUE.  start new search for keyword
@@ -272,14 +272,20 @@ line number in input file, where value was found.
 The variable `data` in the argument list is representative for one of the possible data type listed beneath for a generic call.
 
 ``` fortran
-INTEGER                       :: ival
-REAL(4)                       :: xsval   ! single
-LOGICAL                       :: loval
-REAL(8)                       :: xdval   ! double
-CHARACTER(Data_len/3)         :: caval
-INTEGER, DIMENSION(:),POINTER :: inarval
-REAL(4), DIMENSION(:),POINTER :: xsarval ! single
-REAL(8), DIMENSION(:),POINTER :: xdarval ! double
+ INTEGER,PARAMETER                         :: char_length_specifier_content = 267  ! A specifier content can contain up to 267 characters.
+
+ TYPE  :: type_data
+  INTEGER                                  :: int
+  INTEGER,DIMENSION(:),POINTER             :: int_arrayV
+  REAL(4)                                  :: single
+  REAL(4),DIMENSION(:),POINTER             :: single_arrayV
+  REAL(8)                                  :: double
+  REAL(8),DIMENSION(:),POINTER             :: double_arrayV
+  LOGICAL                                  :: booleanL
+  CHARACTER(char_length_specifier_content) :: stringC ! to allow for long strings, e.g. long directory names
+! CHARACTER(len=:),ALLOCATABLE             :: stringC ! to allow for long strings, e.g. long directory names  <= does not work
+ END TYPE_data
+
 ```
 
 The generic argument must be of the same type as the data type of the requested specifier.
