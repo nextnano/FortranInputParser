@@ -256,10 +256,10 @@ USE generic_inputfile,ONLY:get_from_inputfile ! interface to generic subroutine 
 **Argument list: Input variables**
 
 ``` fortran
-LOGICAL               :: newL
-LOGICAL               :: continueL
-CHARACTER(Data_len/3) :: keywordC
-CHARACTER(Data_len/3) :: specifierC
+LOGICAL                      :: newL
+LOGICAL                      :: continueL
+CHARACTER(len=:),ALLOCATABLE :: keywordC
+CHARACTER(len=:),ALLOCATABLE :: specifierC
 ```
 
 *new*
