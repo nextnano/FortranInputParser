@@ -240,17 +240,16 @@ No argument list is required.
 
 **Data value extraction**
 
-To extract data for a given specifier, a generic subroutine `get_data(...)` is supplied.
+To extract data for a given specifier, a generic subroutine `get_from_inputfile(...)` is supplied.
 
 ``` fortran
-SUBROUTINE get_data(keywordC,newL,specifierC,continueL,data,presentL,line,lastL)
+SUBROUTINE get_from_inputfile(keywordC,newL,specifierC,continueL,data,presentL,line,lastL)
 ```
 
 In the calling routine, two modules must be included by the USE statement:
 
 ``` fortran
-USE parameters      ,ONLY:Data_len ! length specification for character variables keywordC and specifierC
-USE generic_get_data,ONLY:get_data ! interface to generic subroutine get_data(....)
+USE generic_inputfile,ONLY:get_from_inputfile ! interface to generic subroutine get_from_inputfile(...)
 ```
 
 
