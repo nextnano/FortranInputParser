@@ -112,60 +112,13 @@ $end_material-parameters                                                      !
 
 ### Example 2
 
-- See `inputfile.in`.
-- See `database.in`.
+- see `inputfile.in`.
+- see `database.in`.
 
 
 ### Documentation
 
-```
-!-----------------------------------------------------------------------------!
-! Syntax definition file
-!-----------------------------------------------------------------------------!
-$keyword                                                                      !
- specifier1 	 data_type  	required                                      !
- specifier2 	 data_type  	optional                                      !
- ...          ...         ...                                                 !
-$end_keyword                                                                  !
-!-----------------------------------------------------------------------------!
-
-!-----------------------------------------------------------------------------!
-$input_filename                                          optional             !
- inputfile.in              character                     optional             ! default input filename
-$end_input_filename                                      optional             !
-!-----------------------------------------------------------------------------!
-
-$: special sign indicating a keyword  ($ can be replaced by the user)
-!: special sign indicating a comment  (! can be replaced by the user)
-%: special sign indicating a variable (% can be replaced by the user)
-data_type:
-  - integer
-  - integer_array
-  - double
-  - double_array
-  - character
-  - logical is also supported but we recommend to using 'yes' or 'no' instead as this is more readable to the human eye.
-```
-
-### Limitations
-
-- The `%` sign indicates that that you define a variable.
-- When the input file is processed, all occurences of `%variable_name` are replaced by the according strings.
-- A comment sign `!` is allowed in this line.
-- Blanks are allowed within the string which is useful for reading in arrays of numbers, e.g. `%variable1 = %xmin %xmax`
-- Variables and their definitions are case sensitive.
-- A variable name must not contain a `-` sign, e.g. `%effective-mass = 0.5` is not allowed.
-- In one line only one variable can be initialized.
-- In the input file, the first specifier after the starting keyword must be the same as the first specifier after the starting keyword in the definition file `keywords_inputfile.val`.
-  Due to this limitation, this specifier can be used as a separator for a new input sequence within a start and end keyword structure.
-  Each time, this specifier appears, the beginning of a new input sequence is assumed.
-  These special specifiers are named separation specifiers.
-  Otherwise, the ordering is arbitrary.
-  Keywords and specifiers may be in the same line or spread over
-  multiple input lines.
-  Line breaks are allowed before and after any data value, the '='
-  signs and before and after keywords and specifiers.
-  For input of array type, the numbers must be separated by blanks.
+- see Documentation.md
 
 
 ### How to compile and run the Fortran Input Parser.
