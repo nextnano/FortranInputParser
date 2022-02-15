@@ -2,6 +2,7 @@
 
 This input parser reads and analyzes an input file according to predefined syntactical rules.
 It is written in Fortran.
+The idea is to make the input file readable for the human eye.
 
 The main idea is to realize a tool, which enables the user to write position independent (as far as possible) input files.
 The input files can be changed without recompiling the parser.
