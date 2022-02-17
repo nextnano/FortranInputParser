@@ -88,7 +88,7 @@
 
     CALL get_from_database(keywordC,newL,specifierC,continueL,value%double,presentL,line,lastL)  ! get data
   ! IF (.NOT. presentL) CALL ERROR
-    PhysicsConstants%Planck_constant =  value%double
+    PhysicsConstants%Planck_constant = value%double
 
   !----------------------------------------------------------------------------
 

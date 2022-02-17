@@ -2643,6 +2643,11 @@ END MODULE mod_init_keyword_queue
      MODULE PROCEDURE STOP_UnexpectedNumbers_real
  END INTERFACE
 
+ INTERFACE Error_SmallerThanZero
+     MODULE PROCEDURE  Error_SmallerThanZero_integer
+     MODULE PROCEDURE  Error_SmallerThanZero_real
+ END INTERFACE
+
  CONTAINS
 
 !------------------------------------------------------------------------------
@@ -2932,6 +2937,122 @@ END MODULE mod_init_keyword_queue
 
 !------------------------------------------------------------------------------
  END SUBROUTINE STOP_Yes_or_No_is_required
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Error_SmallerThanZero_integer(keywordC,specifierC,line,value,FileTypeC)
+!------------------------------------------------------------------------------
+!
+!++s* Parser_Errors/Error_SmallerThanZero
+!
+! NAME
+!   SUBROUTINE Error_SmallerThanZero
+!
+! PURPOSE
+!   This subroutine prints out the keyword, specifier and related line of the input file
+!   where an error was encountered.
+!   Here, the error is a value that is outside the bounds,
+!   i.e. x < 0 but only x >= 0 is allowed.
+! 
+! USAGE
+!   CALL Error_SmallerThanZero(keywordC,specifierC,line,value,FileTypeC)
+! 
+! INPUT
+!   o keywordC:                      keyword
+!   o specifierC:                    specifier
+!   o line:                          line
+!   o value:                         value
+!   o FileTypeC:                     'input' or 'database' file
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)             ,INTENT(in)          :: keywordC
+ CHARACTER(len=*)             ,INTENT(in)          :: specifierC
+ INTEGER                      ,INTENT(in)          :: line
+ INTEGER                      ,INTENT(in)          :: value
+ CHARACTER(len=*)             ,INTENT(in),OPTIONAL :: FileTypeC
+
+ IF ( PRESENT(FileTypeC) ) THEN
+  WRITE(my_output_unit,'(A)')    " ERROR detected in "//TRIM(FileTypeC)//" file."       ! input file or database file
+ ELSE
+  WRITE(my_output_unit,'(A)')    " ERROR detected in "//"input"        //" file."       ! input file or database file
+ END IF
+ 
+  WRITE(my_output_unit,'(A)')        " A positive number >= 0 is expected."
+  WRITE(my_output_unit,*)            " You specified: ",TRIM(specifierC)," = ",value
+
+ CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Error_SmallerThanZero_integer
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Error_SmallerThanZero_real(keywordC,specifierC,line,value,FileTypeC)
+!------------------------------------------------------------------------------
+!
+!++s* Parser_Errors/Error_SmallerThanZero
+!
+! NAME
+!   SUBROUTINE Error_SmallerThanZero
+!
+! PURPOSE
+!   This subroutine prints out the keyword, specifier and related line of the input file
+!   where an error was encountered.
+!   Here, the error is a value that is outside the bounds,
+!   i.e. x < 0 but only x >= 0 is allowed.
+! 
+! USAGE
+!   CALL Error_SmallerThanZero(keywordC,specifierC,line,value,FileTypeC)
+! 
+! INPUT
+!   o keywordC:                      keyword
+!   o specifierC:                    specifier
+!   o line:                          line
+!   o value:                         value
+!   o FileTypeC:                     'input' or 'database' file
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)             ,INTENT(in)          :: keywordC
+ CHARACTER(len=*)             ,INTENT(in)          :: specifierC
+ INTEGER                      ,INTENT(in)          :: line
+ REAL(8)                      ,INTENT(in)          :: value
+ CHARACTER(len=*)             ,INTENT(in),OPTIONAL :: FileTypeC
+
+ IF ( PRESENT(FileTypeC) ) THEN
+  WRITE(my_output_unit,'(A)')    " ERROR detected in "//TRIM(FileTypeC)//" file."       ! input file or database file
+ ELSE
+  WRITE(my_output_unit,'(A)')    " ERROR detected in "//"input"        //" file."       ! input file or database file
+ END IF
+ 
+  WRITE(my_output_unit,'(A)')        " A positive number >= 0 is expected."
+  WRITE(my_output_unit,*)            " You specified: ",TRIM(specifierC)," = ",value
+
+ CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Error_SmallerThanZero_real
 !------------------------------------------------------------------------------
 !
 !

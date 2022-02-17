@@ -55,16 +55,20 @@
 ! To read entries from inputfile.
 !
 !------------------------------------------------------------------------------
- USE generic_inputfile   ,ONLY:get_from_inputfile
- USE Parser_Tools       ,ONLY:is_yes, &
-                              is_no
- USE Parser_Errors      ,ONLY:STOP_UnexpectedNumbers
- USE mod_input_data     ,ONLY:type_data
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE generic_inputfile        ,ONLY:get_from_inputfile
+ USE Parser_Tools             ,ONLY:is_yes, &
+                                    is_no
+ USE Parser_Errors            ,ONLY:STOP_UnexpectedNumbers, &
+                                    STOP_Yes_or_No_is_required, &
+                                    Error_SmallerThanZero, &
+                                    Print_Keyword_Specifier_Line
+ USE mod_input_data           ,ONLY:type_data
  !-------------------------------------------------
  ! These variables are read in from the inputfile.
  !-------------------------------------------------
- USE variables_inputfile,ONLY:MagneticField, &
-                              MaterialV
+ USE variables_inputfile      ,ONLY:MagneticField, &
+                                    MaterialV
                        
  IMPLICIT NONE
 
@@ -239,11 +243,7 @@
         ELSE IF ( is_no( value%stringC)  ) THEN
            MagneticField%onL = .FALSE.
         ELSE
-           PRINT *,"Input for this flag should be either 'yes' or 'no'."
-           PRINT *,"Line:",line
-           PRINT *,"Keyword:",keywordC
-           PRINT *,"Specifier:",specifierC
-           STOP
+           CALL STOP_Yes_or_No_is_required(keywordC,specifierC,value%stringC,line)
         END IF
 
      !----------------------------------------------------------------------------
@@ -251,15 +251,19 @@
      !----------------------------------------------------------------------------
      newL = .FALSE.  ;  continueL = .FALSE. ; specifierC = 'magnetic-field-strength'       
         CALL get_from_inputfile(keywordC,newL,specifierC,continueL,value%double,presentL,line,lastL)        
-        
+
         IF (presentL) THEN
-           MagneticField%strength = value%double
-        ELSE
-           PRINT *,"Input for this flag should be a double value."
-           PRINT *,"Line:",line
-           PRINT *,"Keyword:",keywordC
-           PRINT *,"Specifier:",specifierC
-           STOP
+         IF ( value%double < 0d0 ) THEN
+        ! WRITE(my_output_unit,'(A)') " Error: "//TRIM(specifierC)//" must be a positive value."
+        ! CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
+
+          CALL Error_SmallerThanZero(keywordC,specifierC,line,value%double)
+
+         ELSE
+          MagneticField%strength = value%double
+         END IF
+        ELSE ! Use default value.
+          MagneticField%strength = 0d0
         END IF
 
 
@@ -272,10 +276,7 @@
            MagneticField%directionV = value%int_arrayV
         ELSE
            PRINT *,"Input for this flag should be an integer array."
-           PRINT *,"Line:",line
-           PRINT *,"Keyword:",keywordC
-           PRINT *,"Specifier:",specifierC
-           STOP
+           CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
         END IF
 
       END IF ! If 'magnetic-field-on' was present.
