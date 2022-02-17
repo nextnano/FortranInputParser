@@ -244,10 +244,46 @@ No argument list is required.
 To extract data for a given specifier, a generic subroutine `get_from_inputfile(...)` is supplied.
 
 ``` fortran
-SUBROUTINE get_from_inputfile(keywordC,newL,specifierC,continueL,data,presentL,line,lastL)
+SUBROUTINE get_from_inputfile(keywordC,newL,specifierC,continueL,value,presentL,line,lastL)
 ```
 
-In the calling routine, two modules must be included by the USE statement:
+Examples
+
+``` fortran
+CALL get_from_inputfile('$material',newL,'material-number',continueL,value%int,presentL,line,lastL)
+IF (presentL) THEN
+ material_numer = value%int
+ELSE
+ ! e.g. error message or use default value
+END IF
+```
+
+``` fortran
+CALL get_from_inputfile('$magnetic-field',newL,'magnetic-field-strength',continueL,value%double,presentL,line,lastL)
+IF (presentL) THEN
+ magnetic_field = value%double
+ELSE
+ ! e.g. error message or use default value
+END IF
+```
+
+``` fortran
+keywordC   = '$magnetic-field'
+specifierC = 'magnetic-field-strength'
+CALL get_from_inputfile(keywordC,newL,specifierC,continueL,value%double,presentL,line,lastL)
+IF (presentL) THEN
+ IF ( value%double < 0d0 ) THEN
+  WRITE(my_output_unit,'(A)') " Error: "//TRIM(specifierC)//" must be a positive value."
+  CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
+ ELSE
+  magnetic_field = value%double
+ END IF
+ELSE
+ ! e.g. use default value
+END IF
+```
+
+In the calling routine, this module must be included by the USE statement:
 
 ``` fortran
 USE generic_inputfile,ONLY:get_from_inputfile ! interface to generic subroutine get_from_inputfile(...)
