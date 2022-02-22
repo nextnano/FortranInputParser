@@ -11,8 +11,7 @@
 !   This module contains compiler specific subroutines.
 !
 ! CONTAINS
-!   o SUBROUTINE CallSystem
-!   o SUBROUTINE SystemMemoryUsage
+!   o SUBROUTINE Execute_CommandLine
 !
 ! FILENAME
 !   common/compiler_specific.f90
@@ -26,19 +25,19 @@
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE CallSystem(SystemCommandC)
+ SUBROUTINE Execute_CommandLine(SystemCommandC)
 !------------------------------------------------------------------------------
 !
-!++s* mod_CallSystem/CallSystem
+!++s* mod_CallSystem/Execute_CommandLine
 !
 ! NAME
-!   SUBROUTINE CallSystem
+!   SUBROUTINE Execute_CommandLine
 !
 ! PURPOSE
-!  
+!    Executes a command in the command line.
 !
 ! USAGE
-!   CALL CallSystem(SystemCommandC)
+!   CALL Execute_CommandLine(SystemCommandC)
 ! 
 ! INPUT 
 !   o SystemCommandC      command for command prompt
@@ -46,22 +45,28 @@
 ! OUTPUT
 !   none
 !
-! NOTES
-!   CHECK: CALL EXECUTE_COMMAND_LINE is new Fortran standard instead of CALLSystem.
-!
 !##
 !
 !------------------------------------------------------------------------------
 !USE f90_unix_proc         ,ONLY:system  ! COMPILER DEPENDENT (NAG): only necessary for Fortran compiler NAG 5.2 on Linux but not for NAG 5.2 on Windows
+!USE IFPORT                              ! for Intel compiler
 
  IMPLICIT NONE
 
  CHARACTER(len=*),INTENT(in)  :: SystemCommandC
 
- CALL system( TRIM(SystemCommandC) )
+ CHARACTER(len=:),ALLOCATABLE :: CommandC
+
+ CommandC = TRIM(SystemCommandC)
+
+ !----------------------------------------------------------------------------------
+ ! CALL EXECUTE_COMMAND_LINE is new Fortran standard instead of 'CALL system(...)'.
+ !----------------------------------------------------------------------------------
+ CALL execute_command_line( CommandC )  ! should be the method of choice for newer compilers
+!CALL system(               CommandC )  ! work-around for older compilers
 
 !------------------------------------------------------------------------------
- END SUBROUTINE CallSystem
+ END SUBROUTINE Execute_CommandLine
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------

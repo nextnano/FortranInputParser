@@ -366,7 +366,11 @@
  END IF
 
  IF (.NOT. DirectoryExistsL) THEN
-  WRITE(my_output_unit,'(A,A,A)') " The directory '",TRIM(directoryC),"' does not exist yet."
+   WRITE(my_output_unit,'(A,A,A)') " The directory '",TRIM(directoryC),"' does not exist yet."
+!ELSE
+! IF (DebugLevel > 10000) THEN
+!  WRITE(my_output_unit,'(A,A,A)') " The directory '",TRIM(directoryC),"' exists already."
+! END IF
  END IF
 
 !------------------------------------------------------------------------------
@@ -485,7 +489,8 @@
 !
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
- USE mod_CallSystem           ,ONLY:CallSystem
+ USE system_specific_parser   ,ONLY:DebugLevel
+ USE mod_CallSystem           ,ONLY:Execute_CommandLine
  USE system_specific_parser   ,ONLY:Windows,Linux,CurrentSystem
  USE SpecialCharacters        ,ONLY:BackSlashC
  USE CharacterManipulation    ,ONLY:CharacterReplace
@@ -586,10 +591,11 @@
        !---------------------------------------------------------------------
        ! Now call the system (e.g. cmd.exe on Windows) and create directory.
        !---------------------------------------------------------------------
-       WRITE(my_output_unit,'(A,A,A)') " CALL system: '",TRIM(SystemCommandC),"'"
- ! CHECK: CALL EXECUTE_COMMAND_LINE is new Fortran standard instead of CALLSystem.
-                             CALL CallSystem     (SystemCommandC)
-       WRITE(my_output_unit,'(A,A,A)') " CALL system: '",TRIM(SystemCommandC),"' finished."
+       WRITE(my_output_unit,'(A)') " Execute command line: '"//TRIM(SystemCommandC)//"'"
+                                      CALL Execute_CommandLine(TRIM(SystemCommandC))
+     IF (DebugLeveL > 3) THEN
+       WRITE(my_output_unit,'(A)') " Execute command line: '"//TRIM(SystemCommandC)//"' finished."
+     END IF
 
 !------------------------------------------------------------------------------
  END SUBROUTINE CreateDirectory
