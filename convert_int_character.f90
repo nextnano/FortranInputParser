@@ -1011,7 +1011,8 @@
 !
 !
 !------------------------------------------------------------------------------
- SUBROUTINE r8_to_s_left ( r8, s )
+!SUBROUTINE r8_to_s_left ( r8, s )
+ SUBROUTINE r8_to_s_left ( r8, s , formatC_in )
 !------------------------------------------------------------------------------
 
 !*****************************************************************************80
@@ -1051,9 +1052,18 @@
   integer   ( kind = 4 ) i
   real      ( kind = 8 ) r8
   character ( len = * )  s
+  character(len=*),intent(in), optional :: formatC_in  ! modified by S. Birner
+
+  character(len=:),allocatable          :: formatC     ! modified by S. Birner
   integer   ( kind = 4 ) s_length
 ! character ( len = 14 ) s2
-  character ( len = 17 ) s2 ! modified by S. Birner
+  character ( len = 17 ) s2                            ! modified by S. Birner
+
+  if ( present(formatC_in) ) then                      ! modified by S. Birner
+      formatC = formatC_in                             ! modified by S. Birner
+  else                                                 ! modified by S. Birner
+      formatC = ''                                     ! modified by S. Birner
+  end if                                               ! modified by S. Birner
 
   s_length = len ( s )
 
@@ -1070,10 +1080,16 @@
   ! s(1:14) = '     0.0      '
     s(1:17) = '     0.0         ' ! modified by S. Birner
   else
-  ! write ( s2, '(g14.6)' ) r8
-    write ( s2, '(g17.9)' ) r8    ! modified by S. Birner
-  ! s(1:14) = s2
-    s(1:17) = s2                  ! modified by S. Birner
+
+   SELECT CASE( TRIM(formatC) )
+    CASE('(f17.9)')
+     write ( s2, '(f17.9)' ) r8    ! modified by S. Birner
+    CASE DEFAULT
+   ! write ( s2, '(g14.6)' ) r8
+     write ( s2, '(g17.9)' ) r8    ! modified by S. Birner
+   END SELECT
+   ! s(1:14) = s2
+     s(1:17) = s2                  ! modified by S. Birner
   end if
 !
 !  Shift the string left.
