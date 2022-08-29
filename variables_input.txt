@@ -6,6 +6,8 @@
 %BandGap_0K = 1.519
 %Include_InAs = .TRUE.
 %FunctionParser = yes
+%Include_GaAs = 0.0e0
+%Include_AlAs = 1.00000000e0
 %BandGap_300K = 1.42248214e0
 %Material_2 = GaAs
 %TWO = 2.00000000e0

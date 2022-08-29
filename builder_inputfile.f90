@@ -44,8 +44,10 @@
   CHARACTER(len=*)             ,PARAMETER :: end_key_char           = ' '                     ! Character which specifies end of keyword (must be a blank)
   CHARACTER(len=*)             ,PARAMETER :: spec_char              = ' '                     ! Character which separates a specifier (must be a blank)
   CHARACTER(len=*)             ,PARAMETER :: end_spec_char          = '='                     ! Character which specifies end of specifier (can be chosen)
-  CHARACTER(len=4),DIMENSION(2),PARAMETER :: IF_STATEMENT_CV        = [ '!IF ' , '#IF ' ]
-                                                                      ! '!if ' , '#if '       ! <== also works as IF is not case-sensitive.
+  CHARACTER(len=*),DIMENSION(4),PARAMETER :: IF_STATEMENT_CV        = [ '!IF  ', '#IF  ', &
+                                                                      ! '!if  ', '#if  '      ! <== also works as IF is not case-sensitive.
+                                                                        '!WHEN', '#WHEN' ]
+                                                                      ! '!when', '#when'      ! <== also works as IF is not case-sensitive.
   CHARACTER(len=*),DIMENSION(4),PARAMETER :: comment_signsCV        = [ '! '   , '# '  , &
                                                                         '//'   , '/*' ]       ! Comment signs. Comment sign and text towards right is ignored.
 ! CHARACTER(len=*),DIMENSION(4),PARAMETER :: XML_tagCV              = [ '< '   , '</'  , &

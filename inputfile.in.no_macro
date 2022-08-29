@@ -17,12 +17,18 @@
 !***macro*** %BandGap_0K   = 1.519       # band gap at 0 K         (DisplayUnit:eV) (1 replacement)
 
 !***macro*** %Include_InAs = .TRUE.      # if .TRUE., include material InAs (1 replacement)
-#%Include_InAs = .FALSE.     # if .TRUE., include material InAs
+#%Include_InAs = .FALSE.     # if .FALSE., do not include material InAs
 
 # The statement '%FunctionParser = yes' switches the function parser on (default: off).
 !-----------------------------
 !***macro*** %FunctionParser = yes       # needed to evaluate functions (DoNotShowInUserInterface) (1 replacement)
 !-----------------------------
+
+# Choose GaAs or AlAs
+
+#%Include_GaAs = 1           # if 1 (=true), include material GaAs
+!***macro*** %Include_GaAs = 0           # if 0 (=false), do not include material GaAs (1 replacement)
+!***macro*** %Include_AlAs = 1 - 0.0e0  # if 1 (=true), include material AlAs, else 0 (=false) (1 replacement)
 
 !***macro*** %BandGap_300K = 1.519 - 0.5405e-3 * 300.0^2 / ( 300.0 + 204.0 ) # band gap at 300 K (DisplayUnit:eV) (1 replacement)
 
@@ -77,7 +83,14 @@ $material                                                             ! begin of
 
  material-number = 7  cluster-numbers = 11   material-name = GaAs
 
+#---------------------------------------------------------
+# Conditional IF/WHEN statements are supported like this:
+#---------------------------------------------------------
+
                material-number = 8   cluster-numbers = 12   material-name = InAs
+
+#WHEN %Include_GaAs material-number = 9   cluster-numbers = 13   material-name = GaAs  # '#WHEN' has the same effect as '#IF'.
+               material-number = 9   cluster-numbers = 13   material-name = AlAs  # '#WHEN' has the same effect as '#IF'.
 
 $end_material                                                         ! This is matching end keyword.
 !---------------------------------------------------------------------!
