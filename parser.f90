@@ -4759,7 +4759,8 @@ END MODULE mod_init_keyword_queue
 !   SUBROUTINE Treat_IfStatement_and_Comment
 !
 ! PURPOSE
-!   
+!   Check if line is a comment and return .TRUE. if this is the case.
+!   Check if line is a conditional IF and return .TRUE. if this is the case, and the length of the IF statement string.
 !
 ! USAGE
 !   CALL Treat_IfStatement_and_Comment( IF_STATEMENT_CV, COMMENT_SIGNS_CV, VariableC, stringC, &
@@ -4773,14 +4774,16 @@ END MODULE mod_init_keyword_queue
 !
 ! OUTPUT
 !   o Line_is_a_CommentL:                  .TRUE. if line is a comment, else .FALSE.
-!   o IF_StatementL:                       .TRUE. if line is an if statement, else .FALSE.
+!   o IF_StatementL:                       .TRUE. if line is an if statement (Line_is_a_CommentL is still .TRUE.), else .FALSE.
 !   o IF_Statement_length:                 length of 'IF' statement, e.g. 3 for '!IF' and '5' for '!WHEN'
-!   o Variable_belongs_to_IF_StatementL:   
+!   o Variable_belongs_to_IF_StatementL:   .TRUE. if variable belongs to IF statement.
 ! 
 ! NOTES
 !   Examples:
 !
+!     o  #IF %TemperatureDependentBandGap  varshni-parameters-on = yes
 !     
+!     o  !IF %IncludeHoles $quantum-model-holes
 !
 !##
 !
@@ -4817,40 +4820,42 @@ END MODULE mod_init_keyword_queue
  !-------------------------------------------------------------------
  FirstRelevantCharactersInLineC = adjustl( stringC )
 
- !--------------------------------
- ! A) Check if line is a comment.
- !--------------------------------
+ if ( len(FirstRelevantCharactersInLineC) /= 0 ) then ! Only do this if line is not empty.
 
- !----------------------------------------------------------------------------------------------------
- ! Check if first character of line is comment sign.
- ! If this is the case, we do not replace the variable with its value and leave the comment as it is.
- !----------------------------------------------------------------------------------------------------
- do i=1,SIZE( COMMENT_SIGNS_CV ) ! Loop over number of available comment signs.
-  length_comment_sign = LEN_TRIM(COMMENT_SIGNS_CV(i))
-  if ( FirstRelevantCharactersInLineC(1:length_comment_sign) == &
-                  COMMENT_SIGNS_CV(i)(1:length_comment_sign) ) then
-   Line_is_a_CommentL = .TRUE.
-   exit
-  end if
- end do
+  !--------------------------------
+  ! A) Check if line is a comment.
+  !--------------------------------
+
+  !----------------------------------------------------------------------------------------------------
+  ! Check if first character of line is comment sign.
+  ! If this is the case, we do not replace the variable with its value and leave the comment as it is.
+  !----------------------------------------------------------------------------------------------------
+  do i=1,SIZE( COMMENT_SIGNS_CV ) ! Loop over number of available comment signs.
+   length_comment_sign = LEN_TRIM(COMMENT_SIGNS_CV(i))
+   if ( FirstRelevantCharactersInLineC(1:length_comment_sign) == &
+                   COMMENT_SIGNS_CV(i)(1:length_comment_sign) ) then
+    Line_is_a_CommentL = .TRUE.
+    exit
+   end if
+  end do
 
 
- !---------------------------------------
- ! B) Check if line is a conditional IF.
- !---------------------------------------
+  !---------------------------------------
+  ! B) Check if line is a conditional IF.
+  !---------------------------------------
 
- do i=1,size( IF_STATEMENT_CV ) ! Loop over number of available if statements.
-  length_if_statement = LEN_TRIM(IF_STATEMENT_CV(i))
-  if ( StringUpperCase( FirstRelevantCharactersInLineC(1:length_if_statement) ) == &
-                                    IF_STATEMENT_CV(i)(1:length_if_statement) ) then
-    IF_StatementL = .TRUE.
-    IF_Statement_length = length_if_statement
+  do i=1,size( IF_STATEMENT_CV ) ! Loop over number of available if statements.
+   length_if_statement = LEN_TRIM(IF_STATEMENT_CV(i))
+   if ( StringUpperCase( FirstRelevantCharactersInLineC(1:length_if_statement) ) == &
+                                     IF_STATEMENT_CV(i)(1:length_if_statement) ) then
+     IF_StatementL = .TRUE.
+     IF_Statement_length = length_if_statement
 
-    IF_STATEMENT: if ( IF_StatementL ) then
+     IF_STATEMENT: if ( IF_StatementL ) then
           Line_without_IF_StatementC = adjustl( stringC )
-         DO ii=1,length_if_statement
+         do ii=1,length_if_statement
           Line_without_IF_StatementC( ii:ii ) = ' '   ! Replace '!IF' with blanks.
-         END DO
+         end do
           Line_without_IF_StatementC = adjustl( Line_without_IF_StatementC ) ! Remove leading blanks.
           !-------------------------------------------------------------------------------
           ! Now we check if the variable name directly follows the '!IF ' statement.
@@ -4865,12 +4870,14 @@ END MODULE mod_init_keyword_queue
         else
            Variable_belongs_to_IF_StatementL = .FALSE.
         end if
-    end if IF_STATEMENT
+     end if IF_STATEMENT
 
-   exit ! Exit do loop.
+    exit ! Exit do loop.
 
-  end if
- end do
+   end if
+  end do
+
+ end if
 
 !------------------------------------------------------------------------------
  end subroutine Treat_IfStatement_and_Comment
