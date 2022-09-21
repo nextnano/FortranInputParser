@@ -4805,6 +4805,7 @@ END MODULE mod_init_keyword_queue
  character(len=:),allocatable                :: Line_without_IF_StatementC
  integer                                     :: i,ii
  integer                                     :: length_comment_sign
+ integer                                     :: length_FirstRelChars
  integer                                     :: length_if_statement
 
  !------------------------
@@ -4830,12 +4831,16 @@ END MODULE mod_init_keyword_queue
   ! Check if first character of line is comment sign.
   ! If this is the case, we do not replace the variable with its value and leave the comment as it is.
   !----------------------------------------------------------------------------------------------------
+   length_FirstRelChars = LEN_TRIM(FirstRelevantCharactersInLineC)
+
   do i=1,SIZE( COMMENT_SIGNS_CV ) ! Loop over number of available comment signs.
-   length_comment_sign = LEN_TRIM(COMMENT_SIGNS_CV(i))
-   if ( FirstRelevantCharactersInLineC(1:length_comment_sign) == &
-                   COMMENT_SIGNS_CV(i)(1:length_comment_sign) ) then
-    Line_is_a_CommentL = .TRUE.
-    exit
+   length_comment_sign  = LEN_TRIM(COMMENT_SIGNS_CV(i))
+   if ( length_FirstRelChars >= length_comment_sign ) THEN
+    if ( FirstRelevantCharactersInLineC(1:length_comment_sign) == &
+                    COMMENT_SIGNS_CV(i)(1:length_comment_sign) ) then
+     Line_is_a_CommentL = .TRUE.
+     exit
+    end if
    end if
   end do
 
@@ -4846,31 +4851,35 @@ END MODULE mod_init_keyword_queue
 
   do i=1,size( IF_STATEMENT_CV ) ! Loop over number of available if statements.
    length_if_statement = LEN_TRIM(IF_STATEMENT_CV(i))
-   if ( StringUpperCase( FirstRelevantCharactersInLineC(1:length_if_statement) ) == &
-                                     IF_STATEMENT_CV(i)(1:length_if_statement) ) then
-     IF_StatementL = .TRUE.
-     IF_Statement_length = length_if_statement
 
-     IF_STATEMENT: if ( IF_StatementL ) then
-          Line_without_IF_StatementC = adjustl( stringC )
-         do ii=1,length_if_statement
-          Line_without_IF_StatementC( ii:ii ) = ' '   ! Replace '!IF' with blanks.
-         end do
-          Line_without_IF_StatementC = adjustl( Line_without_IF_StatementC ) ! Remove leading blanks.
-          !-------------------------------------------------------------------------------
-          ! Now we check if the variable name directly follows the '!IF ' statement.
-          ! If yes, then we know that this variable is relevant for the '!IF ' statement.
-          !-------------------------------------------------------------------------------
-        if ( len_trim( Line_without_IF_StatementC ) >= len_trim(VariableC) ) then ! Make sure that string is large enough so that the next line does not crash.
-         if (          Line_without_IF_StatementC( 1 : len_trim(VariableC) ) == trim(VariableC) ) then
-           Variable_belongs_to_IF_StatementL = .TRUE.
+   if ( length_FirstRelChars >= length_if_statement ) THEN
+
+    if ( StringUpperCase( FirstRelevantCharactersInLineC(1:length_if_statement) ) == &
+                                      IF_STATEMENT_CV(i)(1:length_if_statement) ) then
+      IF_StatementL = .TRUE.
+      IF_Statement_length = length_if_statement
+
+      IF_STATEMENT: if ( IF_StatementL ) then
+           Line_without_IF_StatementC = adjustl( stringC )
+          do ii=1,length_if_statement
+           Line_without_IF_StatementC( ii:ii ) = ' '   ! Replace '!IF' with blanks.
+          end do
+           Line_without_IF_StatementC = adjustl( Line_without_IF_StatementC ) ! Remove leading blanks.
+           !-------------------------------------------------------------------------------
+           ! Now we check if the variable name directly follows the '!IF ' statement.
+           ! If yes, then we know that this variable is relevant for the '!IF ' statement.
+           !-------------------------------------------------------------------------------
+         if ( len_trim( Line_without_IF_StatementC ) >= len_trim(VariableC) ) then ! Make sure that string is large enough so that the next line does not crash.
+          if (          Line_without_IF_StatementC( 1 : len_trim(VariableC) ) == trim(VariableC) ) then
+            Variable_belongs_to_IF_StatementL = .TRUE.
+          else
+            Variable_belongs_to_IF_StatementL = .FALSE.
+          end if
          else
-           Variable_belongs_to_IF_StatementL = .FALSE.
+            Variable_belongs_to_IF_StatementL = .FALSE.
          end if
-        else
-           Variable_belongs_to_IF_StatementL = .FALSE.
-        end if
-     end if IF_STATEMENT
+      end if IF_STATEMENT
+     end if
 
     exit ! Exit do loop.
 
