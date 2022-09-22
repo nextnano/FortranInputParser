@@ -417,13 +417,14 @@
 !
 ! PURPOSE
 !   Checks if a substring is contained in a string.
+!   Blanks at the right of a string are ignored.
 !
 ! USAGE
 !   Substring_is_contained_in_StringL(SubstringC,StringC)
 ! 
 ! INPUT 
-!   o StringC
-!   o StringC
+!   o SubstringC:
+!   o StringC:
 !
 ! OUTPUT
 !   o is_containedL:       .TRUE. if 'SubstringC' is contained in 'StringC'.
@@ -441,7 +442,7 @@
  CHARACTER(len=*),INTENT(in)  :: StringC
  LOGICAL                      :: is_containedL  ! RESULT
 
- IF ( INDEX( TRIM(StringC) , TRIM(SubstringC) ) == 0 ) THEN
+ IF ( INDEX( TRIM(SubstringC) , TRIM(StringC) ) == 0 ) THEN
          !------------------------------------------------------------------------------------------
          ! If INDEX == 0, then the substring 'SubstringC' is not contained in the string 'StringC'.
          !------------------------------------------------------------------------------------------
