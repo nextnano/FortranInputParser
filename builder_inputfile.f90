@@ -1687,21 +1687,21 @@ CONTAINS                                                               !
      END IF                                                            !
      IF (added_value) EXIT                                             !
      END DO                                                            !
-    ELSE IF (TRIM(data_typeC)==TRIM(name_inar)) THEN                    !
+    ELSE IF (TRIM(data_typeC)==TRIM(name_inar)) THEN                   !
      local_inar => spec_node%input_spec%inar_queue%top                 !
      DO
      IF (.NOT. ASSOCIATED(local_inar)) EXIT
-     IF(TRIM(local_inar%spinar)==TRIM(specifierC))THEN                       !
+     IF(TRIM(local_inar%spinar)==TRIM(specifierC))THEN                 !
       local_inar%prinar = .TRUE.                                       ! (is present)
       local_inar%liinar = line_number                                  !
-      CALL add_array_element(local_inar,in_t)                             !
+      CALL add_array_element(local_inar,in_t)                          !
       added_value = .TRUE.                                             !
      END IF                                                            !
      IF (added_value) EXIT                                             !
      local_inar => local_inar%next_inar                                !
      ENDDO                                                             !
      IF (.NOT.ASSOCIATED(local_inar)) CALL ERROR(6)                    !
-    ELSE IF (TRIM(data_typeC)==TRIM(name_xsar)) THEN                    !
+    ELSE IF (TRIM(data_typeC)==TRIM(name_xsar)) THEN                   !
      local_xsar => spec_node%input_spec%xsar_queue%top                 !
      DO
      IF (.NOT. ASSOCIATED(local_xsar)) EXIT
@@ -1759,7 +1759,7 @@ CONTAINS                                                               !
       CheckStringL = .TRUE. ! We check 'SpecifierValueC' in case it is a character or logical.
 
          !-----------------------------------------------------------------------------
-         ! Check if substring 'choiceC_temp' is contained in string 'SpecifierValueC'.
+         ! Check if substring 'SpecifierValueC' is contained in string 'choiceC_temp'.
          !-----------------------------------------------------------------------------
          !--------------------------------------------------------------------------------------------------------
          ! Here we allow the specifier value to be in lower case (mostly due to backwards compatibility),
@@ -1767,8 +1767,8 @@ CONTAINS                                                               !
          ! e.g. '... = arpack' does not match 'CHOICE[ARPACK]'. Not we convert 'ARPACK' to 'arpack' (lower case).
          ! Now  '... = arpack' matches        'CHOICE[arpack]'.
          !--------------------------------------------------------------------------------------------------------
-         IF ( Substring_is_contained_in_StringL(                  TRIM(choiceC_temp)  , SpecifierValueC ) .OR. &  ! 
-              Substring_is_contained_in_StringL( StringLowerCase( TRIM(choiceC_temp) ), SpecifierValueC ) ) THEN  ! Check lower case, e.g. 'arpack' is contained in 'CHOICE[ARPACK]'.
+         IF ( Substring_is_contained_in_StringL( SpecifierValueC ,                  choiceC_temp ) .OR. &    ! Check exact case, e.g. 'ARPACK' is contained in 'CHOICE[ARPACK]'.
+              Substring_is_contained_in_StringL( SpecifierValueC , StringLowerCase( choiceC_temp ) ) ) THEN  ! Check lower case, e.g. 'arpack' is contained in 'CHOICE[arpack]'.
           String_is_contained_in_ChoiceL = .TRUE.
          ELSE
           String_is_contained_in_ChoiceL = .FALSE.
@@ -1781,9 +1781,9 @@ CONTAINS                                                               !
        ! WRITE(my_output_unit,*)  "IntegerArrayStringC = ",TRIM(IntegerArrayStringC)
 
          !---------------------------------------------------------------------------------
-         ! Check if substring 'choiceC_temp' is contained in string 'IntegerArrayStringC'.
+         ! Check if substring 'IntegerArrayStringC' is contained in string 'choiceC_temp'.
          !---------------------------------------------------------------------------------
-         String_is_contained_in_ChoiceL = Substring_is_contained_in_StringL( TRIM(choiceC_temp) , IntegerArrayStringC )
+         String_is_contained_in_ChoiceL = Substring_is_contained_in_StringL( IntegerArrayStringC , choiceC_temp )
 
     ELSE IF ( TRIM(data_typeC) == TRIM(name_inar) ) THEN ! Check integer array.
       CheckStringL = .TRUE. ! We check 'SpecifierValueC' in case it is an integer array.
@@ -1796,9 +1796,9 @@ CONTAINS                                                               !
        ! WRITE(my_output_unit,*)  "IntegerArrayStringC = ",TRIM(IntegerArrayStringC)
 
          !---------------------------------------------------------------------------------
-         ! Check if substring 'choiceC_temp' is contained in string 'IntegerArrayStringC'.
+         ! Check if substring 'IntegerArrayStringC' is contained in string 'choiceC_temp'.
          !---------------------------------------------------------------------------------
-         String_is_contained_in_ChoiceL = Substring_is_contained_in_StringL( TRIM(choiceC_temp) , IntegerArrayStringC )
+         String_is_contained_in_ChoiceL = Substring_is_contained_in_StringL( IntegerArrayStringC , choiceC_temp )
 
     END IF ! End: TRIM(data_typeC)
 

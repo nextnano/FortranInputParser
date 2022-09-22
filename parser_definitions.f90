@@ -442,7 +442,7 @@
  CHARACTER(len=*),INTENT(in)  :: StringC
  LOGICAL                      :: is_containedL  ! RESULT
 
- IF ( INDEX( TRIM(SubstringC) , TRIM(StringC) ) == 0 ) THEN
+ IF ( INDEX( TRIM(StringC) , TRIM(SubstringC) ) == 0 ) THEN
          !------------------------------------------------------------------------------------------
          ! If INDEX == 0, then the substring 'SubstringC' is not contained in the string 'StringC'.
          !------------------------------------------------------------------------------------------
