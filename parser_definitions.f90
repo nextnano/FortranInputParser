@@ -273,12 +273,16 @@
 ! CONTAINS
 !   o FUNCTION StringLowerCase
 !   o FUNCTION StringUpperCase
+!   o FUNCTION Substring_is_contained_in_StringL
 !
 ! FILENAME
-!   common/general_module_definitions.f90
+!   FortranInputParser/parser_definitions.f90
+!
+! NOTES
+!
+!   CHECK: It would be useful to have a subroutine that compares strings and that is not case sensitive.
 !
 !##
-!   CHECK: It would be useful to have a subroutine that compares strings and that is not case sensitive.
 !
 !------------------------------------------------------------------------------
 
@@ -398,6 +402,56 @@
 
 !------------------------------------------------------------------------------
  END FUNCTION StringUpperCase 
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ FUNCTION Substring_is_contained_in_StringL(SubstringC,StringC) RESULT (is_containedL)
+!------------------------------------------------------------------------------
+!
+!++f* String_Utility/Substring_is_contained_in_StringL
+!
+! NAME
+!   FUNCTION Substring_is_contained_in_StringL
+!
+! PURPOSE
+!   Checks if a substring is contained in a string.
+!
+! USAGE
+!   Substring_is_contained_in_StringL(SubstringC,StringC)
+! 
+! INPUT 
+!   o StringC
+!   o StringC
+!
+! OUTPUT
+!   o is_containedL:       .TRUE. if 'SubstringC' is contained in 'StringC'.
+!
+! NOTES
+!   Example: If substring 'GaAs' is contained in string 'AlAs GaAs InAs', the function returns .TRUE., else .FALSE.
+!   
+!##
+!
+!------------------------------------------------------------------------------
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(in)  :: SubstringC
+ CHARACTER(len=*),INTENT(in)  :: StringC
+ LOGICAL                      :: is_containedL  ! RESULT
+
+ IF ( INDEX( TRIM(StringC) , TRIM(SubstringC) ) == 0 ) THEN
+         !------------------------------------------------------------------------------------------
+         ! If INDEX == 0, then the substring 'SubstringC' is not contained in the string 'StringC'.
+         !------------------------------------------------------------------------------------------
+         is_containedL = .FALSE.
+ ELSE
+         is_containedL = .TRUE.
+ END IF
+
+!------------------------------------------------------------------------------
+ END FUNCTION Substring_is_contained_in_StringL
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------

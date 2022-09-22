@@ -1541,7 +1541,8 @@ CONTAINS                                                               !
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE system_specific_parser   ,ONLY:DebugLevel
  USE mod_int_to_char999       ,ONLY:int_2_char ! converts integer to character
- USE String_Utility           ,ONLY:StringLowerCase
+ USE String_Utility           ,ONLY:StringLowerCase, &
+                                    Substring_is_contained_in_StringL
  USE Parser_Errors            ,ONLY:Print_Keyword_Specifier_Line
  USE mod_Print_Keywords_Queue ,ONLY:Replace_Choice_and_Delimiters
  USE mod_string_to_value      ,ONLY:convert_string_to_value
@@ -1579,7 +1580,6 @@ CONTAINS                                                               !
  LOGICAL                                :: choiceL
  CHARACTER(len=char_length_choice_name) :: choiceC
  CHARACTER(len=char_length_choice_name) :: choiceC_temp
- CHARACTER(len=:),ALLOCATABLE           :: choiceC_lower_case
 
  INTEGER                                :: num_xs,num_xd,num_in,num_ca,num_lo
  LOGICAL                                :: CheckStringL = .FALSE.
@@ -1757,39 +1757,33 @@ CONTAINS                                                               !
     IF ( TRIM(data_typeC) == TRIM(name_ca) .OR. &  ! Check character.
          TRIM(data_typeC) == TRIM(name_lo)) THEN   ! Check logical (.TRUE./.FALSE.)
       CheckStringL = .TRUE. ! We check 'SpecifierValueC' in case it is a character or logical.
-      IF ( INDEX( TRIM(choiceC_temp) , TRIM(SpecifierValueC) ) == 0 ) THEN
-         !-----------------------------------------------------------------------------------------------
-         ! If INDEX == 0, then the substring 'SpecifierValueC' is not contained in the string 'choiceC'.
-         !-----------------------------------------------------------------------------------------------
-         String_is_contained_in_ChoiceL = .FALSE.
 
-         !---------------------------------------------------------------------------------------------------------------
+         !-----------------------------------------------------------------------------
+         ! Check if substring 'choiceC_temp' is contained in string 'SpecifierValueC'.
+         !-----------------------------------------------------------------------------
+         !--------------------------------------------------------------------------------------------------------
          ! Here we allow the specifier value to be in lower case (mostly due to backwards compatibility),
          ! i.e. we compare the specifier value string to the list of (lower case) choices.
          ! e.g. '... = arpack' does not match 'CHOICE[ARPACK]'. Not we convert 'ARPACK' to 'arpack' (lower case).
          ! Now  '... = arpack' matches        'CHOICE[arpack]'.
-         !---------------------------------------------------------------------------------------------------------------
-         choiceC_lower_case = StringLowerCase( choiceC_temp )
-        IF ( INDEX( TRIM(choiceC_lower_case) , TRIM(SpecifierValueC) ) /= 0 ) THEN
-         String_is_contained_in_ChoiceL = .TRUE.    ! e.g. '... = arpack' matches 'CHOICE[arpack]'
-      !  WRITE(my_output_unit,'(1x,A,A,A,A)')  TRIM(choiceC_temp)," converted to ",TRIM(choiceC_lower_case)," (lower case)"
-        END IF
-      ELSE
-         String_is_contained_in_ChoiceL = .TRUE.
-      END IF
+         !--------------------------------------------------------------------------------------------------------
+         IF ( Substring_is_contained_in_StringL(                  TRIM(choiceC_temp)  , SpecifierValueC ) .OR. &  ! 
+              Substring_is_contained_in_StringL( StringLowerCase( TRIM(choiceC_temp) ), SpecifierValueC ) ) THEN  ! Check lower case, e.g. 'arpack' is contained in 'CHOICE[ARPACK]'.
+          String_is_contained_in_ChoiceL = .TRUE.
+         ELSE
+          String_is_contained_in_ChoiceL = .FALSE.
+         END IF
+
 
     ELSE IF ( TRIM(data_typeC) == TRIM(name_in) ) THEN ! Check integer.
       CheckStringL = .TRUE. ! We check 'SpecifierValueC' in case it is an integer.
          IntegerArrayStringC = int_2_char(in_t)
        ! WRITE(my_output_unit,*)  "IntegerArrayStringC = ",TRIM(IntegerArrayStringC)
-         IF ( INDEX( TRIM(choiceC_temp) , TRIM(IntegerArrayStringC) ) == 0 ) THEN
-          !-----------------------------------------------------------------------------------------------
-          ! If INDEX == 0, then the substring 'SpecifierValueC' is not contained in the string 'choiceC'.
-          !-----------------------------------------------------------------------------------------------
-          String_is_contained_in_ChoiceL = .FALSE.
-         ELSE
-          String_is_contained_in_ChoiceL = .TRUE.
-         END IF
+
+         !---------------------------------------------------------------------------------
+         ! Check if substring 'choiceC_temp' is contained in string 'IntegerArrayStringC'.
+         !---------------------------------------------------------------------------------
+         String_is_contained_in_ChoiceL = Substring_is_contained_in_StringL( TRIM(choiceC_temp) , IntegerArrayStringC )
 
     ELSE IF ( TRIM(data_typeC) == TRIM(name_inar) ) THEN ! Check integer array.
       CheckStringL = .TRUE. ! We check 'SpecifierValueC' in case it is an integer array.
@@ -1800,14 +1794,12 @@ CONTAINS                                                               !
          END DO
          IntegerArrayStringC = TRIM( ADJUSTL(IntegerArrayStringC) )
        ! WRITE(my_output_unit,*)  "IntegerArrayStringC = ",TRIM(IntegerArrayStringC)
-         IF ( INDEX( TRIM(choiceC_temp) , TRIM(IntegerArrayStringC) ) == 0 ) THEN
-          !-----------------------------------------------------------------------------------------------
-          ! If INDEX == 0, then the substring 'SpecifierValueC' is not contained in the string 'choiceC'.
-          !-----------------------------------------------------------------------------------------------
-          String_is_contained_in_ChoiceL = .FALSE.
-         ELSE
-          String_is_contained_in_ChoiceL = .TRUE.
-         END IF
+
+         !---------------------------------------------------------------------------------
+         ! Check if substring 'choiceC_temp' is contained in string 'IntegerArrayStringC'.
+         !---------------------------------------------------------------------------------
+         String_is_contained_in_ChoiceL = Substring_is_contained_in_StringL( TRIM(choiceC_temp) , IntegerArrayStringC )
+
     END IF ! End: TRIM(data_typeC)
 
     IF (CheckStringL) THEN
