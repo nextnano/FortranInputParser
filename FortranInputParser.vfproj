@@ -40,6 +40,5 @@
 		<File RelativePath=".\parser_read_in_keywords_database.f90"/>
 		<File RelativePath=".\parser_read_in_keywords_inputfile.f90"/>
 		<File RelativePath=".\syntax_database.f90"/>
-		<File RelativePath=".\syntax_inputfile.f90"/></Filter>
-		<File RelativePath=".\README.txt"/></Files>
+		<File RelativePath=".\syntax_inputfile.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

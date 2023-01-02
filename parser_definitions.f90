@@ -61,6 +61,8 @@
 
  LOGICAL                         :: GenerateLogFileL = .FALSE.     ! .TRUE. if .log file should be written, i.e. if screen output should be written to file.
  CHARACTER(len=987)              :: LogFilenameC                   ! name of .log file
+ CHARACTER(len=:),ALLOCATABLE    :: NameOfExecutableC
+ LOGICAL                         :: gcc_ExecutableL  = .FALSE.     ! .TRUE. if the executable has been compiled with the gcc/gfortran compiler
 
                                   ! NEXTNANO_PathC                = 'C:\Program Files (x86)\nextnano\nextnano3'
  CHARACTER(len=987)              :: NEXTNANO_PathC                = ''        ! can be changed by environment variable. The location where the nextnano software is installed.
@@ -262,10 +264,10 @@
 !
 !
 !------------------------------------------------------------------------------
- MODULE String_Utility 
+ MODULE String_Utility
 !------------------------------------------------------------------------------
 !
-!++m* general_module_definitions.f90/String_Utility
+!++m* parser_definitions.f90/String_Utility
 !
 ! NAME 
 !   MODULE String_Utility
@@ -456,7 +458,7 @@
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
- END MODULE String_Utility 
+ END MODULE String_Utility
 !------------------------------------------------------------------------------
 !
 !

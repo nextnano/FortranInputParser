@@ -1,0 +1,14 @@
+%Material_1 = AlAs
+%ClusterNumbers = 7 8
+%Temperature = 300.0
+%alpha = 0.5405e-3
+%beta = 204.0
+%BandGap_0K = 1.519
+%Include_InAs = .TRUE.
+%FunctionParser = yes
+%Include_GaAs = 0
+%Include_AlAs = 1 - %Include_GaAs
+%BandGap_300K = %BandGap_0K - %alpha * %Temperature^2 / ( %Temperature + %beta )
+%Material_2 = 'GaAs'
+%TWO = 2.0
+%SEVEN = INT( 5.0 + %TWO )

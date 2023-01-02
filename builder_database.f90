@@ -50,8 +50,9 @@
   ! Define 'database_nn3_keywords.val'
   ! Define 'database_nn3.in'
   CHARACTER(len=*),PARAMETER :: keyword_filetypeC         = 'database_nn3'                                     ! This is how we call these type of files that we want to parse.
+  CHARACTER(len=*),PARAMETER :: keyword_filetype_nnpC     = 'database_nnp'                                     ! This is how we call these type of files that we want to parse.
   CHARACTER(len=*),PARAMETER :: keyword_filenameC         = TRIM(keyword_filetypeC)//'_keywords'//ValidatorC   ! name of file, containing definitions of keywords and specifiers without file extension
-  CHARACTER(len=*),PARAMETER :: MaterialDatabaseFileNameC = TRIM(keyword_filetypeC)//InputC                    ! default name for material database: database_nn3.in
+! CHARACTER(len=*),PARAMETER :: MaterialDatabaseFileNameC = TRIM(keyword_filetypeC)//InputC                    ! default name for material database: database_nn3.in
 
 !------------------------------------------------------------------------------
  END MODULE d_parser_parameters
@@ -184,13 +185,13 @@
 
  IMPLICIT NONE
 
- REAL(4)                                  :: xs_t                                        !
- REAL(8)                                  :: xd_t                                        !
- INTEGER                                  :: in_t                                        !
- LOGICAL                                  :: lo_t                                        !
-!CHARACTER(Data_len/3)                    :: ca_t                                        !
-!CHARACTER(Data_len)                      :: ca_t                                        ! to allow for long strings, e.g. long directory names
-                                                                                         ! Notes: For database: If character string is long, e.g. 267 characters, then the reading of the database takes longer.
+ REAL(4)                                  :: xs_t !
+ REAL(8)                                  :: xd_t !
+ INTEGER                                  :: in_t !
+ LOGICAL                                  :: lo_t !
+!CHARACTER(Data_len/3)                    :: ca_t !
+!CHARACTER(Data_len)                      :: ca_t ! to allow for long strings, e.g. long directory names
+                                                  ! Notes: For database: If character string is long, e.g. 267 characters, then the reading of the database takes longer.
  CHARACTER(char_length_specifier_content) :: ca_t ! to allow for long strings, e.g. long directory names
 !CHARACTER(len=:),ALLOCATABLE             :: ca_t ! to allow for long strings, e.g. long directory names  <= does not work
 
@@ -653,14 +654,14 @@ SUBROUTINE d_add_inp_spec(s,keywords,keyC,spec)
  CHARACTER(len=char_length_type_name)   :: data_type
  LOGICAL                                :: ChoiceL
  CHARACTER(len=char_length_choice_name) :: ChoiceC
-                                                                       !
-   CHARACTER(*), INTENT (IN OUT) :: keyC                                !
-   CHARACTER(*), INTENT (IN OUT) :: spec                               !
-                                                                       !
+
+   CHARACTER(*), INTENT (IN OUT) :: keyC
+   CHARACTER(*), INTENT (IN OUT) :: spec
+
    INTEGER :: num_xs,num_xd,num_in,num_ca,num_lo                       !
    integer num_inar,num_xsar,num_xdar,i
                                                                        !
-   CALL d_position_at_key(s,keyC,node,key_positioned)                     !
+   CALL d_position_at_key(s,keyC,node,key_positioned)
    IF (.NOT. key_positioned) CALL ERROR(2)                             !
                                                                        !
    ALLOCATE(spec_node)                                                 !
@@ -1069,7 +1070,9 @@ CONTAINS                                                               !
    USE d_position_at_key_interface,ONLY:d_position_at_key
    USE mod_string_in_list,ONLY:string_in_list
    USE generic_add                                                     !
-   USE d_parser_parameters,ONLY:Data_len,key_char,keyword_filetypeC
+   USE d_parser_parameters,ONLY:Data_len, &
+                                key_char, &
+                                keyword_filetypeC
 
    IMPLICIT NONE
 
@@ -1098,7 +1101,8 @@ CONTAINS                                                               !
  ! and get related information on data type and choice.
  !------------------------------------------------------
    CALL string_in_list(Data_len,key_char,keywords,keywordC,found_keyL,specC_in=specifierC, &
-                       found_specL=found_specL,data_typeC_out=data_typeC)
+                       found_specL=found_specL, &
+                       data_typeC_out=data_typeC)
    IF (.NOT. found_specL) CALL ERROR(1)                                 !
 
    CALL d_position_at_key(s,keywordC,node,key_positioned)
@@ -1683,6 +1687,8 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
  TYPE(input_key_node),POINTER :: a2                                  ! local pointer to keyword node of collected input queue
  INTEGER                      :: icount,i,j,ioff,k,ii,ii_stop,iii
 
+ CHARACTER(len=*),PARAMETER   :: KeywordFileTypeC = 'database'
+
    bufferC = '' ! has to be initialized because it is an allocatable object
 
     !---------------------------------------
@@ -1726,7 +1732,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
        ! i.e. the content of database_nn3_keywords.val is contained in source code.
        !----------------------------------------------------------------------------
        input_filename_allocatableC = ''
-       CALL InputSyntax('database',.FALSE.,'default-filename', input_filename_allocatableC)
+       CALL InputSyntax(KeywordFileTypeC,.FALSE.,'default-filename', input_filename_allocatableC)
        input_filenameC = input_filename_allocatableC
       END IF
     END IF
@@ -1750,7 +1756,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
      !--------------------------------
      ! ==> 2: queue for keywords file
      !--------------------------------
-    CALL keyword_queue_built_up('database',keyword_filenameC,ParseKeywordsDatabaseL, &
+    CALL keyword_queue_built_up(KeywordFileTypeC,keyword_filenameC,ParseKeywordsDatabaseL, &
                                 Data_len, &
                                 key_char,comment_signsCV,required_key,not_required_key, &
                                 required_input,not_required_input, keywords)
@@ -1765,7 +1771,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
       !-----------------------------------------
       ! Print queue of keywords and specifiers.
       !-----------------------------------------
-      CALL Print_Keywords('database',keyword_filenameC,keywords)
+      CALL Print_Keywords(KeywordFileTypeC,keyword_filenameC,keywords)
      END IF
 
     start_at_topL = .TRUE.                                             !
@@ -1795,9 +1801,9 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
       IF (key_pos(i) > 1) THEN                                         !
        IF (bufferC(key_pos(i)-1:key_pos(i)-1) /= " ") CALL ERROR(1)     !
       END IF                                                           !
-      !------------------------------------------------------
-      ! Check if keyword provided in database file is valid.
-      !------------------------------------------------------
+      !----------------------------------------------------------------------------
+      ! Check if keyword provided in input file (or database input file) is valid.
+      !----------------------------------------------------------------------------
       CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL)
       IF (.NOT. found_keyL)  CALL ERROR(1)                              !
       IF (.NOT. found_keyL)  keys_are_ok = found_keyL                    !
@@ -2329,40 +2335,41 @@ CONTAINS                                                               !
  SUBROUTINE ERROR(ierr)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
-   USE d_parser_parameters   ,ONLY:keyword_filetypeC
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
+ USE d_parser_parameters      ,ONLY:keyword_filetypeC
 
-   IMPLICIT NONE
+ IMPLICIT NONE
 
  INTEGER      ,INTENT(in)  :: ierr
 
-      WRITE(my_output_unit,'(A)')     ""
-      WRITE(my_output_unit,'(A)')     " >>>>>>>> ERROR <<<<<<<<  >>>>>>>>> ERROR <<<<<<<<<<<<"
-      WRITE(my_output_unit,'(A,A,A)') " Error in ",TRIM(keyword_filetypeC),"."
+ CALL Error_PrintStandardMessage(keyword_filetypeC)
 
-     IF      (ierr == 1) THEN                                          !
+ SELECT CASE(ierr)
+  CASE(1)
       WRITE(my_output_unit,*) 'got invalid keyword >',TRIM(keyC), &                   !
                 '< in line number = ',line_number                      !
-     ELSE IF (ierr == 2) THEN                                          !
+  CASE(2)
       WRITE(my_output_unit,*) 'found no keywords in ',TRIM(keyword_filetypeC),'.'
-     ELSE IF (ierr == 3) THEN                                          !
+  CASE(3)
       WRITE(my_output_unit,*) 'invalid keywords in ',TRIM(keyword_filetypeC),'.'
-     ELSE IF (ierr == 4) THEN                                          !
+  CASE(4)
       WRITE(my_output_unit,*) 'odd number of keywords in ',TRIM(keyword_filetypeC),'.'
       WRITE(my_output_unit,'(A)') &
-        ' (Unix/Linux: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
-     ELSE IF (ierr == 5) THEN                                          !
+        ' (Unix/Linux/MacOS: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
+  CASE(5)
       WRITE(my_output_unit,'(A,A,A,I15)') &
                               ' I found invalid specifier >>>',TRIM(spec),'<<<  in line number = ',line_number
-     ELSE IF (ierr == 6) THEN                                          !
+      WRITE(my_output_unit,'(A)') " Allowed values are defined in the file: "//TRIM(keyword_filenameC)
+  CASE(6)
       WRITE(my_output_unit,*) 'invalid specifier(s) in ',TRIM(keyword_filetypeC),'.'
-     ELSE IF (ierr == 7) THEN                                          !
+  CASE(7)
       WRITE(my_output_unit,*) 'expect an = after specifier >',TRIM(spec), &          !
                 '<  in line number = ',line_number                     !
-     ELSE IF (ierr == 8) THEN                                          !
+  CASE(8)
       WRITE(my_output_unit,*) 'nonmatching end keyword  >',TRIM(keyC), &              !
                 '<  in line number = ',line_number                     !
       WRITE(my_output_unit,*) 'expected end keyword is >',TRIM(tempC),'<'            !
-     ELSE IF (ierr == 9) THEN                                          !
+  CASE(9)
       WRITE(my_output_unit,'(A)')         ""
       WRITE(my_output_unit,'(A,A,A)')     " The first specifier after the keyword '",TRIM(keyC),"'"
       WRITE(my_output_unit,'(A,A,A)')     " must be the separating specifier '",TRIM(sep_spec),"'."
@@ -2380,35 +2387,35 @@ CONTAINS                                                               !
       WRITE(my_output_unit,'(7x,A,A)')      TRIM(sep_spec)  ," = ...              !  <==  correct"
       WRITE(my_output_unit,'(7x,A)')        "..."
       WRITE(my_output_unit,'(6x,A)')        key_char//"end_"//keyC(2:LEN_TRIM(keyC))
-     ELSE IF (ierr == 10) THEN                                         !
+  CASE(10)
       WRITE(my_output_unit,*) "Couldn't find specifier after keyword = ",TRIM(keyC)   !
       WRITE(my_output_unit,*) 'Keyword was in line number = ',line_number,' of '     !
       WRITE(my_output_unit,*)  TRIM(keyword_filetypeC),' Neither in line number = ',line_number
       WRITE(my_output_unit,*) 'nor in line number = ',line_number+1,' a valid'       !
       WRITE(my_output_unit,*) 'specifier  appears at the expected position.'
-     ELSE IF (ierr == 11) THEN                                         !
+  CASE(11)
       WRITE(my_output_unit,*) "Couldn't find specifier after keyword = ",TRIM(keyC)   !
       WRITE(my_output_unit,*) 'keyword was in line number = ',line_number,' of '     !
       WRITE(my_output_unit,*)  TRIM(keyword_filetypeC),'. Neither in line number = ',line_number
       WRITE(my_output_unit,*) 'nor in line number = ',line_number+1,' a valid'       !
       WRITE(my_output_unit,*) 'specifier  appears at the expected position.'
-     ELSE IF (ierr == 12) THEN                                         !
+  CASE(12)
       WRITE(my_output_unit,*) "Couldn't find keyword = ",TRIM(ADJUSTL(bufferC))       !
       WRITE(my_output_unit,*) 'This keyword was defined to be required, but it'      !
       WRITE(my_output_unit,*) "does not show up in your ",TRIM(keyword_filetypeC)," = ",TRIM(input_filenameC),"."
       WRITE(my_output_unit,*)                                                        !
-     ELSE
-      WRITE(my_output_unit,*)"Error number not defined: ",ierr 
-     END IF
+  CASE DEFAULT
+      WRITE(my_output_unit,*)"Error number not defined: ierr = ",ierr 
+ END SELECT
 
-      STOP
-
-!------------------------------------------------------------------------------
-    END SUBROUTINE ERROR
-!------------------------------------------------------------------------------
+ STOP
 
 !------------------------------------------------------------------------------
-    END SUBROUTINE d_read_and_analyze_input
+ END SUBROUTINE ERROR
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE d_read_and_analyze_input
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------

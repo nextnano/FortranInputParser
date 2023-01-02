@@ -58,7 +58,8 @@
 
  implicit none
 
- character(len=*), parameter :: FILENAME_VARIABLES_C = 'variables_input'//TextC             ! index label like 'ind000', 'ind001', ...
+ character(len=*), parameter :: FILENAME_VARIABLES_C     = 'variables_input'           //TextC
+ character(len=*), parameter :: FILENAME_VARIABLES_Def_C = 'variables_input_definition'//TextC
 
 !------------------------------------------------------------------------------
  end module Filenames_mod_parser
@@ -335,7 +336,7 @@
  !----------------------------------------
  ! Parse and bytecompile function string.
  !----------------------------------------
-!WRITE(my_output_unit,('(A,A)')) " Parse function = ",TRIM(FunctionC)
+!WRITE(my_output_unit,'(A,A)') " Parse function = ",TRIM(FunctionC)
  CALL parsef(FunctionNumber,FunctionC,VariableNamesCV)
 
       !-------------------------------------------------
@@ -357,9 +358,9 @@
       END IF
 
  IF (.NOT. SuccessL) THEN
-    WRITE(my_output_unit,('(A,A)')) " Error Evaluate_Function: function = ",TRIM(FunctionC)
-    WRITE(my_output_unit,*)         " variable names  = ",VariableNamesCV
-    WRITE(my_output_unit,*)         " variable values = ",VariableValuesV
+    WRITE(my_output_unit,'(A,A)') " Error Evaluate_Function: function = ",TRIM(FunctionC)
+    WRITE(my_output_unit,*)       " variable names  = ",VariableNamesCV
+    WRITE(my_output_unit,*)       " variable values = ",VariableValuesV
     STOP
  END IF
 
@@ -383,7 +384,7 @@
  INTEGER,PARAMETER                    :: char_length_specifier_name = 100     ! A specifier can contain up to 100 characters. This should be large enough.
  INTEGER,PARAMETER                    :: char_length_type_name      = 30
  INTEGER,PARAMETER                    :: char_length_required_name  = 30
- INTEGER,PARAMETER                    :: char_length_choice_name    = 600
+ INTEGER,PARAMETER                    :: char_length_choice_name    = 999     ! 600 was too short for keyword 'k-vectors-sample-type' 
 
  CHARACTER(len=*),PARAMETER :: name_xs   = 'real'                          !
  CHARACTER(len=*),PARAMETER :: name_xd   = 'double'                        !
@@ -2612,6 +2613,7 @@ END MODULE mod_init_keyword_queue
 !   MODULE Parser_Errors
 !
 ! CONTAINS
+!   o SUBROUTINE Error_PrintStandardMessage
 !   o SUBROUTINE Print_Keyword_Specifier_Line
 !   o SUBROUTINE STOP_UnexpectedNumbers
 !   o SUBROUTINE STOP_UnexpectedNumbers_modulo
@@ -2648,6 +2650,61 @@ END MODULE mod_init_keyword_queue
  CONTAINS
 
 !------------------------------------------------------------------------------
+ SUBROUTINE Error_PrintStandardMessage(keyword_filetypeC,line_number)
+!------------------------------------------------------------------------------
+!
+!++s* Parser_Errors/Error_PrintStandardMessage
+!
+! NAME
+!   SUBROUTINE Error_PrintStandardMessage
+!
+! PURPOSE
+!   This subroutine prints out a standard header error message of the Fortran Input Parser.
+! 
+! USAGE
+!   CALL Error_PrintStandardMessage(keyword_filetypeC,line_number)
+! 
+! INPUT
+!   o keyword_filetypeC:    (optional)    'input file' or 'database'
+!   o line_number:          (optional)    line number
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: keyword_filetypeC
+ INTEGER         ,INTENT(in),OPTIONAL :: line_number
+
+  WRITE(my_output_unit,'(A)')     ""
+  WRITE(my_output_unit,'(A)')     "==============================================================================="
+
+ IF ( PRESENT(keyword_filetypeC) ) THEN
+  WRITE(my_output_unit,'(A)')     " Fortran Input Parser: Syntax error in "//TRIM(keyword_filetypeC)
+ ELSE
+  WRITE(my_output_unit,'(A)')     " Fortran Input Parser: Syntax error"
+ END IF
+
+  WRITE(my_output_unit,'(A)')     "==============================================================================="
+
+ IF ( PRESENT(line_number) ) THEN
+  WRITE(my_output_unit,'(A)')     ""
+  WRITE(my_output_unit,'(A,I12)') " Input was found in line number = ",line_number
+  WRITE(my_output_unit,'(A)')     ""
+ END IF
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Error_PrintStandardMessage
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
  SUBROUTINE Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L)
 !------------------------------------------------------------------------------
 !
@@ -2672,8 +2729,6 @@ END MODULE mod_init_keyword_queue
 ! OUTPUT
 !   none
 ! 
-! NOTES
-!
 !##
 !
 !------------------------------------------------------------------------------
@@ -2686,10 +2741,10 @@ END MODULE mod_init_keyword_queue
  INTEGER         ,INTENT(in),OPTIONAL :: line
  LOGICAL         ,INTENT(in),OPTIONAL :: STOP_L
 
-  WRITE(my_output_unit,'(A,A)')   "  keyword   = " ,TRIM(keywordC)
-  WRITE(my_output_unit,'(A,A,A)') "  specifier =  ",TRIM(specifierC)," = ..."
+  WRITE(my_output_unit,'(A,A)')   "  keyword:   " ,TRIM(keywordC)
+  WRITE(my_output_unit,'(A,A,A)') "  specifier:  ",TRIM(specifierC)," = ..."
  IF ( PRESENT(line) ) THEN
-  WRITE(my_output_unit,'(A,I10)') "  line      = " ,line
+  WRITE(my_output_unit,'(A,I10)') "  line in input file: " ,line
  END IF
 
  IF ( PRESENT(STOP_L) ) THEN
@@ -2746,7 +2801,9 @@ END MODULE mod_init_keyword_queue
  WRITE(my_output_unit,*) " Unexpected number of values for given specifier."
  WRITE(my_output_unit,*) " You specified ",SIZE(ArrayV)," values."
  WRITE(my_output_unit,*) ArrayV
- WRITE(my_output_unit,*) " However, I need exactly ",ExpectedNumber," numbers - nothing else!"
+ WRITE(my_output_unit,*) " However, I need exactly ",ExpectedNumber," numbers."
+ WRITE(my_output_unit,*) " Number of values found:    ",SIZE(ArrayV)
+ WRITE(my_output_unit,*) " Number of values expected: ",ExpectedNumber
 
  CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
 
@@ -2800,7 +2857,9 @@ END MODULE mod_init_keyword_queue
  WRITE(my_output_unit,*) " Unexpected number of values for given specifier."
  WRITE(my_output_unit,*) " You specified ",SIZE(ArrayV)," values."
  WRITE(my_output_unit,*) ArrayV
- WRITE(my_output_unit,*) " However, I need exactly ",ExpectedNumber," numbers - nothing else!"
+ WRITE(my_output_unit,*) " However, I need exactly ",ExpectedNumber," numbers."
+ WRITE(my_output_unit,*) " Number of values found:    ",SIZE(ArrayV)
+ WRITE(my_output_unit,*) " Number of values expected: ",ExpectedNumber
 
  CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
 
@@ -3324,6 +3383,7 @@ END MODULE mod_init_keyword_queue
 ! CONTAINS
 !   o subroutine ApplyMacro
 !   o subroutine Write_Variables_to_File
+!   o subroutine Check_forbidden_characters
 !   o subroutine CountGetVariables
 !   o subroutine ReplaceVariables
 !   o subroutine EvaluateFunction
@@ -3337,6 +3397,15 @@ END MODULE mod_init_keyword_queue
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
+
+ CHARACTER(len=*) ,PARAMETER   :: MacroC = '***macro***'
+
+ TYPE :: type_variable
+  CHARACTER(len=:),ALLOCATABLE :: nameC           ! store the name  of the variable
+  CHARACTER(len=:),ALLOCATABLE :: value_initialC  ! store the value of the variable (initial value)
+  CHARACTER(len=:),ALLOCATABLE :: valueC          ! store the value of the variable (final value)
+  INTEGER                      :: defined_in_line ! store the line where the definition of the variable name occurs
+ END TYPE
 
  CONTAINS
 
@@ -3388,15 +3457,9 @@ END MODULE mod_init_keyword_queue
 !
 !-----------------------------------------------------------------------
  use My_Input_and_Output_Units, only: my_output_unit
- use mod_int_to_char999       , only: int_2_char ! converts integer to character
- use mod_Brackets             , only: CompletelyEnclosed
- use CharacterManipulation    , only: CharacterReplace
- use mod_chrpak               , only: StringReplace
- use mod_Array_of_Strings     , only: String_in_Line
  use String_Utility           , only: StringLowerCase, &
                                       StringUpperCase
- use input_type_names         , only: QuotationMarkC, &
-                                      ApostropheC
+ use mod_Array_of_Strings     , only: String_in_Line
 
  IMPLICIT NONE
 
@@ -3411,34 +3474,10 @@ END MODULE mod_init_keyword_queue
 
  INTEGER                                               :: i
  INTEGER                                               :: NumberOfVariables
- INTEGER                     ,DIMENSION(:),ALLOCATABLE :: Line_of_VariableDefinitionV
- CHARACTER(max_string_length),DIMENSION(:),ALLOCATABLE :: VariableNameCV
- CHARACTER(len=:)                         ,ALLOCATABLE :: VariableNameC
- CHARACTER(max_string_length),DIMENSION(:),ALLOCATABLE :: VariableValueCV
- CHARACTER(len=:)                         ,ALLOCATABLE :: VariableValueC
+ TYPE(type_variable),DIMENSION(:),ALLOCATABLE          :: VariableV
  LOGICAL                                               :: EvaluateVariableL
  INTEGER                                               :: EvaluateVariableLowerBound
 !INTEGER                                               :: EvaluateVariableUpperBound
-
- CHARACTER(max_string_length),DIMENSION(:),ALLOCATABLE :: functionCV
-!CHARACTER(len=14)           ,DIMENSION(:),ALLOCATABLE :: FunctionResultCV           ! must be at least 14 characters long
- CHARACTER(len=17)           ,DIMENSION(:),ALLOCATABLE :: FunctionResultCV           ! must be at least 17 characters long
- LOGICAL                     ,DIMENSION(:),ALLOCATABLE :: Real8FunctionSuccessLV
- LOGICAL                                               :: ReturnIntegerL
-!CHARACTER(len=14)           ,DIMENSION(1)             :: temp_FunctionResultCV      ! must be at least 14 characters long
- CHARACTER(len=17)           ,DIMENSION(1)             :: temp_FunctionResultCV      ! must be at least 17 characters long
- LOGICAL                     ,DIMENSION(1)             :: temp_Real8FunctionSuccessLV
-
- INTEGER                                               :: NumberOfFunctions
- INTEGER                                               :: ifunc
- CHARACTER(len=10)                                     :: CounterC
- LOGICAL                                               :: TreatFunctionAsStringL
- INTEGER                                               :: length_of_variable_value
- INTEGER                                               :: position_INT
- INTEGER                                               :: position_bracket
- INTEGER                                               :: ii
- INTEGER                                               :: m,n
- LOGICAL                                               :: FoundBracketFollowing_INT_L
 
  IF ( LEN(SpecialMacroCharacterC) /= 1 ) THEN
     WRITE(my_output_unit,'(A)')   " Error ApplyMacro: Special character is expected to consist only of one character."
@@ -3447,11 +3486,11 @@ END MODULE mod_init_keyword_queue
     STOP
  END IF
 
- !----------------------------------
- ! 1) Count variables.
- !----------------------------------
- CALL CountGetVariables('count',NumberOfLines,SpecialMacroCharacterC,CommentSigns_CV,StringsV, &
-                                NumberOfVariables) ! Note: 'NumberOfVariables' is output.
+  !-----------------------------------------------------
+  ! 1) Count variables.
+  !-----------------------------------------------------
+  CALL CountGetVariables('count',NumberOfLines,SpecialMacroCharacterC,CommentSigns_CV,StringsV, &
+                                 NumberOfVariables) ! Note: 'NumberOfVariables' is output.
 
  if (NumberOfVariables > 0) then
    MacroActiveL = .TRUE.
@@ -3461,21 +3500,20 @@ END MODULE mod_init_keyword_queue
 
  MACRO_ACTIVE: if (MacroActiveL) then
 
-  WRITE(my_output_unit,'(A,I5)') " Macro status: Macro definition found in input file. # variables defined = ",NumberOfVariables
-  WRITE(my_output_unit,'(A)')    " "
+  WRITE(my_output_unit,'(A,I5)') " Macro status: Macro definition found in input file. # variables defined = ", &
+                                   NumberOfVariables
+  WRITE(my_output_unit,'(A)')    ""
 
-  ! %variable_name = variable_value
-  ALLOCATE(VariableNameCV             (NumberOfVariables)) ! store the name  of the variable: variable_name
-  ALLOCATE(VariableValueCV            (NumberOfVariables)) ! store the value of the variable: variable_value
-  ALLOCATE(Line_of_VariableDefinitionV(NumberOfVariables)) ! store the line where the definition of the variable name occurs
+  ALLOCATE(VariableV(NumberOfVariables))
 
-  !----------------------------------
+  !-----------------------------------------------------
   ! 2) Get variables and its values.
   !    e.g. %variable = <value>
-  !----------------------------------
+  !    VariableV(:)%nameC = VariableV(:)%value_initialC
+  !-----------------------------------------------------
   CALL CountGetVariables('get'  ,NumberOfLines,SpecialMacroCharacterC,CommentSigns_CV,StringsV, &
-                                 NumberOfVariables,VariableNameCV,VariableValueCV,Line_of_VariableDefinitionV) ! Note: 'NumberOfVariables' is input.
-  WRITE(my_output_unit,'(A)')    " "
+                                 NumberOfVariables,VariableV) ! Note: 'NumberOfVariables' is input.
+  WRITE(my_output_unit,'(A)')    ""
 
   !----------------------------------------------------------------------------------
   ! Now check if there are any variables that should be evaluated (function parser).
@@ -3488,16 +3526,16 @@ END MODULE mod_init_keyword_queue
       !!!   CHECK: It might be useful to have '$FunctionParser = no' to avoid variables to be evaluated, e.g. '%DOMAIN-coordinates = 0d0 5d0'.
       !!!          Here, the minus sign and the '=' sign are interpreted as equations.
       !!!   RESTRICTION: A minus sign in a variable name is NOT allowed, such as '%DOMAIN-coordinates'. Use '%DOMAIN_coordinates' instead.
-      !!!   IF ( TRIM(VariableNameCV (i)) == '%FunctionParser' .AND. &
-      !!!        TRIM(VariableValueCV(i)) == 'no') THEN
+      !!!   IF ( TRIM(VariableV(i)%nameC)          == '%FunctionParser' .AND. &
+      !!!        TRIM(VariableV(i)%value_initialC) == 'no') THEN
 
          !--------------------------------------------------------------------------------------------------------------
          ! Search for '%FunctionParser = yes' in input file and detect which variable number this is (Determine ==> i).
          ! All variables < i are not evaluated in the following.
          ! All variables > i are     evaluated in the following. Variable #i = '%FunctionParser = yes'.
          !--------------------------------------------------------------------------------------------------------------
-         IF ( StringUpperCase( TRIM(VariableNameCV (i)) ) == '%FUNCTIONPARSER' .AND. &
-              StringLowerCase( TRIM(VariableValueCV(i)) ) == 'yes') THEN
+         IF ( StringUpperCase( TRIM(VariableV(i)%nameC)          ) == '%FUNCTIONPARSER' .AND. &
+              StringLowerCase( TRIM(VariableV(i)%value_initialC) ) == 'yes') THEN
             !--------------------------------------------------------------
             ! This means that all variables with index >= i are evaluated.
             ! All other are treated as strings.
@@ -3516,6 +3554,67 @@ END MODULE mod_init_keyword_queue
    !-------------------------------------------------------
    ! Now evaluate variables if they consist of a function.
    !-------------------------------------------------------
+   CALL Evaluate_Variable_if_function
+  else
+   WRITE(my_output_unit,'(A)') " Macro function parser: No variables are evaluated because '%FunctionParser = yes'"// &
+                               " was not present."
+  end if EVALUATE_VARIABLE
+
+
+  !-----------------------------------------------------------------------------------
+  ! 3) Replace variables either with its value, or with its evaluated function value.
+  !-----------------------------------------------------------------------------------
+  CALL ReplaceVariables(NumberOfVariables,max_string_length,VariableV,CommentSigns_CV, &
+                        IF_STATEMENT_CV, &
+                        StringsV)
+ 
+  WRITE(my_output_unit,'(A)') " "
+
+  !---------------------------------------------------
+  ! Write all variables and their values into a file.
+  !---------------------------------------------------
+  call Write_Variables_to_File( VariableV )
+
+  DEALLOCATE(VariableV)
+
+ end if MACRO_ACTIVE
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ SUBROUTINE Evaluate_Variable_if_function
+!------------------------------------------------------------------------------
+ use mod_int_to_char999       , only: int_2_char ! converts integer to character
+ use mod_Brackets             , only: CompletelyEnclosed
+ use CharacterManipulation    , only: CharacterReplace
+ use mod_chrpak               , only: StringReplace
+ use input_type_names         , only: QuotationMarkC, &
+                                      ApostropheC
+
+ IMPLICIT NONE
+
+ CHARACTER(len=:)                         ,ALLOCATABLE :: VariableNameC
+ CHARACTER(len=:)                         ,ALLOCATABLE :: VariableValueC
+
+ CHARACTER(max_string_length),DIMENSION(:),ALLOCATABLE :: functionCV
+!CHARACTER(len=14)           ,DIMENSION(:),ALLOCATABLE :: FunctionResultCV           ! must be at least 14 characters long
+ CHARACTER(len=17)           ,DIMENSION(:),ALLOCATABLE :: FunctionResultCV           ! must be at least 17 characters long
+ LOGICAL                     ,DIMENSION(:),ALLOCATABLE :: Real8FunctionSuccessLV
+ LOGICAL                                               :: ReturnIntegerL
+!CHARACTER(len=14)           ,DIMENSION(1)             :: temp_FunctionResultCV      ! must be at least 14 characters long
+ CHARACTER(len=17)           ,DIMENSION(1)             :: temp_FunctionResultCV      ! must be at least 17 characters long
+ LOGICAL                     ,DIMENSION(1)             :: temp_Real8FunctionSuccessLV
+
+ INTEGER                                               :: NumberOfFunctions
+ INTEGER                                               :: ifunc
+ CHARACTER(len=:),ALLOCATABLE                          :: CounterC
+ LOGICAL                                               :: TreatFunctionAsStringL
+ INTEGER                                               :: length_of_variable_value
+ INTEGER                                               :: position_INT
+ INTEGER                                               :: position_bracket
+ INTEGER                                               :: ii
+ INTEGER                                               :: m,n
+ LOGICAL                                               :: FoundBracketFollowing_INT_L
 
 !  IF (DebugLevel > 3) THEN
     WRITE(my_output_unit,'(A,A,A,A,A)') " Macro function parser: The following variables are evaluated: (", &
@@ -3554,8 +3653,8 @@ END MODULE mod_init_keyword_queue
     !------------------------------------------
     ! Get rid of leading and trailing blanks.
     !------------------------------------------
-    VariableNameC  = TRIM( ADJUSTL(VariableNameCV(i))  )
-    VariableValueC = TRIM( ADJUSTL(VariableValueCV(i)) )
+    VariableNameC  = TRIM( ADJUSTL(VariableV(i)%nameC)  )
+    VariableValueC = TRIM( ADJUSTL(VariableV(i)%valueC) )
     length_of_variable_value = LEN(VariableValueC)
 
   !  IF ( LEN(VariableValueC) == 0 ) THEN ! Check empty string.
@@ -3587,7 +3686,7 @@ END MODULE mod_init_keyword_queue
         !-------------------------------
         ! Replace variable with string.
         !-------------------------------
-        VariableValueCV(i) =  TRIM( ADJUSTL(VariableValueC) )
+        VariableV(i)%valueC =  TRIM( ADJUSTL(VariableValueC) )
    else
     
     !-------------------------------------------------------------------
@@ -3695,7 +3794,7 @@ END MODULE mod_init_keyword_queue
     !-------------------------------------------------------------------------
     functionCV(ifunc) =  TRIM( ADJUSTL(VariableValueC) )
 
-    CALL EvaluateFunction([functionCV(ifunc)],[ReturnIntegerL],VariableNameCV,VariableValueCV,DebugLevel, &
+    CALL EvaluateFunction([functionCV(ifunc)],[ReturnIntegerL],max_string_length,VariableV,DebugLevel, &
                           temp_FunctionResultCV,temp_Real8FunctionSuccessLV)
         Real8FunctionSuccessLV(ifunc) = temp_Real8FunctionSuccessLV(1)
     REAL8: if (Real8FunctionSuccessLV(ifunc)) then
@@ -3716,14 +3815,14 @@ END MODULE mod_init_keyword_queue
         !-----------------------------------------
         ! Replace variable with evaluated result.
         !-----------------------------------------
-        VariableValueCV(i) =  TRIM(FunctionResultCV(ifunc))
+        VariableV(i)%valueC =  TRIM(FunctionResultCV(ifunc))
         WRITE(my_output_unit,'(A,A,A,A,A,A,A,A,A)') &
-        " variable #",TRIM(CounterC),": ",TRIM(VariableNameCV(i)) ," = ",TRIM(functionCV(ifunc)) ," = ", &
-                                          TRIM(VariableValueCV(i))," (evaluated and replaced)"
+        " variable #",TRIM(CounterC),": ",TRIM(VariableV(i)%nameC) ," = ",TRIM(functionCV(ifunc)) ," = ", &
+                                          TRIM(VariableV(i)%valueC)," (evaluated and replaced)"
     else
       IF (DebugLevel > 3) THEN
         WRITE(my_output_unit,'(A,A,A,A,A,A,A)') &
-        " variable #",TRIM(CounterC),": ",TRIM(VariableNameCV(i))," = ",TRIM(functionCV(ifunc)) ," (not evaluated)"
+        " variable #",TRIM(CounterC),": ",TRIM(VariableV(i)%nameC)," = ",TRIM(functionCV(ifunc)) ," (not evaluated)"
       END IF
     end if REAL8
     
@@ -3734,31 +3833,10 @@ END MODULE mod_init_keyword_queue
     DEALLOCATE(functionCV)
     DEALLOCATE(FunctionResultCV)
     DEALLOCATE(Real8FunctionSuccessLV)
-    
-  else
-   WRITE(my_output_unit,'(A)') " Macro function parser: No variables are evaluated because '%FunctionParser = yes'"// &
-                               " was not present."
-  end if EVALUATE_VARIABLE
 
-  !-----------------------------------------------------------------------------------
-  ! 3) Replace variables either with its value, or with its evaluated function value.
-  !-----------------------------------------------------------------------------------
-  CALL ReplaceVariables(NumberOfVariables,VariableNameCV,VariableValueCV,Line_of_VariableDefinitionV,CommentSigns_CV, &
-                        IF_STATEMENT_CV, &
-                        StringsV)
- 
-  WRITE(my_output_unit,'(A)') " "
-
-  !---------------------------------------------------
-  ! Write all variables and their values into a file.
-  !---------------------------------------------------
-  call Write_Variables_to_File( VariableNameCV, VariableValueCV )
-
-  DEALLOCATE(VariableNameCV)
-  DEALLOCATE(VariableValueCV)
-  DEALLOCATE(Line_of_VariableDefinitionV)
-
- end if MACRO_ACTIVE
+!------------------------------------------------------------------------------
+ END SUBROUTINE Evaluate_Variable_if_function
+!------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
  END SUBROUTINE ApplyMacro
@@ -3767,45 +3845,65 @@ END MODULE mod_init_keyword_queue
 !
 !
 !------------------------------------------------------------------------------
- subroutine Write_Variables_to_File( VariableNameCV, VariableValueCV )
+ subroutine Write_Variables_to_File( VariableV )
 !------------------------------------------------------------------------------
 ! PURPOSE
 !   Write all variables and their values into a file.
 !------------------------------------------------------------------------------
- use My_Input_and_Output_Units, only: my_output_unit
- use Filenames_mod_parser     , only: FILENAME_VARIABLES_C
+ use Filenames_mod_parser     , only: FILENAME_VARIABLES_C, &
+                                      FILENAME_VARIABLES_Def_C
  use DirectoryFileExist       , only: SetGlobalDirectoryName
 
  implicit none
 
- character(len=*), dimension(:), intent(in)  :: VariableNameCV
- character(len=*), dimension(:), intent(in)  :: VariableValueCV
+ type(type_variable),dimension(:),intent(in) :: VariableV
 
  integer                                     :: i
+ logical                                     :: OutputDefinitionFileL
 
- if ( size( VariableNameCV ) /= size( VariableValueCV ) ) then
-    write(my_output_unit, '(A)')    "Error Write_Variables_to_File: size( VariableNameCV ) /= size( VariableValueCV )"
-    write(my_output_unit, '(A,I5)') "                               size( VariableNameCV )  = ", size( VariableNameCV )
-    write(my_output_unit, '(A,I5)') "Error Write_Variables_to_File: size( VariableValueCV ) = ", size( VariableValueCV )
-    stop
- end if
+
+  OutputDefinitionFileL = .FALSE.
+  !--------------------------
+  ! Loop over all variables.
+  !--------------------------
+  do i = 1, size( VariableV )
+   if ( trim( VariableV(i)%value_initialC ) /= &
+        trim( VariableV(i)%valueC ) ) then
+      !----------------------------------------------------------------------------------------
+      ! If the final value of a variable is different from the initial value of this variable,
+      ! it means it was evaluated.
+      ! Therefore we output also the definition file.
+      !----------------------------------------------------------------------------------------
+      OutputDefinitionFileL = .TRUE.
+      exit ! Exit do loop.
+   end if
+  end do
 
  !------------------------------------------------------------------------------------------------------
  ! We use SetGlobalDirectoryName() to make sure that the directory is created if it does not exist yet.
  !------------------------------------------------------------------------------------------------------
- open( UNIT = 12, FILE = TRIM( SetGlobalDirectoryName('') ) // FILENAME_VARIABLES_C )
+    if ( OutputDefinitionFileL ) THEN
+      open( UNIT = 12, FILE = TRIM( SetGlobalDirectoryName('') ) // FILENAME_VARIABLES_Def_C )
+    end if
+      open( UNIT = 13, FILE = TRIM( SetGlobalDirectoryName('') ) // FILENAME_VARIABLES_C )
 
-  !-----------------------------------------------------------------------------------
-  ! Loop over the variables that are before the definition of 'FunctionParser = yes'.
-  !-----------------------------------------------------------------------------------
-  do i = 1, size( VariableNameCV )
+  !--------------------------
+  ! Loop over all variables.
+  !--------------------------
+  do i = 1, size( VariableV )
     !---------------------------------------------------
     ! Write all variables and their values into a file.
     !---------------------------------------------------
-    write( UNIT = 12, FMT = '(A,A,A)' ) trim( VariableNameCV(i) )," = ",trim( VariableValueCV(i) )
+    if ( OutputDefinitionFileL ) THEN
+       write( UNIT = 12, FMT = '(A)' ) trim( VariableV(i)%nameC )//" = "//trim( VariableV(i)%value_initialC )
+    end if
+       write( UNIT = 13, FMT = '(A)' ) trim( VariableV(i)%nameC )//" = "//trim( VariableV(i)%valueC         )
   end do
 
- close( UNIT = 12 )
+    if ( OutputDefinitionFileL ) THEN
+      close( UNIT = 12 )
+    end if
+      close( UNIT = 13 )
 
 !------------------------------------------------------------------------------
  end subroutine Write_Variables_to_File
@@ -3813,12 +3911,51 @@ END MODULE mod_init_keyword_queue
 !
 !
 !
+!-----------------------------------------------------------------------
+ SUBROUTINE Check_forbidden_characters(VariableNameC)
+!-----------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE String_Utility           ,ONLY:Substring_is_contained_in_StringL
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
+
+ CHARACTER(len=*),INTENT(in)  :: VariableNameC
+
+ CHARACTER(len=10),DIMENSION(1) :: ForbiddenCharactersCV
+ CHARACTER(len=:),ALLOCATABLE   :: ForbiddenCharacterC
+ LOGICAL                        :: character_is_contained_in_variableL
+ INTEGER                        :: i
+
+ ForbiddenCharactersCV(1) = '-' ! to avoid confusion with minus sign
+!ForbiddenCharactersCV(2) = '+' ! to avoid confusion with plus sign
+!ForbiddenCharactersCV(3) = '*' ! to avoid confusion with multiplication sign
+!ForbiddenCharactersCV(4) = '/' ! to avoid confusion with division sign  ! We allow this as it is needed for folder names, such as "Documents/".
+
+ !---------------------------------------------------------------
+ ! Check if forbidden characters are contained in variable name. 
+ !---------------------------------------------------------------
+
+ DO i=1,SIZE(ForbiddenCharactersCV)
+  ForbiddenCharacterC = TRIM(ForbiddenCharactersCV(i))
+  character_is_contained_in_variableL = Substring_is_contained_in_StringL( ForbiddenCharacterC , VariableNameC)
+
+  IF ( character_is_contained_in_variableL ) THEN
+    CALL Error_PrintStandardMessage
+    WRITE(my_output_unit,'(A)') " Variable name   >>> '"//TRIM(VariableNameC)//"' <<<  "// &
+                                " contains not allowed character   >>> '"//ForbiddenCharacterC//"' <<<."
+    STOP
+  END IF
+ END DO
+
+!-----------------------------------------------------------------------
+ END SUBROUTINE Check_forbidden_characters
+!-----------------------------------------------------------------------
+!
+!
+!
 !------------------------------------------------------------------------------
  SUBROUTINE CountGetVariables(actionC,NumberOfLines,SpecialMacroCharacterC,CommentSigns_CV,StringsV, &
                               NumberOfVariables, &
-                              VariableNameCV   , &
-                              VariableValueCV  , &
-                              Line_of_VariableDefinitionV)
+                              VariableV)
 !------------------------------------------------------------------------------
 !
 !++s* MacroForInputFile/CountGetVariables
@@ -3835,22 +3972,20 @@ END MODULE mod_init_keyword_queue
 !   For an example, see further below.
 !
 ! USAGE
-!   CALL CountGetVariables(actionC,NumberOfLines,SpecialMacroCharacterC,CommentSigns_CV,StringsV, NumberOfVariables, VariableNameCV,VariableValueCV,Line_of_VariableDefinitionV)
+!   CALL CountGetVariables(actionC,NumberOfLines,SpecialMacroCharacterC,CommentSigns_CV,StringsV, NumberOfVariables, VariableV)
 ! 
 ! INPUT
-!   o actionC = 'count':   Count variables only.
-!               'get':     Get variables: Assign all variables and its values.
-!   o NumberOfLines
-!   o SpecialMacroCharacterC
+!   o actionC = 'count':                     Count variables only.
+!               'get':                       Get variables: Assign all variables and its values.
+!   o NumberOfLines:
+!   o SpecialMacroCharacterC:
 !   o CommentSigns_CV:
-!   o StringsV
-!   o NumberOfVariables       (can be also output)
+!   o StringsV:
+!   o NumberOfVariables:                     (can be also output)
 !
 ! OUTPUT
-!   o NumberOfVariables       (can be also input)
-!   o VariableNameCV                               (optional)
-!   o VariableValueCV                              (optional)
-!   o Line_of_VariableDefinitionV                  (optional)
+!   o NumberOfVariables:                     (can be also input)
+!   o VariableV:                             (optional) variable (name, value, line)
 ! 
 ! NOTES
 !   SYNTAX
@@ -3894,6 +4029,7 @@ END MODULE mod_init_keyword_queue
  USE mod_Array_of_Strings     ,ONLY:String_in_Line
  USE mod_push                 ,ONLY:FindCommentSigns, &
                                     Replace_Comment_with_blanks
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
 
  IMPLICIT NONE
 
@@ -3903,9 +4039,7 @@ END MODULE mod_init_keyword_queue
  CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)             :: CommentSigns_CV
  TYPE(String_in_Line),DIMENSION(:),INTENT(in)             :: StringsV
  INTEGER                          ,INTENT(inout)          :: NumberOfVariables
- CHARACTER(len=*)    ,DIMENSION(:),INTENT(out)  ,OPTIONAL :: VariableNameCV
- CHARACTER(len=*)    ,DIMENSION(:),INTENT(out)  ,OPTIONAL :: VariableValueCV
- INTEGER             ,DIMENSION(:),INTENT(out)  ,OPTIONAL :: Line_of_VariableDefinitionV
+ TYPE(type_variable) ,DIMENSION(:),INTENT(out)  ,OPTIONAL :: VariableV
 
  CHARACTER(LEN=:),ALLOCATABLE                             :: LineC                   ! String of a particular line in input file without leading and trailing blanks.
 
@@ -4003,16 +4137,17 @@ END MODULE mod_init_keyword_queue
 ! WRITE(*,'(A,A)') "              LineC(position+1:position+1+LEN_TRIM(LineC)   )=",              LineC(position+1:position+1+LEN_TRIM(LineC))
 ! WRITE(*,'(A,A)') "      ADJUSTL(LineC(position+1:position+1+LEN_TRIM(LineC)))  =",      ADJUSTL(LineC(position+1:position+1+LEN_TRIM(LineC)))
 ! WRITE(*,'(A,A)') "TRIM( ADJUSTL(LineC(position+1:position+1+LEN_TRIM(LineC))) )=",TRIM( ADJUSTL(LineC(position+1:position+1+LEN_TRIM(LineC))) )
-             VariableNameCV             (variable_counter) = TRIM( ADJUSTL(LineC(1:position-1)              ) )  ! VariableNameCV:  string before '=' (variable)
-             VariableValueCV            (variable_counter) = TRIM( ADJUSTL(LineC(position+1:LEN_TRIM(LineC))) )  ! VariableValueCV: string after  '=' (value)    ! According to this definition everything following the "=" symbol is the variable value.
-             Line_of_VariableDefinitionV(variable_counter) = line_count
+             VariableV(variable_counter)%nameC           = TRIM( ADJUSTL(LineC(1:position-1)              ) )  ! %nameC:          string before '=' (variable)
+             VariableV(variable_counter)%value_initialC  = TRIM( ADJUSTL(LineC(position+1:LEN_TRIM(LineC))) )  ! %value_initialC: string after  '=' (value)    ! According to this definition everything following the "=" symbol is the variable value.
+             VariableV(variable_counter)%valueC          = VariableV(variable_counter)%value_initialC ! initialize
+             VariableV(variable_counter)%defined_in_line = line_count
 
              !--------------------------------------------------------
              ! Print information of variable and its value to screen.
              !--------------------------------------------------------
              WRITE(my_output_unit,'(A,A,A,A,A,A)') " definition variable #",int_2_char(variable_counter),": ", &
-                                                                  TRIM(VariableNameCV (variable_counter))," <== ", &
-                                                                  TRIM(VariableValueCV(variable_counter))
+                                                                        TRIM(VariableV(variable_counter)%nameC)," <== ", &
+                                                                        TRIM(VariableV(variable_counter)%value_initialC)
 
              !-----------------------------------------------------------------------------
              ! Check if 'variable name' is identical to 'variable value'.
@@ -4020,13 +4155,14 @@ END MODULE mod_init_keyword_queue
              ! Such a statement is very likely an error made by the user.
              ! Example: "%y_min = %y_min"
              !-----------------------------------------------------------------------------
-             IF ( TRIM( VariableNameCV( variable_counter) ) == &
-                  TRIM( VariableValueCV(variable_counter) ) ) THEN
+             IF ( TRIM( VariableV(variable_counter)%nameC ) == &
+                  TRIM( VariableV(variable_counter)%value_initialC ) ) THEN
+              CALL Error_PrintStandardMessage
               WRITE(my_output_unit,'(A)') " Error input file: Variable name is equal to its value."
               WRITE(my_output_unit,'(A,A,A,A,A,I10,A)') &
-                    " variable: ",  TRIM(VariableNameCV( variable_counter))," = ", &
-                                    TRIM(VariableValueCV(variable_counter))      , &
-                    "  (line ", Line_of_VariableDefinitionV(variable_counter) ,")"
+                    " variable: ",  TRIM(VariableV(variable_counter)%nameC)," = ", &
+                                    TRIM(VariableV(variable_counter)%value_initialC), &
+                    "  (line ",          VariableV(variable_counter)%defined_in_line ,")"
               WRITE(my_output_unit,'(A)') " I believe this was not done on purpose."
               STOP
              END IF
@@ -4038,20 +4174,25 @@ END MODULE mod_init_keyword_queue
              ! "%y = sqrt(%y) * %x"
              !-----------------------------------------------------------------------------
              DO i=1,variable_counter-1
-                IF ( TRIM( VariableNameCV(i)            ) == &
-                     TRIM( VariableNameCV(variable_counter) ) ) THEN
-                WRITE(my_output_unit,'(A)') " Error input file: Variable is defined more than once."
+              IF ( TRIM( VariableV(       i        )%nameC ) == &
+                   TRIM( VariableV(variable_counter)%nameC ) ) THEN
+                CALL Error_PrintStandardMessage
+                WRITE(my_output_unit,'(A)') " Error input file: Variable '"// &
+                                         TRIM(VariableV(        i       )%nameC)//" 'is defined more than once."
                 WRITE(my_output_unit,'(A,A,A,A,A,I10,A)') &
-                      " variable #1: ",  TRIM(VariableNameCV( i))               ," = ", &
-                                         TRIM(VariableValueCV(i))                   , &
-                      "  (line ", Line_of_VariableDefinitionV(i)                ,")"
+                    "   variable #1: ",  TRIM(VariableV(        i       )%nameC)," = "   , &
+                                         TRIM(VariableV(        i       )%value_initialC), &
+                      "  (line ",             VariableV(        i       )%defined_in_line,")"
                 WRITE(my_output_unit,'(A,A,A,A,A,I10,A)') &
-                      " variable #2: ",  TRIM(VariableNameCV( variable_counter))," = ", &
-                                         TRIM(VariableValueCV(variable_counter))      , &
-                      "  (line ", Line_of_VariableDefinitionV(variable_counter),")"
+                    "   variable #2: ",  TRIM(VariableV(variable_counter)%nameC)," = "   , &
+                                         TRIM(VariableV(variable_counter)%value_initialC), &
+                      "  (line ",             VariableV(variable_counter)%defined_in_line,")"
                 STOP
-                END IF
+              END IF
              END DO
+
+             CALL Check_forbidden_characters( VariableV(variable_counter)%nameC )
+
            END SELECT
           END IF
 
@@ -4075,7 +4216,7 @@ END MODULE mod_init_keyword_queue
 !
 !
 !------------------------------------------------------------------------------
- SUBROUTINE ReplaceVariables(NumberOfVariables,VariableNameCV,VariableValueCV,Line_of_VariableDefinitionV,CommentSigns_CV, &
+ SUBROUTINE ReplaceVariables(NumberOfVariables,max_string_length,VariableV,CommentSigns_CV, &
                              IF_STATEMENT_CV, &
                              StringsV)
 !------------------------------------------------------------------------------
@@ -4092,23 +4233,22 @@ END MODULE mod_init_keyword_queue
 !   in an array of strings (StringsV, e.g. obtained from an ASCII file)
 !   and replaces all other occurences of this macro variable (including multiple entries in one line / one string).
 !   The variable definition is not replaced, i.e. the line where the definition occurs is ignored.
-!   Variables that occur comments are not replaced.
+!   Variables that occur in comments are not replaced.
 !   For an example, see further below.
 !
 ! USAGE
-!   CALL ReplaceVariables(NumberOfVariables,VariableNameCV,VariableValueCV,Line_of_VariableDefinitionV,CommentSigns_CV,IF_STATEMENT_CV, StringsV)
+!   CALL ReplaceVariables(NumberOfVariables,max_string_length,VariableV,CommentSigns_CV,IF_STATEMENT_CV, StringsV)
 ! 
 ! INPUT
-!   o NumberOfVariables
-!   o VariableNameCV
-!   o VariableValueCV
-!   o Line_of_VariableDefinitionV
+!   o NumberOfVariables:
+!   o max_string_length:
+!   o VariableV:
 !   o CommentSigns_CV:
 !   o IF_STATEMENT_CV:
-!   o StringsV                (also output)
+!   o StringsV:                (also output)
 !
 ! OUTPUT
-!   o StringsV                (also input)
+!   o StringsV:                (also input)
 ! 
 ! NOTES
 !   SYNTAX
@@ -4127,9 +4267,8 @@ END MODULE mod_init_keyword_queue
  IMPLICIT NONE
 
  INTEGER                          ,INTENT(in)    :: NumberOfVariables
- CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: VariableNameCV
- CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: VariableValueCV
- INTEGER             ,DIMENSION(:),INTENT(in)    :: Line_of_VariableDefinitionV
+ INTEGER                          ,INTENT(in)    :: max_string_length
+ TYPE(type_variable) ,DIMENSION(:),INTENT(in)    :: VariableV
  CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: CommentSigns_CV
  CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: IF_STATEMENT_CV
  TYPE(String_in_Line),DIMENSION(:),INTENT(inout) :: StringsV
@@ -4137,47 +4276,69 @@ END MODULE mod_init_keyword_queue
  CHARACTER(len=:),ALLOCATABLE                    :: bufferC                 ! String of a particular line in input file.
  CHARACTER(len=:),ALLOCATABLE                    :: NumberOfReplacementsC
  CHARACTER(len=:),ALLOCATABLE                    :: ReplacementC
+ INTEGER                                         :: i
  INTEGER                                         :: line
  INTEGER                                         :: variable_counter
  INTEGER                                         :: NumberOfReplacements
+ CHARACTER(len=max_string_length),DIMENSION(:),ALLOCATABLE :: VariableNameCV
+
+ ALLOCATE(VariableNameCV(NumberOfVariables))
+ DO i = 1,NumberOfVariables
+    VariableNameCV(i) = VariableV(i)%nameC
+ END DO
 
  DO variable_counter=1,NumberOfVariables
 
-       line = Line_of_VariableDefinitionV(variable_counter)
+    line = VariableV(variable_counter)%defined_in_line
 
-       bufferC = TRIM( ADJUSTL( StringsV(line)%StringC ) )      ! Store line in temporary array and remove leading and trailing blanks.
+    bufferC = TRIM( ADJUSTL( StringsV(line)%StringC ) )      ! Store line in temporary array and remove leading and trailing blanks.
 
-       WRITE(my_output_unit,'(A)')       " ================>"
-       WRITE(my_output_unit,'(A,A,A,A)') " Replace variable '",TRIM(VariableNameCV (variable_counter)),"' with its value: ", &
-                                                               TRIM(VariableValueCV(variable_counter))
-       !----------------------------------
-       ! Replace variable with its value.
-       !----------------------------------
-       CALL ReplaceVariableWithValue(VariableNameCV (variable_counter), &
-                                     VariableValueCV(variable_counter),line,CommentSigns_CV,IF_STATEMENT_CV,VariableNameCV, &
-                                     StringsV,NumberOfReplacements)
+    WRITE(my_output_unit,'(A)')       " ================>"
+    WRITE(my_output_unit,'(A,A,A,A)') " Replace variable '",TRIM(VariableV(variable_counter)%nameC),"' with its value: ", &
+                                                            TRIM(VariableV(variable_counter)%valueC)
+    !------------------------------------------------------------------
+    ! Replace everywhere in the input file the variable with its value
+    ! apart from the line where it is defined.
+    !------------------------------------------------------------------
+    CALL ReplaceVariableWithValue(VariableV(variable_counter),CommentSigns_CV,IF_STATEMENT_CV,VariableNameCV, &
+                                  StringsV,NumberOfReplacements)
 
-       !----------------------------------------------------------------------------------------------------------
-       ! Now add a comment sign (CommentSigns_CV(1)) to this variable definition line
-       ! so that the ordinary input parser does not complain.
-       ! Example:    $width = 10d0 ! quantum well width
-       !       ==> ! $width = 10d0 ! quantum well width
-       ! CommentSigns_CV(1) is our default variable sign, i.e.
-       ! comment_signsCV(1) = '!'. CHECK: This could be replaced later with
-       ! comment_signsCV(2) = '#' to be more consistent with nextnano++.
-       !----------------------------------------------------------------------------------------------------------
-       IF (NumberOfReplacements == 1) THEN
-        ReplacementC = 'replacement'
-       ELSE
-        ReplacementC = 'replacements'
-       END IF
-       NumberOfReplacementsC = int_2_char(NumberOfReplacements)
-       StringsV(line)%StringC = TRIM(CommentSigns_CV(1))//'***macro*** ' &
-                                //TRIM(bufferC)//' ('//NumberOfReplacementsC//' '//ReplacementC//')'
-       WRITE(my_output_unit,'(A,A)') " Macro line: ",TRIM(StringsV(line)%StringC)
-       WRITE(my_output_unit,'(A)')   " "
+    !----------------------------------------------------------------------------------------------------------
+    ! Now add a comment sign (CommentSigns_CV(1)) to this variable definition line
+    ! so that the ordinary input parser does not complain.
+    ! Example:    $width = 10d0 ! quantum well width
+    !       ==> ! $width = 10d0 ! quantum well width
+    ! CommentSigns_CV(1) is our default variable sign, i.e.
+    ! comment_signsCV(1) = '!'. CHECK: This could be replaced later with
+    ! comment_signsCV(2) = '#' to be more consistent with nextnano++.
+    !----------------------------------------------------------------------------------------------------------
+    IF (NumberOfReplacements == 1) THEN
+     ReplacementC = 'replacement'
+    ELSE
+     ReplacementC = 'replacements'
+    END IF
+    NumberOfReplacementsC = int_2_char(NumberOfReplacements)
+    StringsV(line)%StringC = TRIM(CommentSigns_CV(1))//TRIM(MacroC)//' ' &
+                             //TRIM(bufferC)//' ('//NumberOfReplacementsC//' '//ReplacementC//')'
+    WRITE(my_output_unit,'(A,A)') " Macro line: ",TRIM(StringsV(line)%StringC)
+    WRITE(my_output_unit,'(A)')   " "
+
+    !----------------------------------------------------------------
+    ! Example
+    ! -------
+    ! %DebugLevel = 1000
+    !  debug-level = %DebugLevel
+    !
+    ! ================>
+    ! Replace variable '%DebugLevel' with its value: 1000
+    ! I found:        debug-level = %DebugLevel
+    ! Replaced with:  debug-level = 1000
+    ! Macro line: !***macro*** %DebugLevel = 1000 (1 replacement)
+    !----------------------------------------------------------------
 
  END DO
+
+ DEALLOCATE(VariableNameCV)
 
 !-----------------------------------------------------------------------
  END SUBROUTINE ReplaceVariables
@@ -4186,7 +4347,7 @@ END MODULE mod_init_keyword_queue
 !
 !
 !-----------------------------------------------------------------------
- SUBROUTINE EvaluateFunction(functionCV,ReturnIntegerLV,VariableNameCV,VariableValueCV,DebugLevel, &
+ SUBROUTINE EvaluateFunction(functionCV,ReturnIntegerLV,max_string_length,VariableV,DebugLevel, &
                              FunctionResultCV,Real8FunctionSuccessLV)
 !-----------------------------------------------------------------------
 ! o ReturnIntegerLV: If true, the result of the evaluated function is converted to an integer.
@@ -4200,56 +4361,62 @@ END MODULE mod_init_keyword_queue
 
  IMPLICIT NONE
 
- CHARACTER(len=*),DIMENSION(:),INTENT(in)  :: functionCV
- LOGICAL         ,DIMENSION(:),INTENT(in)  :: ReturnIntegerLV
- CHARACTER(len=*),DIMENSION(:),INTENT(in)  :: VariableNameCV
- CHARACTER(len=*),DIMENSION(:),INTENT(in)  :: VariableValueCV
- INTEGER                      ,INTENT(in)  :: DebugLevel
- CHARACTER(len=*),DIMENSION(:),INTENT(out) :: FunctionResultCV       ! must be at least 17 characters long (previously it was 14)
- LOGICAL         ,DIMENSION(:),INTENT(out) :: Real8FunctionSuccessLV
+ CHARACTER(len=*)   ,DIMENSION(:),INTENT(in)  :: functionCV
+ LOGICAL            ,DIMENSION(:),INTENT(in)  :: ReturnIntegerLV
+ INTEGER                         ,INTENT(in)  :: max_string_length
+ TYPE(type_variable),DIMENSION(:),INTENT(in)  :: VariableV
+ INTEGER                         ,INTENT(in)  :: DebugLevel
+ CHARACTER(len=*)   ,DIMENSION(:),INTENT(out) :: FunctionResultCV       ! must be at least 17 characters long (previously it was 14)
+ LOGICAL            ,DIMENSION(:),INTENT(out) :: Real8FunctionSuccessLV
 
- INTEGER                                   :: NumberOfVariables
- INTEGER                                   :: NumberOfFunctions
- REAL(rn)                                  :: real_value
- REAL(rn)        ,DIMENSION(:),ALLOCATABLE :: valueV
- REAL(rn)                                  :: FunctionResult
- INTEGER                                   :: i
- INTEGER                                   :: ierror
- INTEGER                                   :: length
+ INTEGER                                      :: NumberOfVariables
+ INTEGER                                      :: NumberOfFunctions
+ REAL(rn)                                     :: real_value
+ REAL(rn)           ,DIMENSION(:),ALLOCATABLE :: valueV
+ REAL(rn)                                     :: FunctionResult
+ INTEGER                                      :: i
+ INTEGER                                      :: ierror
+ INTEGER                                      :: length
+ CHARACTER(len=max_string_length),DIMENSION(:),ALLOCATABLE :: VariableNameCV
 
    NumberOfFunctions = SIZE(functionCV)
-   NumberOfVariables = SIZE(VariableNameCV)
+   NumberOfVariables = SIZE(VariableV)
 
    ALLOCATE(valueV(NumberOfVariables))
    valueV = 0d0
+
+   ALLOCATE(VariableNameCV(NumberOfVariables))
+   DO i = 1,NumberOfVariables
+      VariableNameCV(i) = VariableV(i)%nameC
+   END DO
 
    DO i = 1,NumberOfVariables
       !----------------------------------------------------
       ! We try to replace the variable with a real number.
       !----------------------------------------------------
-      CALL s_to_r8 ( TRIM(VariableValueCV(i)) , real_value , ierror , length)
+      CALL s_to_r8 ( TRIM(VariableV(i)%valueC) , real_value , ierror , length)
       IF (ierror == 0 .AND. &
-          length == LEN_TRIM(VariableValueCV(i))) THEN
+          length == LEN_TRIM(VariableV(i)%valueC)) THEN
          !-------------------------------------------
          ! Variable was replaced with a real number.
          !-------------------------------------------
-       ! WRITE(my_output_unit,*) "length = ",length," == LEN_TRIM(VariableValueCV(i)) = ",LEN_TRIM(VariableValueCV(i))
+       ! WRITE(my_output_unit,*) "length = ",length," == LEN_TRIM(VariableV(i)%valueC) = ",LEN_TRIM(VariableV(i)%valueC)
          valueV(i) = real_value
        ! WRITE(my_output_unit,'(A,I5,A,ES26.12,A)') &
        IF (DebugLevel > 3) THEN
          WRITE(my_output_unit,'(A,I8,A,EN22.12,A,A,A)') &
-                 " macro variable(",i,") = ",valueV(i)," (string replaced with real value)  [",TRIM(VariableNameCV(i)),"]"
+                 " macro variable(",i,") = ",valueV(i)," (string replaced with real value)  [",TRIM(VariableV(i)%nameC),"]"
        END IF
       ELSE
          !-----------------------------------------------
          ! Variable was not replaced with a real number.
          !-----------------------------------------------
-       ! WRITE(my_output_unit,*) "length = ",length," /= LEN_TRIM(VariableValueCV(i)) = ",LEN_TRIM(VariableValueCV(i))
+       ! WRITE(my_output_unit,*) "length = ",length," /= LEN_TRIM(VariableV(i)%valueC) = ",LEN_TRIM(VariableV(i)%valueC)
        ! WRITE(my_output_unit,'(A,I5,A,A,A)') &
        IF (DebugLevel > 3) THEN
          WRITE(my_output_unit,'(A,I8,A,A,A,A,A,A,A)') &
-                 " macro variable(",i,") = ",TRIM(VariableValueCV(i))," (string not used within function parser)  [", &
-                                                                                               TRIM(VariableNameCV(i)),"]"
+                 " macro variable(",i,") = ",TRIM(VariableV(i)%valueC)," (string not used within function parser)  [", &
+                                                                                               TRIM(VariableV(i)%nameC),"]"
        END IF
        ! WRITE(my_output_unit,*) "valueV(i) = cannot be assigned a real value."
          !------------------------------------------------------------------------------------------
@@ -4267,9 +4434,9 @@ END MODULE mod_init_keyword_queue
       !--------------------------------------------
       ! Parse and bytecompile ith function string.
       !--------------------------------------------
-   !  IF (DebugLevel > 3) WRITE(my_output_unit,('(A,A)'))   "Parse function = ",TRIM(functionCV(i))
+   !  IF (DebugLevel > 3) WRITE(my_output_unit,'(A,A)')   "Parse function = ",TRIM(functionCV(i))
       CALL parsef(i,functionCV(i),VariableNameCV)
-   !  IF (DebugLevel > 3) WRITE(my_output_unit,('(A,A,A)')) "Parse function = ",TRIM(functionCV(i))," (done)"
+   !  IF (DebugLevel > 3) WRITE(my_output_unit,'(A,A,A)') "Parse function = ",TRIM(functionCV(i))," (done)"
    END DO
 
  ! WRITE(my_output_unit,*)'==> Bytecode evaluation:'
@@ -4317,6 +4484,7 @@ END MODULE mod_init_keyword_queue
    END DO
 
    DEALLOCATE(valueV)
+   DEALLOCATE(VariableNameCV)
 
 !-----------------------------------------------------------------------
  END SUBROUTINE EvaluateFunction
@@ -4325,7 +4493,108 @@ END MODULE mod_init_keyword_queue
 !
 !
 !------------------------------------------------------------------------------
- SUBROUTINE ReplaceVariableWithValue(VariableC,VariableValueC,Line_of_VariableDefinition,CommentSignsCV,IF_STATEMENT_CV, & 
+ SUBROUTINE CheckIfPositionIsUnique(StringC,position_variable_in,VariableC,VariableNameCV, &
+                                    position_uniqueL)
+!------------------------------------------------------------------------------
+!
+!++s* MacroForInputFile/CheckIfPositionIsUnique
+!
+! NAME
+!   SUBROUTINE CheckIfPositionIsUnique
+!
+! PURPOSE
+!   Checks if a variable ('%xmin') is at a unique position, i.e. in case it is at position '%xmin1',
+!   then it is not considered as unique because the variable '%xmin1' has to be considered instead.
+!   ==> The variable '%xmin1' must not be replaced by '%xmin'.
+!
+! USAGE
+!   CALL CheckIfPositionIsUnique(StringC,position_variable_in,VariableC,VariableNameCV, position_uniqueL)
+! 
+! INPUT
+!   o StringC:                         e.g. '%xmin1 = 5.0 * %xmin ! This is a line in the input file'
+!   o position_variable_in:            e.g. '1'
+!   o VariableC:                       e.g. '%xmin'
+!   o VariableNameCV:                  e.g. '%xmin', '%xmin1',...
+!
+! OUTPUT
+!   o position_uniqueL:               .FALSE. if '%xmin1' starts at position 'position_variable_in', i.e. another variable starting with the same substring is present.
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)             ,INTENT(in)  :: StringC
+ INTEGER                      ,INTENT(in)  :: position_variable_in
+ CHARACTER(len=*)             ,INTENT(in)  :: VariableC
+ CHARACTER(len=*),DIMENSION(:),INTENT(in)  :: VariableNameCV
+ LOGICAL                      ,INTENT(out) :: position_uniqueL
+
+ INTEGER                                   :: i
+ INTEGER                                   :: position_variable
+ INTEGER                                   :: position_other_variable
+ INTEGER                                   :: length_of_variable
+ INTEGER                                   :: length_of_other_variable_name
+
+ IF (position_variable_in <= 0 ) THEN
+    WRITE(my_output_unit,'(A,I20)') " Error CheckIfPositionIsUnique: position_variable_in <= 0: ",position_variable_in
+    STOP
+ END IF
+
+ position_uniqueL = .TRUE. ! default
+
+         !-------------------------------------------------------
+         ! Find position of variable name.
+         !-------------------------------------------------------
+         position_variable       = INDEX ( TRIM(StringC), TRIM(VariableC)         )      ! Get position of    string 'VariableC'         in line.
+
+ IF ( position_variable /= position_variable_in ) THEN
+    PRINT *,"Error CheckIfPositionIsUnique: Internal error."
+    PRINT *,"position_variable    = ",position_variable
+    PRINT *,"position_variable_in = ",position_variable_in
+    STOP
+ END IF
+
+ !--------------------------
+ ! Loop over all variables.
+ !--------------------------
+ DO i=1,SIZE(VariableNameCV)
+    length_of_other_variable_name = 0
+    IF ( TRIM(VariableC) /=                               TRIM(VariableNameCV(i)) ) THEN ! Exclude variable itself from this test.
+         !-------------------------------------------------------
+         ! Find position of variable name (that is a substring).
+         !-------------------------------------------------------
+         position_other_variable = INDEX ( TRIM(StringC), TRIM(VariableNameCV(i)) )      ! Get position of substring 'VariableNameCV(i)' in line.
+         !----------------------------------------------------------------------------------------------------
+         ! If not found, 'position_other_variable' has the value '0', 'position_variable' is always > 0 here.
+         !----------------------------------------------------------------------------------------------------
+         IF ( position_other_variable == position_variable ) THEN
+              !---------------------------------------------------
+              ! Two variable substrings are at the same position.
+              ! We have something like this:
+              ! %Radius      = 2.0
+              ! %RadiusShell = 2.0
+              !---------------------------------------------------
+                  length_of_variable            = LEN_TRIM( VariableC         )
+                  length_of_other_variable_name = LEN_TRIM( VariableNameCV(i) )
+              IF (length_of_other_variable_name > length_of_variable ) THEN ! condition of substring is fulfilled
+                  position_uniqueL = .FALSE.
+                  EXIT ! Exit DO loop.
+              END IF
+         END IF
+    END IF
+ END DO
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE CheckIfPositionIsUnique
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE ReplaceVariableWithValue(VariableT,CommentSignsCV,IF_STATEMENT_CV, & 
                                      VariableNameCV, StringsV, &
                                      NumberOfReplacements)
 !------------------------------------------------------------------------------
@@ -4336,27 +4605,25 @@ END MODULE mod_init_keyword_queue
 !   SUBROUTINE ReplaceVariableWithValue
 !
 ! PURPOSE
-!   Replaces a variable ('VariableC' = '%width') with its value ('VariableValueC' = '10.0').
+!   Replaces a variable (VariableV(:)%nameC = '%width') with its value ('VariableV(:)%valueC' = '10.0').
 !   variable definition, e.g.: '%width = 10.0'
 !   The variable can be defined several times in StringsV(i), i.e. several times in a line. Here, the line number is 'i'.
 !   If there is a comment sign at the beginning of the line, no variable replacements are made in this line, i.e. we leave a commented line unchanged,
 !   unless it is an "!IF ..." statement. In this case, we replace the variable if the IF statement is true.
 !
 ! USAGE
-!   CALL ReplaceVariableWithValue(VariableC,VariableValueC,Line_of_VariableDefinition,CommentSignsCV,IF_STATEMENT_CV,VariableNameCV, StringsV, NumberOfReplacements)
+!   CALL ReplaceVariableWithValue(VariableT,CommentSignsCV,IF_STATEMENT_CV,VariableNameCV, StringsV, NumberOfReplacements)
 ! 
 ! INPUT
-!   o VariableC:                   e.g. '%width'
-!   o VariableValueC:              e.g. '10.0'
-!   o Line_of_VariableDefinition:  if the line containing the variable definition should be excluded (which is usually the case)
+!   o VariableT:
 !   o CommentSignsCV:              e.g. '!'
 !   o IF_STATEMENT_CV:             e.g. '!IF'
 !   o VariableNameCV:              list of all variable names
-!   o StringsV (also output):      Array of strings that have to replaced.
+!   o StringsV: (also output)      Array of strings that have to replaced.
 !
 ! OUTPUT
-!   o StringsV (also input)
-!   o NumberOfReplacements
+!   o StringsV: (also input)
+!   o NumberOfReplacements:
 ! 
 ! NOTES
 !   Examples:
@@ -4384,42 +4651,35 @@ END MODULE mod_init_keyword_queue
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE mod_Array_of_Strings     ,ONLY:String_in_Line
+ USE system_specific_parser   ,ONLY:DebugLevel
 
  IMPLICIT NONE
 
- CHARACTER(len=*)                 ,INTENT(in)    :: VariableC
- CHARACTER(len=*)                 ,INTENT(in)    :: VariableValueC
- INTEGER                          ,INTENT(in)    :: Line_of_VariableDefinition
+ TYPE(type_variable)              ,INTENT(in)    :: VariableT
  CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: CommentSignsCV
  CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: IF_STATEMENT_CV
  CHARACTER(len=*)    ,DIMENSION(:),INTENT(in)    :: VariableNameCV
  TYPE(String_in_Line),DIMENSION(:),INTENT(inout) :: StringsV
  INTEGER                          ,INTENT(out)   :: NumberOfReplacements
 
- INTEGER                                         :: number_of_replacement
  INTEGER                                         :: j
- INTEGER                                         :: character_position
- INTEGER                                         :: position
- INTEGER                                         :: position_previous
 !INTEGER                                         :: position_in_substring
- INTEGER                                         :: position_for_replacement
- INTEGER                                         :: position_other_variable
- LOGICAL                                         :: position_uniqueL
 !INTEGER                                         :: position_of_other_variable_name
  INTEGER                                         :: length_of_variable_name
- INTEGER                                         :: length_of_other_variable_name
- LOGICAL                                         :: ReplaceL
  LOGICAL                                         :: uniqueL
  LOGICAL                                         :: IF_StatementL
  INTEGER                                         :: IF_Statement_length
+ INTEGER                                         :: Line_of_VariableDefinition
  LOGICAL                                         :: Line_is_a_CommentL
  LOGICAL                                         :: Variable_belongs_to_IF_StatementL
-!CHARACTER(len=:),ALLOCATABLE                    :: String_Left_C
-!CHARACTER(len=:),ALLOCATABLE                    :: String_Middle_C
-!CHARACTER(len=:),ALLOCATABLE                    :: String_Right_C
-!CHARACTER(len=:),ALLOCATABLE                    :: RemainingStringC
+ CHARACTER(len=:),ALLOCATABLE                    :: VariableC
+ CHARACTER(len=:),ALLOCATABLE                    :: VariableValueC
 
  WRITE(my_output_unit,'(A)') " "
+
+ VariableC                  = VariableT%nameC
+ VariableValueC             = VariableT%valueC
+ Line_of_VariableDefinition = VariableT%defined_in_line
 
  !-------------------------------------------------------------------
  ! Counter for number of variables that have been replaced by value.
@@ -4440,6 +4700,7 @@ END MODULE mod_init_keyword_queue
  !-------------------------------------------------------------------------------------------------
  CALL Check_if_variable_name_is_unique(VariableC,VariableNameCV, uniqueL)
 
+
  !-----------------------------------------------------------------------------------------------------------
  ! Option a) Loop over all lines in input file, starting from the first line.
  ! Option b) Loop over all lines in input file, starting from the line after the variable definition.
@@ -4448,8 +4709,7 @@ END MODULE mod_init_keyword_queue
  !-----------------------------------------------------------------------------------------------------------
 !STRINGS: do j =  1,                   size(StringsV)           ! a)
  STRINGS: do j =  Line_of_VariableDefinition+1, size(StringsV)  ! b)
-!        IF (j /= Line_of_VariableDefinition) THEN              ! a) Exclude the line in which the variable value is defined.
-
+!        IF (j /= Line_of_VariableDefinition) THEN              ! a) Exclude the line in which the variable value is defined (which is usually the case).
    !---------------------------------------------------------
    ! Check if line begins with "!IF " or if it is a comment.
    !---------------------------------------------------------
@@ -4457,18 +4717,63 @@ END MODULE mod_init_keyword_queue
                                        Line_is_a_CommentL, IF_StatementL, &
                                                            IF_Statement_length, Variable_belongs_to_IF_StatementL )
 
+   IF (DebugLevel > 1000) THEN
+    IF (IF_StatementL .AND. Variable_belongs_to_IF_StatementL) THEN
+     WRITE(my_output_unit,'(A)') " Found IF statement: "//TRIM(StringsV(j)%StringC)
+    END IF
+   END IF
+
    IF ( IF_StatementL .OR. (.NOT. Line_is_a_CommentL) ) THEN
 
-        !----------------------
-        ! Initialize variable.
-        !----------------------
-        position_previous = 0
+    CALL Replace_Variable_in_line(VariableC,uniqueL, StringsV(j)%StringC)
 
-      !----------------------------------------------------------------------------------------------
-      ! This loop is necessary if the variable occurs several times in one line, i.e. in one string.
-      !----------------------------------------------------------------------------------------------
-    ! LINE: do ! Infinite Loop (Too unsecure)
-      LINE: do character_position=1,LEN_TRIM( StringsV(j)%StringC ) ! Loop is limited to number of characters in line as an upper limit.
+   END IF         ! End: IF_StatementL .OR. (.NOT. Line_is_a_CommentL)
+
+! END IF          ! End: Excluded line numbers.
+ end do STRINGS   ! End: Loop over all lines
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ SUBROUTINE Replace_Variable_in_line(VariableC,uniqueL, LineC)
+!------------------------------------------------------------------------------
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)            ,INTENT(in)         :: VariableC
+ LOGICAL                     ,INTENT(in)         :: uniqueL
+ CHARACTER(len=:),ALLOCATABLE,INTENT(inout)      :: LineC
+
+ CHARACTER(len=:),ALLOCATABLE                    :: Line_tempC
+ LOGICAL                                         :: ReplaceL
+ LOGICAL                                         :: position_uniqueL
+ INTEGER                                         :: number_of_replacement
+ INTEGER                                         :: position
+ INTEGER                                         :: position_for_replacement
+ INTEGER                                         :: l
+ INTEGER                                         :: ll
+ INTEGER                                         :: ll_max
+
+ ll_max = LEN_TRIM( LineC ) ! length of line
+
+ !--------------------------------------------------------------------------
+ ! This loop is necessary if the variable occurs several times in one line,
+ ! i.e. in one string. (The line is considered as one string.)
+ ! We loop over all the characters.
+ !--------------------------------------------------------------------------
+ LINE: do ll=1,ll_max ! Loop is limited to number of characters in line as an upper limit.
+
+            Line_tempC = LineC     ! Copy content of line.
+
+          !----------------------------------------------------
+          ! Overwrite all elements smaller than ll with blanks
+          ! because we search for several entries in the line.
+          !----------------------------------------------------
+          IF (ll>1) THEN
+           DO l=1,ll-1
+            Line_tempC(l:l) = " "
+           END DO
+          END IF
 
       !----------------------------------------------------------------------
       ! Search for variable name (e.g. '%x') in current line.
@@ -4478,16 +4783,12 @@ END MODULE mod_init_keyword_queue
       !  o '%xmax'
       ! we have to be careful, not to replace the substring '%x' in '%xmax'.
       !----------------------------------------------------------------------
-           position = INDEX ( TRIM(StringsV(j)%StringC ), TRIM(VariableC) ) ! Get position of substring 'VariableC' in line.
+           position = INDEX ( TRIM(Line_tempC ), TRIM(VariableC) ) ! Get position of substring 'VariableC' in line.
 
 !----------------------------------------------
-! CHECK: (A) This does does not work yet.
-! %Radius                      = 2.0
-! %RadiusShell                 = 2.0 * %Radius    ! ==> Substring %Radius is contained in string %RadiusShell and afterwards it is used.
+! %Radius      = 3.0
+! %RadiusShell = 2.0 * %Radius    ! ==> Substring %Radius is contained in string %RadiusShell.
 !----------------------------------------------
-           IF (position <= position_previous) EXIT ! Exit infinite DO loop. ! This statement could be put into comments to allow for (A).
-
-           position_previous = position
 
            !-----------------------------------------------------------------------------------
            ! If not found, 'position' has the value '0'.
@@ -4504,26 +4805,13 @@ END MODULE mod_init_keyword_queue
                !---------------------------------------------------------------------
 !----------------------------------------------
 ! CHECK: (A) This does not work yet.
-! %Radius                      = 2.0
+! %Radius                      = 3.2
 ! %RadiusShell                 = 2.0 * %Radius    ! ==> Substring %Radius is contained in string %RadiusShell and afterwards it is used.
+! %RadiusShell                 = 2.0 * 3.2        ! ==> Substring %Radius was replaced but %RadiusShell must not be replaced.
 !----------------------------------------------
 
-            !----------------------------------------
-            ! We divide the string into three parts.
-            !----------------------------------------
-         ! IF ( position == 1 ) THEN 
-         !  String_Left_C   = ''
-         ! ELSE
-         !  String_Left_C   = TRIM( StringsV(j)%StringC( 1 : position-1 ) )
-         ! END IF
-         !  String_Middle_C = TRIM( StringsV(j)%StringC(     position : position+LEN_TRIM(VariableC)-1 ) )                                      ! This part contains 'TRIM(VariableC)'.
-         !  String_Right_C  = TRIM( StringsV(j)%StringC(                position+LEN_TRIM(VariableC) : LEN_TRIM( TRIM(StringsV(j)%StringC)) ) )
-         !  WRITE(*,'(A,A)') " hello String_Left_C   = ",TRIM(String_Left_C)
-         !  WRITE(*,'(A,A)') " hello String_Middle_C = ",TRIM(String_Middle_C)
-         !  WRITE(*,'(A,A)') " hello String_Right_C  = ",TRIM(String_Right_C)
-
-            CALL CheckIfPositionIsUnique( TRIM(StringsV(j)%StringC),position, &
-                                          position_uniqueL,position_other_variable,length_of_other_variable_name )
+               CALL CheckIfPositionIsUnique( TRIM(Line_tempC),position,VariableC,VariableNameCV, &
+                                             position_uniqueL )
 
                IF (position_uniqueL) THEN
                     ReplaceL = .TRUE.
@@ -4533,124 +4821,39 @@ END MODULE mod_init_keyword_queue
                   ! The variable substring is contained in another variable name.
                   ! There are two variables of different length. The longer string contains the shorter string as a substring.
                   ! We are not allowed to replace the longer string with the shorter string.
-                  ! Only the opposite is allowed, i.e. LEN_TRIM(VariableC) must be larger than LEN_TRIM(VariableNameCV(i).
+                  ! Only the opposite is allowed, which means that LEN_TRIM(VariableC) must be larger than
+                  ! LEN_TRIM(VariableNameCV(i). (==> position_uniqueL = .TRUE.)
                   !------------------------------------------------------------------------------------------------------------
-
-                  IF (length_of_variable_name >= length_of_other_variable_name) THEN
-                    ReplaceL = .TRUE.
-                    position_for_replacement = position ! CHECK: Somehow this does not make sense. Instead, the remaining string should be checked for a new position in case it appears again.
-                  ELSE
-
                     ReplaceL = .FALSE.
                     position_for_replacement = 0
-                    EXIT ! Exit DO loop.
-
-                 ! RemainingStringC = TRIM( StringsV(j)%StringC( position_other_variable+length_of_other_variable_name : &
-                 !                                               LEN_TRIM(StringsV(j)%StringC) ) )
-                 ! position_in_substring = INDEX ( TRIM(RemainingStringC) , TRIM(VariableC) )      ! Get position of substring 'VariableNameCV(i)' in line.
-
-                 ! CALL CheckIfPositionIsUnique( TRIM(RemainingStringC),position_in_substring, &
-                 !                               position_uniqueL,position_other_variable,length_of_other_variable_name )
-
-                 !  IF ( position_in_substring > 0 ) THEN
-                 !   WRITE(*,'(A,A)') " hello RemainingStringC = ",TRIM(RemainingStringC)
-                 !  WRITE(*,*)       " position_uniqueL       = ",position_uniqueL
-                 !  IF (position_uniqueL) THEN
-                 !    ReplaceL = .TRUE.
-                 !    position_for_replacement = position_other_variable + length_of_other_variable_name + position_in_substring
-                  !  WRITE(*,*) " hello position in substring / for replacement  = ",position_in_substring,position_for_replacement
-                 !   ELSE
-                 !   ReplaceL = .FALSE.
-                 !  END IF
-                 !  ELSE
-                 !    ReplaceL = .FALSE.
-                 !    position_for_replacement = 0
-                 !    EXIT ! Exit DO loop.
-                 !  END IF
-                  END IF
                END IF
+
             end if UNIQUE
 
             IF (ReplaceL) THEN
                !----------------------------
                ! Replace variable by value.
                !----------------------------
-               CALL ReplaceVariableAtPositionInLine(VariableC,VariableValueC,position_for_replacement,StringsV(j)%StringC, &
+               CALL ReplaceVariableAtPositionInLine(VariableC,VariableValueC,position_for_replacement, &
+                                                             LineC, & ! input/output
                                                              number_of_replacement)
                NumberOfReplacements = NumberOfReplacements + number_of_replacement
             END IF
+
            else       ! If not found, 'position' has the value '0'.
             EXIT      ! Exit do loop if not found.
            end if POSITION_GT_ZERO
 
-      end do LINE ! End: Infinite loop over the line
-
-   END IF         ! End: IF_StatementL .OR. (.NOT. Line_is_a_CommentL)
-
-! END IF          ! End: Excluded line numbers.
- end do STRINGS   ! End: Loop over all lines
-
- CONTAINS
+ end do LINE ! End: Loop over all characters in the line.
 
 !------------------------------------------------------------------------------
- SUBROUTINE CheckIfPositionIsUnique(StringC,position_variable, &
-                                    position_uniqueL,position_other_variable,length_of_other_variable_name)
-!------------------------------------------------------------------------------
- USE My_Input_and_Output_Units,ONLY:my_output_unit
-
- IMPLICIT NONE
-
- CHARACTER(len=*),INTENT(in)  :: StringC
- INTEGER         ,INTENT(in)  :: position_variable
- LOGICAL         ,INTENT(out) :: position_uniqueL
- INTEGER         ,INTENT(out) :: position_other_variable
- INTEGER         ,INTENT(out) :: length_of_other_variable_name
-
- INTEGER                      :: i
-
- IF (position_variable <= 0 ) THEN
-    WRITE(my_output_unit,'(A,I20)') " Error CheckIfPositionIsUnique: position_variable <= 0: ",position_variable
-    STOP
- END IF
-
- position_uniqueL              = .TRUE.
- position_other_variable       = 0
- length_of_other_variable_name = 0
-
- !--------------------------
- ! Loop over all variables.
- !--------------------------
- DO i=1,SIZE(VariableNameCV)
-    IF ( TRIM(VariableC) /=                               TRIM(VariableNameCV(i)) ) THEN ! Exclude variable itself from this test.
-         !-------------------------------------------------------
-         ! Find position of variable name (that is a substring).
-         !-------------------------------------------------------
-         position_other_variable = INDEX ( TRIM(StringC), TRIM(VariableNameCV(i)) )      ! Get position of substring 'VariableNameCV(i)' in line.
-         !----------------------------------------------------------------------------------------------------
-         ! If not found, 'position_other_variable' has the value '0', 'position_variable' is always > 0 here.
-         !----------------------------------------------------------------------------------------------------
-         IF ( position_other_variable == position_variable ) THEN
-              !---------------------------------------------------
-              ! Two variable substrings are at the same position.
-              ! We have something like this:
-              ! %Radius      = 2.0
-              ! %RadiusShell = 2.0
-              !---------------------------------------------------
-              position_uniqueL = .FALSE.
-              length_of_other_variable_name = LEN_TRIM( VariableNameCV(i) )
-              EXIT ! Exit DO loop.
-         END IF
-    END IF
- END DO
-
-!------------------------------------------------------------------------------
- END SUBROUTINE CheckIfPositionIsUnique
+ END SUBROUTINE Replace_Variable_in_line
 !------------------------------------------------------------------------------
 !
 !
 !
 !------------------------------------------------------------------------------
- SUBROUTINE ReplaceVariableAtPositionInLine(VariableC,VariableValueC,VariablePosition,LineC, NumberOfReplacements)
+ SUBROUTINE ReplaceVariableAtPositionInLine(VariableC,VariableValueC,VariablePosition,LineC, num_replacement)
 !------------------------------------------------------------------------------
 ! PURPOSE
 !   Replace variable by value.
@@ -4663,14 +4866,14 @@ END MODULE mod_init_keyword_queue
  CHARACTER(len=*)            ,INTENT(in)    :: VariableValueC
  INTEGER                     ,INTENT(in)    :: VariablePosition
  CHARACTER(len=:),ALLOCATABLE,INTENT(inout) :: LineC
- INTEGER                     ,INTENT(out)   :: NumberOfReplacements
+ INTEGER                     ,INTENT(out)   :: num_replacement
 
  INTEGER                                    :: i,ii
  LOGICAL                                    :: UndefinedVariableL
  CHARACTER(len=:),ALLOCATABLE               :: StringAfterReplacementC
  CHARACTER(len=:),ALLOCATABLE               :: tempC
 
- NumberOfReplacements = 0
+ num_replacement    = 0
  UndefinedVariableL = .FALSE.
 
  IF (IF_StatementL) THEN
@@ -4717,7 +4920,7 @@ END MODULE mod_init_keyword_queue
            tempC(i:i) = ' '                                             ! Replace variable name with ' '. (The '!IF ' string has been replaced already.)
           END DO
           StringAfterReplacementC = ' '//TRIM(tempC)                    ! Add a blank as the first character.
-          NumberOfReplacements = NumberOfReplacements + 1
+          num_replacement = 1
       ELSE                                                       ! Conditional comment is .FALSE., i.e. leave the '!IF ' comment in case it is there.
           StringAfterReplacementC = tempC
       END IF
@@ -4727,7 +4930,7 @@ END MODULE mod_init_keyword_queue
           !------------------------------ 
           StringAfterReplacementC = LineC(1:VariablePosition-1) // TRIM(VariableValueC) // &
                                     LineC(  VariablePosition + LEN_TRIM(VariableC) : LEN_TRIM(LineC))
-          NumberOfReplacements = NumberOfReplacements + 1
+          num_replacement = 1
      END IF
      !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
      ! IF IF IF IF IF IF IF
@@ -4788,7 +4991,6 @@ END MODULE mod_init_keyword_queue
 !##
 !
 !------------------------------------------------------------------------------
- use String_Utility           ,only:StringUpperCase
 
  implicit none
 
@@ -4802,11 +5004,7 @@ END MODULE mod_init_keyword_queue
  logical                       , intent(out) :: Variable_belongs_to_IF_StatementL
 
  character(len=:),allocatable                :: FirstRelevantCharactersInLineC
- character(len=:),allocatable                :: Line_without_IF_StatementC
- integer                                     :: i,ii
- integer                                     :: length_comment_sign
  integer                                     :: length_FirstRelChars
- integer                                     :: length_if_statement
 
  !------------------------
  ! Assign default values.
@@ -4823,43 +5021,84 @@ END MODULE mod_init_keyword_queue
 
  if ( len(FirstRelevantCharactersInLineC) /= 0 ) then ! Only do this if line is not empty.
 
+  !---------------------------------------------------------------------------------------------------
+  ! Check if first character of line is comment sign.
+  ! If this is the case, we do not replace the variable with its value and leave the comment as it is
+  ! unless it is a conditional IF statemnt.
+  !---------------------------------------------------------------------------------------------------
+  length_FirstRelChars = LEN_TRIM(FirstRelevantCharactersInLineC)
+
   !--------------------------------
   ! A) Check if line is a comment.
   !--------------------------------
+  Line_is_a_CommentL = check_if_line_is_comment()
 
-  !----------------------------------------------------------------------------------------------------
-  ! Check if first character of line is comment sign.
-  ! If this is the case, we do not replace the variable with its value and leave the comment as it is.
-  !----------------------------------------------------------------------------------------------------
-   length_FirstRelChars = LEN_TRIM(FirstRelevantCharactersInLineC)
+  !---------------------------------------
+  ! B) Check if line is a conditional IF.
+  !---------------------------------------
+  call check_if_line_is_conditional_if
 
-  do i=1,SIZE( COMMENT_SIGNS_CV ) ! Loop over number of available comment signs.
+ end if
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ function check_if_line_is_comment() RESULT(Line_is_CommentL)
+!------------------------------------------------------------------------------
+
+ implicit none
+
+ logical                                     :: Line_is_CommentL ! RESULT
+
+ integer                                     :: length_comment_sign
+ integer                                     :: i
+
+ Line_is_CommentL = .FALSE.  ! default
+
+ !----------------------------------------------
+ ! Loop over number of available comment signs.
+ !----------------------------------------------
+  do i=1,SIZE( COMMENT_SIGNS_CV )
    length_comment_sign  = LEN_TRIM(COMMENT_SIGNS_CV(i))
    if ( length_FirstRelChars >= length_comment_sign ) THEN
     if ( FirstRelevantCharactersInLineC(1:length_comment_sign) == &
                     COMMENT_SIGNS_CV(i)(1:length_comment_sign) ) then
-     Line_is_a_CommentL = .TRUE.
+     Line_is_CommentL = .TRUE.
      exit
     end if
    end if
   end do
 
+!------------------------------------------------------------------------------
+ end function check_if_line_is_comment
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ subroutine check_if_line_is_conditional_if
+!------------------------------------------------------------------------------
+ use String_Utility           ,only:StringUpperCase
 
-  !---------------------------------------
-  ! B) Check if line is a conditional IF.
-  !---------------------------------------
+ implicit none
 
-  do i=1,size( IF_STATEMENT_CV ) ! Loop over number of available if statements.
+ character(len=:),allocatable                :: Line_without_IF_StatementC
+ integer                                     :: length_if_statement
+ integer                                     :: i,ii
+
+ !----------------------------------------------
+ ! Loop over number of available IF statements.
+ !----------------------------------------------
+  do i=1,size( IF_STATEMENT_CV )
    length_if_statement = LEN_TRIM(IF_STATEMENT_CV(i))
 
    if ( length_FirstRelChars >= length_if_statement ) THEN
 
     if ( StringUpperCase( FirstRelevantCharactersInLineC(1:length_if_statement) ) == &
                                       IF_STATEMENT_CV(i)(1:length_if_statement) ) then
-      IF_StatementL = .TRUE.
-      IF_Statement_length = length_if_statement
+         IF_StatementL = .TRUE.
+         IF_Statement_length = length_if_statement
 
-      IF_STATEMENT: if ( IF_StatementL ) then
            Line_without_IF_StatementC = adjustl( stringC )
           do ii=1,length_if_statement
            Line_without_IF_StatementC( ii:ii ) = ' '   ! Replace '!IF' with blanks.
@@ -4878,15 +5117,17 @@ END MODULE mod_init_keyword_queue
          else
             Variable_belongs_to_IF_StatementL = .FALSE.
          end if
-      end if IF_STATEMENT
-     end if
 
-    exit ! Exit do loop.
+         exit ! Exit do loop.
+
+     end if
 
    end if
   end do
 
- end if
+!------------------------------------------------------------------------------
+ end subroutine check_if_line_is_conditional_if
+!------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
  end subroutine Treat_IfStatement_and_Comment
@@ -4985,16 +5226,18 @@ END MODULE mod_init_keyword_queue
  INTEGER                                   :: i
 
  INTEGER                                   :: length_of_variable
+ INTEGER                                   :: number_of_variables
  CHARACTER(len=:),ALLOCATABLE              :: OtherVariableC
 
  uniqueL = .TRUE.
 
- length_of_variable = LEN_TRIM(VariableC)
+ length_of_variable  = LEN_TRIM(VariableC)
+ number_of_variables = SIZE(VariableNameCV)
 
  !-------------------------------
  ! Loop over all variable names.
  !-------------------------------
- DO i=1,SIZE(VariableNameCV)
+ DO i=1,number_of_variables
     OtherVariableC = TRIM(VariableNameCV(i))
     IF ( TRIM(VariableC) /= TRIM(OtherVariableC) ) THEN         ! Exclude variable itself from this test.
      IF (length_of_variable < LEN_TRIM(OtherVariableC) ) THEN   ! If variable name has smaller length, this substring could potentially be contained, e.g. '%width' is contained in '%width_well'
@@ -5007,9 +5250,10 @@ END MODULE mod_init_keyword_queue
            ! Thus the variable string is not "unique".
            !--------------------------------------------------------------------------------------------
            uniqueL = .FALSE.
-           IF ( DebugLevel >= 1000 ) THEN
-              WRITE(my_output_unit,'(A,A,A)') " Variable name is not unique: ",TRIM(VariableC), &
-                                              "(Variable name is contained in another variable name as a substring.)"
+           IF ( DebugLevel >= 10 ) THEN
+              WRITE(my_output_unit,'(A)') " Variable name is not unique: "//TRIM(VariableC)// &
+                                          " ==> Variable name is contained in another variable name as a substring: "// &
+                                                                           TRIM(OtherVariableC)
            END IF
            EXIT ! Exit DO loop.
       END IF
@@ -5754,11 +5998,12 @@ END SUBROUTINE add_xsar_element
  CHARACTER(len=:),ALLOCATABLE   :: SpecifierValueC
  CHARACTER(len=:),ALLOCATABLE   :: SpecifierValue_d0_C
  CHARACTER(len=10),PARAMETER    :: DigitStringC = "0123456789"
- CHARACTER(len=6) ,PARAMETER    :: true   = ".true."                                  !
- CHARACTER(len=6) ,PARAMETER    :: trueC  = ".TRUE."                                  !
- CHARACTER(len=7) ,PARAMETER    :: false  = ".false."                                 !
- CHARACTER(len=7) ,PARAMETER    :: falseC = ".FALSE."                                 !
- INTEGER                        :: ip,ipp,ipe,ipce,ipd,ipcd,mpp                       !
+ CHARACTER(len=6) ,PARAMETER    :: true_c  = ".true."
+ CHARACTER(len=6) ,PARAMETER    :: TrueC   = ".TRUE."
+ CHARACTER(len=7) ,PARAMETER    :: false_c = ".false."
+ CHARACTER(len=7) ,PARAMETER    :: FalseC  = ".FALSE."
+ CHARACTER(len=:),ALLOCATABLE   :: temp_StringC
+ INTEGER                        :: ip,ipp,ipe,ipce,ipd,ipcd,mpp
  INTEGER                        :: ipost,iposf
  INTEGER                        :: position
  CHARACTER(len=2),PARAMETER     :: DoubleStringC = 'd0'
@@ -5771,38 +6016,47 @@ END SUBROUTINE add_xsar_element
  !-----------------------------------------
  IF (TRIM(data_typeC)==TRIM(name_xs) .OR. &
      TRIM(data_typeC)==TRIM(name_xsar)) THEN
+
      !-----------------------------------------------------------------------
      ! Check if first character is 'e' or 'E'. This is not a correct format.
      !-----------------------------------------------------------------------
-     IF (SpecifierValueC(1:1)=='e')                               CALL TYPE_ERROR !
-     IF (SpecifierValueC(1:1)=='E')                               CALL TYPE_ERROR !
+     temp_StringC = SpecifierValueC(1:1)
+     IF ( temp_StringC == 'e' .OR. &
+          temp_StringC == 'E' ) THEN
+      CALL TYPE_ERROR("Specifier value starts with 'e' or 'E', such as in 'e10' instead of '1e10'.")
+     END  IF
+
      !------------------------------------------------------------------------------------
      ! Check if last character is 'e' or 'E' or '+' or '-'. This is not a correct format.
      !------------------------------------------------------------------------------------
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='e') CALL TYPE_ERROR !
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='E') CALL TYPE_ERROR !
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='-') CALL TYPE_ERROR !
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='+') CALL TYPE_ERROR !
+     temp_StringC = SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))
+     IF ( temp_StringC == 'e' .OR. &
+          temp_StringC == 'E' .OR. &
+          temp_StringC == '-' .OR. &
+          temp_StringC == '+' ) THEN
+      CALL TYPE_ERROR("Last character of string is '"//temp_StringC//"'. This is not a correct format for a real variable.")
+     END IF
      ipp=0; ipe=0; ipce=0; mpp=0
      DO ip = 1,LEN_TRIM(SpecifierValueC)                                         !
       !-------------------------------------
       ! Loop over all characters in string.
       !-------------------------------------
-      IF      (SpecifierValueC(ip:ip)=='.') THEN  ! Count number of '.'
+      temp_StringC = SpecifierValueC(ip:ip)
+      IF      (temp_StringC=='.') THEN  ! Count number of '.'
        ipp = ipp+1                                                     !
        mpp = ip                                   ! Store location of '.'
-      ELSE IF (SpecifierValueC(ip:ip)=='e') THEN  ! Count number of 'e'
+      ELSE IF (temp_StringC=='e') THEN  ! Count number of 'e'
        ipe = ipe+1                                                     !
        IF (ipp > 0) THEN                                               !
-        IF (mpp > ip) CALL TYPE_ERROR                                  !
-       END IF                                                          !
-      ELSE IF (SpecifierValueC(ip:ip)=='E') THEN  ! Count number of 'E'
+        IF (mpp > ip) CALL TYPE_ERROR("Count number of 'e': mpp > ip")
+       END IF
+      ELSE IF (temp_StringC=='E') THEN  ! Count number of 'E'
        ipce = ipce+1                                                   !
        IF (ipp > 0) THEN                                               !
-        IF (mpp > ip) CALL TYPE_ERROR                                  !
-       END IF                                                          !
-      ELSE IF ( (SpecifierValueC(ip:ip)=='+') .OR. &
-                (SpecifierValueC(ip:ip)=='-') ) THEN
+        IF (mpp > ip) CALL TYPE_ERROR("Count number of 'E': mpp > ip")
+       END IF
+      ELSE IF ( (temp_StringC=='+') .OR. &
+                (temp_StringC=='-') ) THEN
         IF (ip /= 1) THEN ! If ip == 0, then '+' or '-' sign is the first character which is fine.
          !-----------------------------------------------------
          ! The first character following the 'E' or 'e' symbol
@@ -5810,23 +6064,25 @@ END SUBROUTINE add_xsar_element
          !-----------------------------------------------------
          IF( (SpecifierValueC(ip-1:ip-1)/='e') .AND. &
              (SpecifierValueC(ip-1:ip-1)/='E'))THEN
-          CALL TYPE_ERROR                                              !
-         END IF                                                        !
-        END IF                                                         !
-      ELSE                                                             !
-       IF (SCAN(DigitStringC,SpecifierValueC(ip:ip))==0) CALL TYPE_ERROR ! Error if character is neither '+', '-', a digit nor 'E' or 'e'.
-      END IF                                                           !
-     END DO                                                            !
+          CALL TYPE_ERROR("'e' or 'E' is missing.")
+         END IF
+        END IF
+      ELSE
+       IF ( SCAN(DigitStringC,temp_StringC) == 0 ) THEN
+          CALL TYPE_ERROR("Character must be '+', '-', a digit, 'e' or 'E'") ! Error if character is neither '+', '-', a digit nor 'e' or 'E'.
+       END IF
+      END IF
+     END DO
      !--------------------------
      ! Produce an error if ...
      !--------------------------
-     IF ( ipe+ipce      > 1 ) CALL TYPE_ERROR  ! i.e. two or more occurences of 'E'/'e'
-     IF ( ipp           > 1 ) CALL TYPE_ERROR  ! i.e. two or more occurences of '.'
+     IF ( ipe+ipce      > 1 ) CALL TYPE_ERROR("Two or more occurences of 'e' or 'E'.")                   ! i.e. two or more occurences of 'e'/'E'
+     IF ( ipp           > 1 ) CALL TYPE_ERROR("Two or more occurences of '.'")                           ! i.e. two or more occurences of '.'
      IF ( ipp+ipe+ipce == 0 ) THEN
       !----------------------------------------------------
       ! Produce an error if no '.', 'e' or 'E' is present.
       !----------------------------------------------------
-                              CALL TYPE_ERROR  ! i.e. no '.', no 'e' and no 'E' in string. (This could be an integer.) 
+       CALL TYPE_ERROR("No occurence of '.', no 'e' and no 'E' in string. (This could be an integer.)")  ! i.e. no '.', no 'e' and no 'E' in string. (This could be an integer.) 
      END IF
      READ( SpecifierValueC , * ) xs_t
 
@@ -5861,39 +6117,46 @@ END SUBROUTINE add_xsar_element
 
      !****************************************************************
 
-
      !-----------------------------------------------------------------------
      ! Check if first character is 'd' or 'D'. This is not a correct format.
      !-----------------------------------------------------------------------
-     IF (SpecifierValueC(1:1)=='d')                               CALL TYPE_ERROR !
-     IF (SpecifierValueC(1:1)=='D')                               CALL TYPE_ERROR !
+     temp_StringC = SpecifierValueC(1:1)
+     IF ( temp_StringC == 'd' .OR. &
+          temp_StringC == 'D' ) THEN
+      CALL TYPE_ERROR("Specifier value starts with 'd' or 'D', such as in 'd10' instead of '1d10'.")
+     END  IF
+
      !------------------------------------------------------------------------------------
      ! Check if last character is 'd' or 'D' or '+' or '-'. This is not a correct format.
      !------------------------------------------------------------------------------------
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='d') CALL TYPE_ERROR !
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='D') CALL TYPE_ERROR !
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='-') CALL TYPE_ERROR !
-     IF (SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))=='+') CALL TYPE_ERROR !
+     temp_StringC = SpecifierValueC(LEN_TRIM(SpecifierValueC):LEN_TRIM(SpecifierValueC))
+     IF ( temp_StringC == 'd' .OR. &
+          temp_StringC == 'D' .OR. &
+          temp_StringC == '-' .OR. &
+          temp_StringC == '+' ) THEN
+      CALL TYPE_ERROR("Last character of string is '"//temp_StringC//"'. This is not a correct format for a real variable.")
+     END IF
      ipp=0; ipd=0; ipcd=0; mpp=0
      DO ip = 1,LEN_TRIM(SpecifierValueC)                                         !
       !-------------------------------------
       ! Loop over all characters in string.
       !-------------------------------------
-      IF      (  SpecifierValueC(ip:ip)=='.' )   THEN  ! Count number of '.'
+      temp_StringC = SpecifierValueC(ip:ip)
+      IF      (  temp_StringC=='.' )   THEN  ! Count number of '.'
        ipp = ipp+1                                                     !
        mpp = ip                                        ! Store location of '.'
-      ELSE IF (  SpecifierValueC(ip:ip)=='d' )   THEN  ! Count number of 'd'
+      ELSE IF (  temp_StringC=='d' )   THEN  ! Count number of 'd'
        ipd = ipd+1                                                     !
        IF (ipp > 0) THEN                                               !
-        IF (mpp > ip) CALL TYPE_ERROR                                  !
-       END IF                                                          !
-      ELSE IF (  SpecifierValueC(ip:ip)=='D' )   THEN  ! Count number of 'D'
+        IF (mpp > ip) CALL TYPE_ERROR("Count number of 'd': mpp > ip")
+       END IF
+      ELSE IF (  temp_StringC=='D' )   THEN  ! Count number of 'D'
        ipcd = ipcd+1                                                   !
        IF (ipp > 0) THEN                                               !
-        IF (mpp > ip) CALL TYPE_ERROR                                  !
-       END IF                                                          !
-      ELSE IF (( SpecifierValueC(ip:ip)=='+' ) .OR. &
-               ( SpecifierValueC(ip:ip)=='-' ) ) THEN
+        IF (mpp > ip) CALL TYPE_ERROR("Count number of 'D': mpp > ip")
+       END IF
+      ELSE IF (( temp_StringC=='+' ) .OR. &
+               ( temp_StringC=='-' ) ) THEN
         IF (ip /= 1 ) THEN ! If ip == 0, then '+' or '-' sign is the first character which is fine.
          !-----------------------------------------------------
          ! The first character following the 'D' or 'd' symbol
@@ -5901,44 +6164,44 @@ END SUBROUTINE add_xsar_element
          !-----------------------------------------------------
          IF (( SpecifierValueC(ip-1:ip-1) /= 'd') .AND. &
              ( SpecifierValueC(ip-1:ip-1) /= 'D')) THEN
-          CALL TYPE_ERROR                                              !
-         END IF                                                        !
-        END IF                                                         !
-      ELSE                                                             !
-       IF (SCAN(DigitStringC,SpecifierValueC(ip:ip)) == 0) CALL TYPE_ERROR ! Error if character is neither '+', '-', a digit nor 'D' or 'd'.
-      END IF                                                           !
-     END DO                                                            !
+          CALL TYPE_ERROR("'d' or 'D' is missing.")
+         END IF
+        END IF
+      ELSE
+       IF (SCAN(DigitStringC,temp_StringC) == 0) THEN
+          CALL TYPE_ERROR("Character must be '+', '-', a digit, 'd' or 'D'") ! Error if character is neither '+', '-', a digit nor 'd' or 'D'.
+       END IF
+      END IF
+     END DO
      !--------------------------
      ! Produce an error if ...
      !--------------------------
-     IF (      ipd+ipcd  > 1 ) CALL TYPE_ERROR  ! i.e. two or more occurences of 'D'/'d'
-     IF (  ipp           > 1 ) CALL TYPE_ERROR  ! i.e. two or more occurences of '.'
-
-     IF (  ipp+ipd+ipcd == 0 ) THEN
+     IF ( ipd+ipcd      > 1 ) CALL TYPE_ERROR("Two or more occurences of 'd' or 'D'.")                  ! i.e. two or more occurences of 'd'/'D'
+     IF ( ipp           > 1 ) CALL TYPE_ERROR("Two or more occurences of '.'")                          ! i.e. two or more occurences of '.'
+     IF ( ipp+ipd+ipcd == 0 ) THEN
     ! !----------------------------------------------------
     ! ! Produce an error if no '.', 'd' or 'D' is present.
     ! !----------------------------------------------------
-    ! CALL TYPE_ERROR  ! i.e. no '.', no 'd' and no 'D' in string. (This could be an integer.)
+    ! CALL TYPE_ERROR("No occurence of '.', no 'd' and no 'D' in string. (This could be an integer.)")  ! i.e. no '.', no 'd' and no 'D' in string. (This could be an integer.) 
       SpecifierValue_d0_C = TRIM(SpecifierValueC)//DoubleStringC  ! Add 'd0' to integer string to convert it to double precision.
       READ( SpecifierValue_d0_C , * ) xd_t
-
      ELSE IF ( (ipd<1) .AND. (ipcd<1)) THEN
-    !  !-----------------------------------------------
-    !  ! Produce an error if no 'd' or 'D' is present.
-    !  !-----------------------------------------------
-    !  CALL TYPE_ERROR  ! i.e. no occurence of 'd'/'D'. (This could be a single precision number, e.g. '1.0' instead of '1.0d0'.)
+    ! !-----------------------------------------------
+    ! ! Produce an error if no 'd' or 'D' is present.
+    ! !-----------------------------------------------
+    ! CALL TYPE_ERROR("No occurence of 'd' and no 'D' in string. (This could be a single precision number, e.g. '1.0' instead of '1.0d0'.)") ! i.e. no occurence of 'd'/'D'. (This could be a single precision number, e.g. '1.0' instead of '1.0d0'.)
       SpecifierValue_d0_C = TRIM(SpecifierValueC)//DoubleStringC  ! Add 'd0' to integer string to convert it to double precision.
       READ( SpecifierValue_d0_C , * ) xd_t
 
      ELSE
-      READ(      SpecifierValueC                 , * ) xd_t
+      READ( SpecifierValueC     , * ) xd_t
      END IF
 
  !-----------------------------------------
  ! Check if data type is integer.
  !-----------------------------------------
- ELSE IF (TRIM(data_typeC)==TRIM(name_in) .OR.                      &
-          TRIM(data_typeC)==TRIM(name_inar)    ) THEN                  !
+ ELSE IF (TRIM(data_typeC)==TRIM(name_in) .OR. &
+          TRIM(data_typeC)==TRIM(name_inar)    ) THEN
      DO ip = 1,LEN_TRIM(SpecifierValueC)
        !-------------------------------------
        ! Loop over all characters in string.
@@ -5952,7 +6215,7 @@ END SUBROUTINE add_xsar_element
          WRITE(my_output_unit,*) "SpecifierValueC(ip:ip) = ",SpecifierValueC(ip:ip)
          WRITE(my_output_unit,*) "SpecifierValueC(1:1)   = ",SpecifierValueC(1:1)
          WRITE(my_output_unit,*) "SpecifierValueC        = ",SpecifierValueC
-         CALL TYPE_ERROR
+         CALL TYPE_ERROR("Character is not an integer.")
         ELSE IF ( (SpecifierValueC(ip:ip) /= '-') .AND. &
                   (SpecifierValueC(ip:ip) /= '+') ) THEN
          !---------------------------------------------------------------------
@@ -5962,10 +6225,11 @@ END SUBROUTINE add_xsar_element
          WRITE(my_output_unit,*) "SpecifierValueC(ip:ip) = ",SpecifierValueC(ip:ip)
          WRITE(my_output_unit,*) "SpecifierValueC(1:1)   = ",SpecifierValueC(1:1)
          WRITE(my_output_unit,*) "SpecifierValueC        = ",SpecifierValueC
-         CALL TYPE_ERROR                                               !
-        END IF                                                         !
-       END IF                                                          !
-     END DO                                                            !
+         CALL TYPE_ERROR("Character is not a '+' or '-' sign. "// &
+                         "An integer is allowed to start with '+' or '-', such as '+3' or '-3'.")
+        END IF
+       END IF
+     END DO
      READ(SpecifierValueC,*) in_t  ! Note: in_t is an integer. It is not an integer array.
 
  !-----------------------------------------
@@ -5979,35 +6243,112 @@ END SUBROUTINE add_xsar_element
  !-----------------------------------------
  ELSE IF (TRIM(data_typeC)==TRIM(name_lo)) THEN
      DO ip = 1,LEN_TRIM(SpecifierValueC)                                         !
-       ipost = SCAN(truec ,SpecifierValueC(ip:ip))                               !
-       iposf = SCAN(falsec,SpecifierValueC(ip:ip))                               !
-       IF((ipost>0).AND.(ip<=6)) SpecifierValueC(ip:ip) = true (ipost:ipost)     !
-       IF((iposf>0).AND.(ip<=7)) SpecifierValueC(ip:ip) = false(iposf:iposf)     !
+       ipost = SCAN(TrueC ,SpecifierValueC(ip:ip))                               ! .TRUE.  (capitalized)
+       iposf = SCAN(FalseC,SpecifierValueC(ip:ip))                               ! .FALSE. (capitalized)
+       IF((ipost>0).AND.(ip<=6)) SpecifierValueC(ip:ip) = true_c(ipost:ipost)    ! .true.
+       IF((iposf>0).AND.(ip<=7)) SpecifierValueC(ip:ip) = false_c(iposf:iposf)   ! .false.
      END DO
-       IF ( ( TRIM(SpecifierValueC) /= true   ).AND. &
-            ( TRIM(SpecifierValueC) /= false) ) CALL TYPE_ERROR
+       IF ( ( TRIM(SpecifierValueC) /= true_c  ).AND. &
+            ( TRIM(SpecifierValueC) /= false_c) ) THEN
+          CALL TYPE_ERROR("'"//true_c//"' or '"//false_c//"' expected.")
+       END IF
      READ(SpecifierValueC,*) lo_t
  END IF
 
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE TYPE_ERROR
+ SUBROUTINE TYPE_ERROR(ErrorMessageC)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
 
  IMPLICIT NONE
 
-  WRITE(my_output_unit,'(A)')   ' >>>>>>> ERROR <<<<< >>>>> ERROR <<<<< >>>>>ERROR<<<<<<<'!
-  WRITE(my_output_unit,'(A,A)') ' In internal SUBROUTINE convert_string_to_value called by: ',TRIM(keyword_filetypeC)
-  WRITE(my_output_unit,'(A)')   ' SUBROUTINE value_to_queue. Inconsistency of value for  '!
-  WRITE(my_output_unit,'(A,A,A,A,A,A)' ) ' specifier ',TRIM(specifierC),' = ',TRIM(SpecifierValueC), &
-                                         ' with expected data type = ',TRIM(data_typeC)
-  WRITE(my_output_unit,*) 'Input was found in line number = ',line_number,' of ',TRIM(keyword_filetypeC),'.'
- IF ( TRIM(data_typeC) == TRIM(name_inar) ) THEN
-  WRITE(my_output_unit,'(A)') ' In fact, input to this subroutine must be each element of the integer array individually,'
-  WRITE(my_output_unit,'(A)') ' and not the whole integer array at once.'
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: ErrorMessageC
+
+ CALL Error_PrintStandardMessage(keyword_filetypeC,line_number)
+
+  WRITE(my_output_unit,'(A)') "    ===>   '"//TRIM(specifierC)//" = "//TRIM(SpecifierValueC)//"'"
+  WRITE(my_output_unit,'(A)') ""
+  WRITE(my_output_unit,'(A)') " Trying to convert the string   >>> '"//TRIM(SpecifierValueC)//"' <<<   (specifier value)"
+  WRITE(my_output_unit,'(A)') " of the specifier   >>> '"            //TRIM(specifierC)//"' <<<"
+  WRITE(my_output_unit,'(A)') " to expected data type:   >>> '"       //TRIM(data_typeC)//"' <<<"
+  WRITE(my_output_unit,'(A)') ""
+
+ IF ( PRESENT(ErrorMessageC) ) THEN
+  WRITE(my_output_unit,'(A)') " ---------------------------------------"
+  WRITE(my_output_unit,'(A)') " The error is related to:"
+  WRITE(my_output_unit,'(A)') "    >>> "//TRIM(ErrorMessageC)//" <<<"
+  WRITE(my_output_unit,'(A)') " ---------------------------------------"
+  WRITE(my_output_unit,'(A)') ""
  END IF
+
+  WRITE(my_output_unit,'(A)') " Please check the origin of the string:   >>> "//TRIM(SpecifierValueC)//" <<<"
+  WRITE(my_output_unit,'(A)') ""
+
+ IF ( TRIM(data_typeC) == TRIM(name_inar) .OR. &
+      TRIM(data_typeC) == TRIM(name_in)   ) THEN
+  WRITE(my_output_unit,'(A)') " ==> For integer data type an integer is expected. Please check if this is the case."
+  WRITE(my_output_unit,'(A)') ""
+ END IF
+
+  WRITE(my_output_unit,'(A)') " -------------------------------------------------------------------------"
+  WRITE(my_output_unit,'(A)') " Most likely source of error: Use of variables or functions. Please check."
+  WRITE(my_output_unit,'(A)') " -------------------------------------------------------------------------"
+  WRITE(my_output_unit,'(A)') " The error could be due to"
+  WRITE(my_output_unit,'(A)') "   o a typo, e.g. in the definition of a variable"
+  WRITE(my_output_unit,'(A)') "   o an incorrect definition of a variable"
+  WRITE(my_output_unit,'(A)') "   o an incorrect evaluation of a variable"
+  WRITE(my_output_unit,'(A)') "   o an incorrect evaluation of a function."
+  WRITE(my_output_unit,'(A)') ""
+
+ IF ( TRIM(data_typeC) == TRIM(name_inar) .OR. &
+      TRIM(data_typeC) == TRIM(name_in)   ) THEN
+  WRITE(my_output_unit,'(A)') " If you have defined a variable by an integer (e.g. '2') but the string that is parsed here"
+  WRITE(my_output_unit,'(A)') " looks like a real variable (e.g. '2.00000000e0') and not like an integer,"
+  WRITE(my_output_unit,'(A)') " you can try to use any of these solutions:"
+  WRITE(my_output_unit,'(A)') " [ o %my_variable = 2               # This is treated as a 'real'                       "// &
+                                     " if it is specified AFTER  the statement '%FunctionParser = yes' in the input file. ]"
+  WRITE(my_output_unit,'(A)') "   o %my_variable = 2               # This is treated as an 'integer'                   "// &
+                                     " if it is specified BEFORE the statement '%FunctionParser = yes' in the input file."
+  WRITE(my_output_unit,'(A)') "   o %my_variable = 2               # This is treated as an 'integer'                   "// &
+                                     " if it is specified AFTER  the statement '%FunctionParser = no'  in the input file."
+  WRITE(my_output_unit,'(A)') "   o %my_variable = '2'             # Integer within single quotes is treated as integer"// &
+                                     " if it is specified AFTER  the statement '%FunctionParser = yes' in the input file."
+  WRITE(my_output_unit,'(A)') '   o %my_variable = "2"             # Integer within double quotes is treated as integer'// &
+                                     " if it is specified AFTER  the statement '%FunctionParser = yes' in the input file."
+  WRITE(my_output_unit,'(A)') "   o %my_variable = INT(2.0)        # Content within parentheses is converted to integer"// &
+                                     " if it is specified AFTER  the statement '%FunctionParser = yes' in the input file."
+  WRITE(my_output_unit,'(A)') "   o %my_variable = INT(%variable)  # Content within parentheses is converted to integer"// &
+                                     " if it is specified AFTER  the statement '%FunctionParser = yes' in the input file."
+  WRITE(my_output_unit,'(A)') ""
+ END IF
+
+ IF ( TRIM(data_typeC) == TRIM(name_inar) ) THEN
+  !-------------------------------------------------
+  ! CHECK: Can this message be deleted? Not clear...
+  !--------------------------------------------------
+  WRITE(my_output_unit,'(A)') " Additional hint (not necessarily the origin of the error):"
+  WRITE(my_output_unit,'(A)') "   For data type "//TRIM(data_typeC)//", the input to this subroutine"
+  WRITE(my_output_unit,'(A)') "   must be each element of the integer array individually,"
+  WRITE(my_output_unit,'(A)') "   and not the whole integer array at once."
+  WRITE(my_output_unit,'(A)') "   The dimension of the integer array can be '1'."
+  WRITE(my_output_unit,'(A)') ""
+ END IF
+
+  WRITE(my_output_unit,'(A)') " If the error message is due to the evaluation of a variable or a function"
+  WRITE(my_output_unit,'(A)') " you can use a 'diff' tool such as WinMerge and compare the differences in the files"
+  WRITE(my_output_unit,'(A)') "   o <input file name>.in           (located in output folder; includes variables)"
+  WRITE(my_output_unit,'(A)') "   o <input file name>.in.no_macro  (located in output folder;"// &
+                                                                  " variables were replaced with evaluated values)"
+  WRITE(my_output_unit,'(A)') " The log file and the variables file"
+  WRITE(my_output_unit,'(A)') "   o <input file name>.log          (located in output folder)"
+  WRITE(my_output_unit,'(A)') "   o variables_input.txt            (located in output folder)"
+  WRITE(my_output_unit,'(A)') " provide additional information how variables and functions were evaluated."
+
+ CALL Error_PrintStandardMessage
+
  STOP
 
 !------------------------------------------------------------------------------

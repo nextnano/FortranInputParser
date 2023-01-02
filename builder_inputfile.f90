@@ -18,6 +18,7 @@
 ! MODULE mod_read_and_analyze_input
 ! MODULE generic_inputfile
 ! MODULE mod_input_driver
+! MODULE mod_TEST_FortranInputParser
 
 !------------------------------------------------------------------------------
  MODULE parser_parameters
@@ -82,10 +83,10 @@
                                      InputFileName_NoDirectoryNoExtensionC, &
                                      InputFileName_NoDirectoryC
  USE MacroForInputFile         ,ONLY:ApplyMacro
- USE parser_parameters         ,ONLY:Data_len               , &
+ USE parser_parameters         ,ONLY:comment_signsCV        , &
+                                     Data_len               , &
                                      Data_len_long          , &
                                      SpecialMacroCharacterC , &
-                                     comment_signsCV        , &
                                      IF_STATEMENT_CV
  USE queue_type_def           ,ONLY:queue_type
  USE mod_init_queue           ,ONLY:init_queue
@@ -97,10 +98,10 @@
  USE DirectoryFileExist       ,ONLY:CountLinesInFile          , &
                                     FileExistREAD             , &
                                     ReplaceSlashes            , &
-                                    ReadFileAndStoreLines     , &
                                     GetGlobalDirectoryName    , &
                                     FileName_Without_Directory, &
-                                    FileName_Without_FileExtension
+                                    FileName_Without_FileExtension, &
+                                    ReadFileAndStoreLines
 
  IMPLICIT NONE
 
@@ -654,11 +655,11 @@
 
  IMPLICIT NONE
 
- REAL(4)                                  :: xs_t                                        !
- REAL(8)                                  :: xd_t                                        !
- INTEGER                                  :: in_t                                        !
- LOGICAL                                  :: lo_t                                        !
-!CHARACTER(Data_len/3)                    :: ca_t                                        !
+ REAL(4)                                  :: xs_t !
+ REAL(8)                                  :: xd_t !
+ INTEGER                                  :: in_t !
+ LOGICAL                                  :: lo_t !
+!CHARACTER(Data_len/3)                    :: ca_t !
 !CHARACTER(Data_len)                      :: ca_t ! to allow for long strings, e.g. long directory names
  CHARACTER(char_length_specifier_content) :: ca_t ! to allow for long strings, e.g. long directory names
 !CHARACTER(len=:),ALLOCATABLE             :: ca_t ! to allow for long strings, e.g. long directory names  <= does not work
@@ -1122,14 +1123,14 @@ CONTAINS                                                               !
  CHARACTER(len=char_length_type_name)   :: data_type
  LOGICAL                                :: ChoiceL
  CHARACTER(len=char_length_choice_name) :: ChoiceC
-                                                                       !
-   CHARACTER(*), INTENT (IN OUT) :: keyC                                !
-   CHARACTER(*), INTENT (IN OUT) :: spec                               !
-                                                                       !
+
+   CHARACTER(*), INTENT (IN OUT) :: keyC
+   CHARACTER(*), INTENT (IN OUT) :: spec
+
    INTEGER :: num_xs,num_xd,num_in,num_ca,num_lo                       !
    integer num_inar,num_xsar,num_xdar,i
                                                                        !
-   CALL position_at_key(s,keyC,node,key_positioned)                     !
+   CALL position_at_key(s,keyC,node,key_positioned)
    IF (.NOT. key_positioned) CALL ERROR(2)                             !
                                                                        !
    ALLOCATE(spec_node)                                                 !
@@ -1548,15 +1549,17 @@ CONTAINS                                                               !
  USE mod_string_to_value      ,ONLY:convert_string_to_value
  USE input_type_names         ,ONLY:name_xs,name_xd,name_in,name_ca,       &
                                     name_lo,name_inar,name_xsar,name_xdar, &
-                                    char_length_type_name, &
-                                    char_length_choice_name
+                                    char_length_choice_name, &
+                                    char_length_type_name
  USE input_data_types         ,ONLY:xs_t,xd_t,in_t,ca_t,lo_t
  USE keyword_queue_def,ONLY:keyword_queue
  USE input_key_queue_def
  USE position_at_key_interface,ONLY:position_at_key
  USE mod_string_in_list       ,ONLY:string_in_list
  USE generic_add                                                     !
- USE parser_parameters        ,ONLY:Data_len,key_char,keyword_filetypeC
+ USE parser_parameters        ,ONLY:Data_len, &
+                                    key_char, &
+                                    keyword_filetypeC
 
  IMPLICIT NONE
 
@@ -1594,7 +1597,9 @@ CONTAINS                                                               !
  ! and get related information on data type and choice.
  !------------------------------------------------------
  CALL string_in_list(Data_len,key_char,keywords,keywordC,found_keyL,specC_in=specifierC, &
-                     found_specL=found_specL,data_typeC_out=data_typeC,choiceL_out=choiceL,choiceC_out=choiceC)
+                     found_specL=found_specL, &
+                     data_typeC_out=data_typeC, &
+                     choiceL_out=choiceL,choiceC_out=choiceC)
    IF (.NOT. found_specL) CALL ERROR(1)                                !
 
    CALL position_at_key(s,keywordC,node,key_positioned)
@@ -2272,6 +2277,8 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
  TYPE(input_key_node),POINTER    :: a2                               ! local pointer to keyword node of collected input queue
  INTEGER                         :: icount,i,j,ioff,k,ii,ii_stop,iii
 
+ CHARACTER(len=*),PARAMETER      :: KeywordFileTypeC = 'inputfile'
+
    bufferC = '' ! has to be initialized because it is an allocatable object
 
    IF (SecondEntryL) THEN
@@ -2311,7 +2318,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
        ! i.e. the content of keywords.val is contained in source code.
        !----------------------------------------------------------------------------
        input_filename_allocatableC = ''
-       CALL InputSyntax('inputfile',.FALSE.,'default-filename', input_filename_allocatableC)
+       CALL InputSyntax(KeywordFileTypeC,.FALSE.,'default-filename', input_filename_allocatableC)
        input_filenameC = input_filename_allocatableC
       END IF
     END IF
@@ -2348,7 +2355,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
      ! ==> 2: queue for keywords file
      !        ==> We use 'Data_len_long' because the line can be very long if lots of options for CHOICE are specified.
      !--------------------------------
-     CALL keyword_queue_built_up('inputfile',keyword_filenameC,ParseKeywordsInputFileL, &
+     CALL keyword_queue_built_up(KeywordFileTypeC,keyword_filenameC,ParseKeywordsInputFileL, &
                                  Data_len_long, &
                                  key_char,comment_signsCV,required_key,not_required_key, &
                                  required_input,not_required_input, keywords)
@@ -2363,7 +2370,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
       !-----------------------------------------
       ! Print queue of keywords and specifiers.
       !-----------------------------------------
-      CALL Print_Keywords('inputfile',keyword_filenameC,keywords)
+      CALL Print_Keywords(KeywordFileTypeC,keyword_filenameC,keywords)
      END IF
 
     END IF
@@ -2395,9 +2402,9 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
       IF (key_pos(i) > 1) THEN                                         !
        IF (bufferC(key_pos(i)-1:key_pos(i)-1) /= " ") CALL ERROR(1)     !
       END IF                                                           !
-      !------------------------------------------------------
-      ! Check if keyword provided in input file is valid.
-      !------------------------------------------------------
+      !----------------------------------------------------------------------------
+      ! Check if keyword provided in input file (or database input file) is valid.
+      !----------------------------------------------------------------------------
       CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL)
       IF (.NOT. found_keyL)  CALL ERROR(1)                              !
       IF (.NOT. found_keyL)  keys_are_ok = found_keyL                   !
@@ -2927,40 +2934,50 @@ CONTAINS                                                               !
  SUBROUTINE ERROR(ierr)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
- USE parser_parameters        ,ONLY:keyword_filetypeC
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
+ USE parser_parameters        ,ONLY:keyword_filetypeC, &
+                                    SpecialMacroCharacterC
+ USE MacroForInputFile        ,ONLY:Check_forbidden_characters
 
  IMPLICIT NONE
 
  INTEGER      ,INTENT(in)  :: ierr
 
-      WRITE(my_output_unit,'(A)')     ""
-      WRITE(my_output_unit,'(A)')     " >>>>>>>> ERROR <<<<<<<<  >>>>>>>>> ERROR <<<<<<<<<<<<"
-      WRITE(my_output_unit,'(A,A,A)') " Error in ",TRIM(keyword_filetypeC),"."
+ CALL Error_PrintStandardMessage(keyword_filetypeC)
 
-     IF      (ierr == 1) THEN                                          !
+ SELECT CASE(ierr)
+  CASE(1)
       WRITE(my_output_unit,*)'got invalid keyword >',TRIM(keyC), &                   !
                 '< in line number = ',line_number                      !
-     ELSE IF (ierr == 2) THEN                                          !
+  CASE(2)
       WRITE(my_output_unit,*)'found no keywords in ',TRIM(keyword_filetypeC),'.'
-     ELSE IF (ierr == 3) THEN                                          !
+  CASE(3)
       WRITE(my_output_unit,*)'invalid keywords in ',TRIM(keyword_filetypeC),'.'
-     ELSE IF (ierr == 4) THEN                                          !
+  CASE(4)
       WRITE(my_output_unit,*)'Odd number of keywords in ',TRIM(keyword_filetypeC),'.'
       WRITE(my_output_unit,'(A)') &
-       '(Unix/Linux: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
-     ELSE IF (ierr == 5) THEN                                          !
+       '(Unix/Linux/MacOS: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
+  CASE(5)
       WRITE(my_output_unit,'(A,A,A,I15)') &
                               ' I found invalid specifier >>>',TRIM(spec),'<<<  in line number = ',line_number
-     ELSE IF (ierr == 6) THEN                                          !
+      WRITE(my_output_unit,'(A)') " Allowed values are defined in the file: "//TRIM(keyword_filenameC)
+      !------------------------------------------------------------------
+      ! Check if first character is special sign for variable, i.e. '%'.
+      !------------------------------------------------------------------
+      IF ( spec(1:1) == SpecialMacroCharacterC ) THEN
+         WRITE(my_output_unit,'(A)') " You tried to define the variable: "//TRIM(spec)
+         CALL Check_forbidden_characters( TRIM(spec) )
+      END IF
+  CASE(6)
       WRITE(my_output_unit,*)'invalid specifier(s) in ',TRIM(keyword_filetypeC),'.'
-     ELSE IF (ierr == 7) THEN                                          !
+  CASE(7)
       WRITE(my_output_unit,*)'expect an = after specifier >',TRIM(spec), &          !
                 '<  in line number = ',line_number                     !
-     ELSE IF (ierr == 8) THEN                                          !
+  CASE(8)
       WRITE(my_output_unit,*)'nonmatching end keyword  >',TRIM(keyC), &              !
                 '<  in line number = ',line_number                     !
       WRITE(my_output_unit,*)'expected end keyword is >',TRIM(tempC),'<'            !
-     ELSE IF (ierr == 9) THEN                                          !
+  CASE(9)
       WRITE(my_output_unit,'(A)')         ""
       WRITE(my_output_unit,'(A,A,A)')     " The first specifier after the keyword '",TRIM(keyC),"'"
       WRITE(my_output_unit,'(A,A,A)')     " must be the separating specifier '",TRIM(sep_spec),"'."
@@ -2978,28 +2995,28 @@ CONTAINS                                                               !
       WRITE(my_output_unit,'(7x,A,A)')      TRIM(sep_spec)  ," = ...              !  <==  correct"
       WRITE(my_output_unit,'(7x,A)')        "..."
       WRITE(my_output_unit,'(6x,A)')        key_char//"end_"//keyC(2:LEN_TRIM(keyC))
-     ELSE IF (ierr == 10) THEN                                         !
+  CASE(10)
       WRITE(my_output_unit,*)"Couldn't find specifier after keyword = ",TRIM(keyC)   !
       WRITE(my_output_unit,*)'Keyword was in line number = ',line_number,' of '     !
       WRITE(my_output_unit,*) TRIM(keyword_filetypeC),' Neither in line number = ',line_number
       WRITE(my_output_unit,*)'nor in line number = ',line_number+1,' a valid'       !
       WRITE(my_output_unit,*)'specifier appears at the expected position.'
-     ELSE IF (ierr == 11) THEN                                         !
+  CASE(11)
       WRITE(my_output_unit,*)"Couldn't find specifier after keyword = ",TRIM(keyC)   !
       WRITE(my_output_unit,*)'keyword was in line number = ',line_number,' of '     !
       WRITE(my_output_unit,*) TRIM(keyword_filetypeC),'. Neither in line number = ',line_number
       WRITE(my_output_unit,*)'nor in line number = ',line_number+1,' a valid'       !
       WRITE(my_output_unit,*)'specifier appears at the expected position.'
-     ELSE IF (ierr == 12) THEN                                         !
+  CASE(12)
       WRITE(my_output_unit,*)"Couldn't find keyword = ",TRIM(ADJUSTL(bufferC))       !
       WRITE(my_output_unit,*)'This keyword was defined to be required, but it'      !
       WRITE(my_output_unit,*)"does not show up in your ",TRIM(keyword_filetypeC)," = ",TRIM(input_filenameC),"."
       WRITE(my_output_unit,*)                                                       !
-     ELSE
-      WRITE(my_output_unit,*)"Error number not defined: ",ierr 
-     END IF
+  CASE DEFAULT
+      WRITE(my_output_unit,*)"Error number not defined: ierr = ",ierr 
+ END SELECT
 
-     STOP
+ STOP
 
 !------------------------------------------------------------------------------
  END SUBROUTINE ERROR
@@ -4165,4 +4182,667 @@ CONTAINS                                                               !
 
 !------------------------------------------------------------------------------
  END MODULE mod_input_driver
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ MODULE mod_TEST_FortranInputParser
+!------------------------------------------------------------------------------
+!
+!++m* builder_inputfile.f90/mod_TEST_FortranInputParser
+!
+! NAME 
+!   MODULE mod_TEST_FortranInputParser
+!
+! CONTAINS
+!   o SUBROUTINE TEST_CheckIfPositionIsUnique
+!   o SUBROUTINE TEST_ReplaceVariables
+!   o SUBROUTINE TEST_FortranInputParser
+!
+! FILENAME
+!   input_parser/parser.f90
+!
+! NOTES
+!
+!##
+!
+!------------------------------------------------------------------------------
+
+ IMPLICIT NONE
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ SUBROUTINE TEST_CheckIfPositionIsUnique
+!------------------------------------------------------------------------------
+!
+!++s* mod_TEST_FortranInputParser/TEST_CheckIfPositionIsUnique
+!
+! NAME
+!   SUBROUTINE TEST_CheckIfPositionIsUnique
+!
+! PURPOSE
+!   Test routine for SUBROUTINE CheckIfPositionIsUnique.
+!
+! USAGE
+!   CALL TEST_CheckIfPositionIsUnique
+! 
+! INPUT
+!   none
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE MacroForInputFile        ,ONLY:CheckIfPositionIsUnique
+
+ IMPLICIT NONE
+
+ CHARACTER(len=:),ALLOCATABLE   :: variableC
+ CHARACTER(len=:),ALLOCATABLE   :: variable_otherC
+ CHARACTER(len=:),ALLOCATABLE   :: StringC
+ CHARACTER(len=:),ALLOCATABLE   :: String_replacedC
+ CHARACTER(len=:),ALLOCATABLE   :: VariableValueC
+
+ INTEGER                        :: position_variable
+ CHARACTER(len=40),DIMENSION(4) :: VariableNameCV
+ LOGICAL                        :: position_uniqueL
+ INTEGER                        :: number_of_tests
+ INTEGER                        :: i
+
+ VariableValueC    = '2.332423424523d0'
+ variableC         = '%xmin'
+ variable_otherC   = '%xmin10'
+ VariableNameCV(1) = '%x'
+ VariableNameCV(2) = variableC
+ VariableNameCV(3) = variable_otherC
+ VariableNameCV(4) = '%QuantumWellWidth'
+ StringC           = ' %xmin10   =20.0* %xmin '//       '+ %xmin10 ! Variable definition  '
+ String_replacedC  = ' %xmin10   =20.0* 2.332423424523d0 + %xmin10 ! Variable definition  '
+ position_variable = 2
+
+ number_of_tests = 2
+
+ DO i=1,number_of_tests
+
+  SELECT CASE(i)
+   CASE(1)
+       StringC        = ' %xmin10 =20.0* %xmin   '//       '+ %xmin10 ! Variable definition  '
+   CASE(2)
+       StringC        = ' %xmin   =20.0* %xmin10 '//       '+ %xmin10 ! Variable definition  '
+  END SELECT
+
+    CALL CheckIfPositionIsUnique(StringC,position_variable,variableC,VariableNameCV, &
+                                 position_uniqueL)
+
+  SELECT CASE(i)
+   CASE(1)
+    IF (position_uniqueL) THEN
+       WRITE(my_output_unit,*) " TEST_CheckIfPositionIsUnique failed: "   ,i
+       STOP
+    ELSE
+       WRITE(my_output_unit,*) " TEST_CheckIfPositionIsUnique - success: ",i
+    END IF
+
+   CASE(2)
+    IF (.NOT. position_uniqueL) THEN
+       WRITE(my_output_unit,*) " TEST_CheckIfPositionIsUnique failed: "   ,i
+       STOP
+    ELSE
+       WRITE(my_output_unit,*) " TEST_CheckIfPositionIsUnique - success: ",i
+    END IF
+
+  END SELECT
+
+ END DO
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE TEST_CheckIfPositionIsUnique
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE TEST_ReplaceVariables
+!------------------------------------------------------------------------------
+!
+!++s* mod_TEST_FortranInputParser/TEST_ReplaceVariables
+!
+! NAME
+!   SUBROUTINE TEST_ReplaceVariables
+!
+! PURPOSE
+!   Test routine for SUBROUTINE ReplaceVariables.
+!
+! USAGE
+!   CALL TEST_ReplaceVariables
+! 
+! INPUT
+!   none
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE MacroForInputFile        ,ONLY:MacroC, &
+                                    type_variable
+ USE parser_parameters        ,ONLY:comment_signsCV
+ USE mod_Array_of_Strings     ,ONLY:String_in_Line
+
+ IMPLICIT NONE
+
+ INTEGER,PARAMETER                             :: max_string_length = 1234
+ INTEGER                                       :: NumberOfVariables
+ INTEGER,PARAMETER                             :: NumberOfLines     = 20
+ TYPE(String_in_Line),DIMENSION(NumberOfLines) :: Strings_inputV
+ TYPE(String_in_Line),DIMENSION(NumberOfLines) :: StringsV
+ TYPE(type_variable) ,DIMENSION(:),ALLOCATABLE :: VariableV
+
+ INTEGER                                       :: i
+ INTEGER                                       :: line
+ CHARACTER(len=:),ALLOCATABLE                  :: TestStringC
+ CHARACTER(len=:),ALLOCATABLE                  :: MacroStringC
+
+ INTEGER                                       :: num_tests
+ INTEGER                                       :: test
+
+!MacroStringC = "!***macro*** "
+ MacroStringC = TRIM(comment_signsCV(1)) // TRIM(MacroC) // ' '
+
+ num_tests = 5
+
+ DO test=1,num_tests
+  WRITE(my_output_unit,'(A)')  "======================"
+  WRITE(my_output_unit,*)      " Test #",test
+  WRITE(my_output_unit,'(A)')  "======================"
+
+  SELECT CASE(test)
+   CASE(1)
+    NumberOfVariables = 3
+   CASE(2,3)
+    NumberOfVariables = 2
+   CASE(4)
+    NumberOfVariables = 4
+   CASE(5)
+    NumberOfVariables = 2
+  END SELECT
+
+  ALLOCATE(VariableV(    NumberOfVariables))
+
+  DO line=1,NumberOfLines
+    Strings_inputV(line)%StringC = ''
+  END DO
+
+  SELECT CASE(test)
+   CASE(1)
+
+    Strings_inputV(  1 )%StringC = "! hello"
+    Strings_inputV(  2 )%StringC = "%x = 5.0"
+    Strings_inputV(  3 )%StringC = "%y=2.0"
+    Strings_inputV(  4 )%StringC = ""
+    Strings_inputV(  5 )%StringC = " x-coordinates = %x %x %x  ! "
+    Strings_inputV(  6 )%StringC = "%xmin = -3"
+    Strings_inputV(  7 )%StringC = " y-coordinates = %x %xmin %xmin %x"     ! %x occurs twice and at end of line
+    Strings_inputV(  8 )%StringC = " z-coordinates = %xmin              ! "
+
+    VariableV(1)%nameC           = "%x"
+    VariableV(1)%value_initialC  = "5.0"
+    VariableV(1)%defined_in_line = 2
+
+    VariableV(2)%nameC           = "%y"
+    VariableV(2)%value_initialC  = "2.0"
+    VariableV(2)%defined_in_line = 3
+
+    VariableV(3)%nameC           = "%xmin"
+    VariableV(3)%value_initialC  = "-3"
+    VariableV(3)%defined_in_line = 6
+
+   CASE(2,3)
+
+    Strings_inputV(  1 )%StringC = "%zmin = 0.0"
+    Strings_inputV(  2 )%StringC = "%zmin_sim = 11.0"
+
+    SELECT CASE(test)
+     CASE(2)
+    Strings_inputV(  3 )%StringC = "z-grid-lines = %zmin %zmin_sim" ! %substring %zmin is left of larger string %zmin_sim
+     CASE(3)
+    Strings_inputV(  3 )%StringC = "z-grid-lines = %zmin_sim %zmin" ! %substring %zmin is right of larger string %zmin_sim
+    END SELECT
+
+    VariableV(1)%nameC           = "%zmin"
+    VariableV(1)%value_initialC  = "0.0"
+    VariableV(1)%defined_in_line = 1
+
+    VariableV(2)%nameC           = "%zmin_sim"
+    VariableV(2)%value_initialC  = "11.0"
+    VariableV(2)%defined_in_line = 2
+
+   CASE(4)
+
+    Strings_inputV(  1 )%StringC = "%zmin = 0.0"
+    Strings_inputV(  2 )%StringC = "%zmax = 10.0"
+    Strings_inputV(  3 )%StringC = "%zmin_sim = -1.0"
+    Strings_inputV(  4 )%StringC = "%zmax_sim = 11.0"
+    Strings_inputV(  5 )%StringC = "z-grid-lines = %zmin_sim %zmin %zmax %zmax_sim"
+
+    VariableV(1)%nameC           = "%zmin"
+    VariableV(1)%value_initialC  = "0.0"
+    VariableV(1)%defined_in_line = 1
+
+    VariableV(2)%nameC           = "%zmax"
+    VariableV(2)%value_initialC  = "10.0"
+    VariableV(2)%defined_in_line = 2
+
+    VariableV(3)%nameC           = "%zmin_sim"
+    VariableV(3)%value_initialC  = "-1.0"
+    VariableV(3)%defined_in_line = 3
+
+    VariableV(4)%nameC           = "%zmax_sim"
+    VariableV(4)%value_initialC  = "11.0"
+    VariableV(4)%defined_in_line = 4
+
+   CASE(5)
+
+   ! %Radius      = 2.0
+   ! %RadiusShell = 2.0 * %Radius    ! ==> Substring %Radius is contained in string %RadiusShell and afterwards it is used to evaluate %RadiusShell.
+    Strings_inputV(  1 )%StringC = "%Radius      = 3.0"
+    Strings_inputV(  2 )%StringC = "%RadiusShell = 2.0 * %Radius"
+
+    VariableV(1)%nameC           = "%Radius"
+    VariableV(1)%value_initialC  = "3.0"
+    VariableV(1)%defined_in_line = 1
+
+    VariableV(2)%nameC           = "%RadiusShell"
+    VariableV(2)%value_initialC  = "2.0 * %Radius"
+    VariableV(2)%defined_in_line = 2
+
+  END SELECT
+
+  DO line=1,NumberOfLines
+    StringsV(line)%StringC = Strings_inputV(line)%StringC
+  END DO
+
+  DO i=1,NumberOfVariables
+    VariableV(i)%valueC    = VariableV(i)%value_initialC  
+  END DO
+
+  !-----------------------------------
+  ! Count, get and replace variables.
+  !-----------------------------------
+  CALL Count_Get_Replace_Variables
+
+  DO line=1,NumberOfLines
+
+   SELECT CASE(test)
+    CASE(1)
+
+       SELECT CASE(line)
+        CASE(2)
+         TestStringC = MacroStringC // Strings_inputV(line)%StringC     //' '//"(5 replacements)" ! variable was replaced
+        CASE(3)
+         TestStringC = MacroStringC // Strings_inputV(line)%StringC     //' '//"(0 replacements)" ! variable was not replaced
+        CASE(5)
+         TestStringC =                 " x-coordinates = 5.0 5.0 5.0  ! " ! variable was replaced
+        CASE(6)
+         TestStringC = MacroStringC // Strings_inputV(line)%StringC     //' '//"(3 replacements)" ! variable was not replaced
+        CASE(7)
+         TestStringC =                 " y-coordinates = 5.0 -3 -3 5.0"
+        CASE(8)
+         TestStringC =                 " z-coordinates = -3              ! "
+        CASE DEFAULT
+         TestStringC =                 Strings_inputV(line)%StringC                            ! unchanged
+       END SELECT
+
+    CASE(2,3)
+       SELECT CASE(line)
+        CASE(1,2)
+         TestStringC = MacroStringC // Strings_inputV(line)%StringC     //' '//"(1 replacement)" ! variable was replaced
+        CASE(3)
+
+    SELECT CASE(test)
+     CASE(2)
+         TestStringC = "z-grid-lines = 0.0 11.0"
+     CASE(3)
+         TestStringC = "z-grid-lines = 11.0 0.0"
+    END SELECT
+
+        CASE DEFAULT
+         TestStringC =                 Strings_inputV(line)%StringC                            ! unchanged
+       END SELECT
+
+    CASE(4)
+       SELECT CASE(line)
+        CASE(1,2,3,4)
+         TestStringC = MacroStringC // Strings_inputV(line)%StringC     //' '//"(1 replacement)" ! variable was replaced
+        CASE(5)
+         TestStringC = "z-grid-lines = -1.0 0.0 10.0 11.0"
+        CASE DEFAULT
+         TestStringC =                 Strings_inputV(line)%StringC                            ! unchanged
+       END SELECT
+
+    CASE(5)
+       SELECT CASE(line)
+        CASE(1)
+         TestStringC = MacroStringC // Strings_inputV(line)%StringC     //' '//"(1 replacement)" ! variable was replaced
+        CASE(2)
+         TestStringC = MacroStringC // "%RadiusShell = 2.0 * 3.0"       //' '//"(0 replacements)" ! variable was not replaced
+        CASE DEFAULT
+         TestStringC =                 Strings_inputV(line)%StringC                            ! unchanged
+       END SELECT
+   END SELECT 
+
+   IF ( TRIM(StringsV(line)%StringC) /= TestStringC ) THEN
+        WRITE(my_output_unit,*) "Error TEST_ReplaceVariables failed: line = ",line
+        WRITE(my_output_unit,'(A)')  "       " // TRIM(Strings_inputV(line)%StringC) // " (input)"
+        WRITE(my_output_unit,'(A)')  "       " // TestStringC // " (expected string)"
+        WRITE(my_output_unit,'(A)')  "       " // TRIM(StringsV(      line)%StringC)
+        STOP
+   ELSE
+       IF ( TRIM(StringsV(line)%StringC) /= "" ) THEN ! omit empty lines
+        WRITE(my_output_unit,'(A)') " [okay] " // TRIM(StringsV(line)%StringC)
+       END IF
+   END IF
+
+  END DO ! Loop over lines.
+
+  DEALLOCATE(VariableV)
+
+ END DO ! End: Loop over test
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ SUBROUTINE Count_Get_Replace_Variables
+!------------------------------------------------------------------------------
+ USE parser_parameters        ,ONLY:SpecialMacroCharacterC, &
+                                    comment_signsCV, &
+                                    IF_STATEMENT_CV
+ USE MacroForInputFile        ,ONLY:type_variable, &
+                                    CountGetVariables, &
+                                    ReplaceVariables
+
+ IMPLICIT NONE
+
+ INTEGER                                       :: NumberOfVariables_count
+ TYPE(type_variable) ,DIMENSION(:),ALLOCATABLE :: Variable_getV
+
+ ALLOCATE(Variable_getV(NumberOfVariables))
+
+  !-----------------------------------------------------
+  ! 1) Count variables.
+  !-----------------------------------------------------
+  CALL CountGetVariables('count',NumberOfLines,SpecialMacroCharacterC,comment_signsCV,StringsV, &
+                                 NumberOfVariables_count) ! Note: 'NumberOfVariables_count' is output.
+  IF ( NumberOfVariables_count /= NumberOfVariables ) THEN
+      WRITE(my_output_unit,*) "Error CountGetVariables failed: Unexpected number of variables."
+      WRITE(my_output_unit,*) "NumberOfVariables_count = ",NumberOfVariables_count
+      WRITE(my_output_unit,*) "NumberOfVariables       = ",NumberOfVariables      ," (expected)"
+      STOP
+  ELSE
+      WRITE(my_output_unit,*) NumberOfVariables_count," variables found."
+  END IF
+
+  !-----------------------------------------------------
+  ! 2) Get variables and its values.
+  !    e.g. %variable = <value>
+  !    VariableV(:)%nameC = VariableV(:)%value_initialC
+  !-----------------------------------------------------
+  CALL CountGetVariables('get'  ,NumberOfLines,SpecialMacroCharacterC,comment_signsCV,StringsV, &
+                                 NumberOfVariables_count,Variable_getV) ! Note: 'NumberOfVariables' is input.
+  WRITE(my_output_unit,'(A)')    ""
+ 
+  !--------------------------------------------------
+  ! Test if values of all variables have been found.
+  !--------------------------------------------------
+  DO i=1,NumberOfVariables
+   IF ( VariableV(i)%nameC /= Variable_getV(i)%nameC ) THEN
+      WRITE(my_output_unit,*) "variable name inconsistent."
+      WRITE(my_output_unit,*) "VariableV(    i)%nameC = ",VariableV(    i)%nameC
+      WRITE(my_output_unit,*) "Variable_getV(i)%nameC = ",Variable_getV(i)%nameC
+   END IF
+   IF ( VariableV(i)%valueC /= Variable_getV(i)%valueC ) THEN
+      WRITE(my_output_unit,*) "variable name inconsistent."
+      WRITE(my_output_unit,*) "VariableV(    i)%valueC = ",VariableV(    i)%valueC
+      WRITE(my_output_unit,*) "Variable_getV(i)%valueC = ",Variable_getV(i)%valueC
+   END IF
+   IF ( VariableV(i)%defined_in_line /= Variable_getV(i)%defined_in_line ) THEN
+      WRITE(my_output_unit,*) "variable name inconsistent."
+      WRITE(my_output_unit,*) "VariableV(    i)%defined_in_line = ",VariableV(    i)%defined_in_line
+      WRITE(my_output_unit,*) "Variable_getV(i)%defined_in_line = ",Variable_getV(i)%defined_in_line
+   END IF
+      WRITE(my_output_unit,*) "Variable ",i," has been found and its value is as expected."
+  END DO
+
+  DEALLOCATE(Variable_getV)
+
+  !-----------------------------------------------------------------------------------
+  ! 3) Replace variables either with its value, or with its evaluated function value.
+  !-----------------------------------------------------------------------------------
+  CALL ReplaceVariables(NumberOfVariables,max_string_length,VariableV,comment_signsCV, &
+                        IF_STATEMENT_CV, &
+                        StringsV)
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Count_Get_Replace_Variables
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE TEST_ReplaceVariables
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE TEST_ApplyMacro
+!------------------------------------------------------------------------------
+!
+!++s* mod_TEST_FortranInputParser/TEST_ApplyMacro
+!
+! NAME
+!   SUBROUTINE TEST_ApplyMacro
+!
+! PURPOSE
+!   Test routine for SUBROUTINE ApplyMacro.
+!
+! USAGE
+!   CALL TEST_ApplyMacro
+! 
+! INPUT
+!   none
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE MacroForInputFile        ,ONLY:MacroC, &
+                                    ApplyMacro
+ USE parser_parameters        ,ONLY:comment_signsCV, &
+                                    IF_STATEMENT_CV
+ USE mod_Array_of_Strings     ,ONLY:String_in_Line
+ USE MacroForInputFile        ,ONLY:type_variable
+
+ IMPLICIT NONE
+
+ INTEGER,PARAMETER                             :: max_string_length = 1234
+ INTEGER,PARAMETER                             :: NumberOfLines     = 20
+ TYPE(String_in_Line),DIMENSION(NumberOfLines) :: Strings_inputV
+ TYPE(String_in_Line),DIMENSION(NumberOfLines) :: StringsV
+
+ INTEGER,PARAMETER                             :: DebugLevel = 1
+ INTEGER                                       :: i
+ INTEGER                                       :: line
+ LOGICAL                                       :: MacroActiveL
+ CHARACTER(len=*),PARAMETER                    :: SpecialMacroCharacterC = '%'
+ CHARACTER(len=:),ALLOCATABLE                  :: TestStringC
+ CHARACTER(len=:),ALLOCATABLE                  :: MacroStringC
+
+!MacroStringC = "!***macro*** "
+ MacroStringC = TRIM(comment_signsCV(1)) // TRIM(MacroC) // ' '
+
+ DO line=1,NumberOfLines
+    Strings_inputV(line)%StringC = ''
+ END DO
+
+    Strings_inputV(   1 )%StringC = "! hello"
+    Strings_inputV(   2 )%StringC = "%x = 5.0"
+    Strings_inputV(   3 )%StringC = "%y=2.0"
+    Strings_inputV(   4 )%StringC = ""
+    Strings_inputV(   5 )%StringC = " %USE_BAND_GAPS = use-band-gaps = yes         ! Set this line."
+    Strings_inputV(   6 )%StringC = "%USE_BAND_GAPS"
+    Strings_inputV(   7 )%StringC = ""
+    Strings_inputV(   8 )%StringC = " %IncludeHoles     = .TRUE."
+    Strings_inputV(   9 )%StringC = ""
+    Strings_inputV(  10 )%StringC = "%FunctionParser = yes" ! From now on evaluate all functions.
+    Strings_inputV(  11 )%StringC = ""
+    Strings_inputV(  12 )%StringC = "%xmin = %x - 3.0"
+    Strings_inputV(  13 )%StringC = "%ymin = %y + 13.0"
+    Strings_inputV(  14 )%StringC = ""
+    Strings_inputV(  15 )%StringC = "%z1 = -2.0"
+    Strings_inputV(  16 )%StringC = "  %alpha = %z1 + 3.0"
+    Strings_inputV(  17 )%StringC = " x-coordinates = %x  %xmin  ! "
+    Strings_inputV(  18 )%StringC = " %IncludeElectrons = '.FALSE.'"
+    Strings_inputV(  19 )%StringC = "!IF %IncludeHoles  valence-band-numbers = 1 2 3"
+    Strings_inputV(  20 )%StringC = "!IF %IncludeElectrons  conductions-band-numbers = 1 2 3"
+
+
+ DO line=1,NumberOfLines
+    StringsV(line)%StringC = Strings_inputV(line)%StringC
+ END DO
+
+
+  CALL ApplyMacro(SpecialMacroCharacterC,comment_signsCV,IF_STATEMENT_CV,DebugLevel,NumberOfLines,max_string_length, &
+                  StringsV,MacroActiveL)
+
+ DO line=1,NumberOfLines
+
+     SELECT CASE(line)
+      CASE(2)
+       TestStringC = MacroStringC // Strings_inputV(line)%StringC//' '//"(2 replacements)"   ! variable was replaced
+      CASE(3)
+       TestStringC = MacroStringC // Strings_inputV(line)%StringC//' '//"(1 replacement)"    ! variable was replaced
+      CASE(5)
+       TestStringC = MacroStringC // TRIM(ADJUSTL(Strings_inputV(line)%StringC)) //' '//"(1 replacement)"  ! variable was replaced
+      CASE(6)
+       TestStringC =                 "use-band-gaps = yes"                                   !
+      CASE(8)
+       TestStringC = MacroStringC // TRIM(ADJUSTL(Strings_inputV(line)%StringC))//' '//"(1 replacement)"  ! variable was replaced
+      CASE(10)
+       TestStringC = MacroStringC // Strings_inputV(line)%StringC  //' '//"(0 replacements)"   ! variable was not replaced
+      CASE(12)
+       TestStringC = MacroStringC // "%xmin = 5.0 - 3.0"           //' '//"(1 replacement)"  ! variable was replaced
+      CASE(13)
+       TestStringC = MacroStringC // "%ymin = 2.0 + 13.0"          //' '//"(0 replacements)" !
+      CASE(15)
+       TestStringC = MacroStringC // "%z1 = -2.0"                  //' '//"(1 replacement)"  !
+      CASE(16)
+       TestStringC = MacroStringC // "%alpha = -2.00000000e0 + 3.0"//' '//"(0 replacements)" !
+      CASE(17)
+       TestStringC = " x-coordinates = 5.0  2.00000000e0  ! "
+      CASE(18)
+       TestStringC = MacroStringC // TRIM(ADJUSTL(Strings_inputV(line)%StringC)) //' '//"(0 replacements)"   ! variable was not replaced
+      CASE(19)
+                ! "!IF %IncludeHoles  valence-band-numbers = 1 2 3"
+       TestStringC = "                valence-band-numbers = 1 2 3"
+      CASE DEFAULT
+       TestStringC =                 Strings_inputV(line)%StringC                            ! unchanged
+     END SELECT
+
+     IF ( TRIM(StringsV(line)%StringC) /= TestStringC ) THEN
+        WRITE(my_output_unit,*) "Error TEST_ApplyMacro failed: line = ",line
+        WRITE(my_output_unit,'(A)')  "       " // TestStringC             // " (expected string)"
+        WRITE(my_output_unit,'(A)')  "       " // TRIM(StringsV(      line)%StringC)
+        WRITE(my_output_unit,'(A)')  "       " // TRIM(Strings_inputV(line)%StringC) // " (input)"
+        STOP
+     ELSE
+        WRITE(my_output_unit,'(A)') " [okay] " // TRIM(StringsV(line)%StringC)
+     END IF
+
+ END DO
+
+    WRITE(my_output_unit,'(A)')  ""
+    WRITE(my_output_unit,'(A)')  " --------------"
+    WRITE(my_output_unit,'(A)')  " Print strings:"
+    WRITE(my_output_unit,'(A)')  " --------------"
+    WRITE(my_output_unit,'(A)')  ""
+    WRITE(my_output_unit,'(A)')  " -----"
+    WRITE(my_output_unit,'(A)')  " INPUT"
+    WRITE(my_output_unit,'(A)')  " -----"
+ DO line=1,NumberOfLines
+    WRITE(my_output_unit,'(A)') Strings_inputV(line)%StringC
+ END DO
+    WRITE(my_output_unit,'(A)')  ""
+    WRITE(my_output_unit,'(A)')  " ------"
+    WRITE(my_output_unit,'(A)')  " OUTPUT"
+    WRITE(my_output_unit,'(A)')  " ------"
+ DO line=1,NumberOfLines
+    WRITE(my_output_unit,'(A)') StringsV(line)%StringC
+ END DO
+    WRITE(my_output_unit,'(A)')  ""
+    WRITE(my_output_unit,'(A)')  " ---------------------"
+    WRITE(my_output_unit,'(A)')  " Done: TEST_ApplyMacro"
+    WRITE(my_output_unit,'(A)')  " ---------------------"
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE TEST_ApplyMacro
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE TEST_FortranInputParser
+!------------------------------------------------------------------------------
+!
+!++s* mod_TEST_FortranInputParser/TEST_FortranInputParser
+!
+! NAME
+!   SUBROUTINE TEST_FortranInputParser
+!
+! PURPOSE
+!   Test routine for Fortran Input Parser.
+!
+! USAGE
+!   CALL TEST_FortranInputParser
+! 
+! INPUT
+!   none
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE CharacterManipulation    ,ONLY:TEST_ReplaceXMLTag
+
+ IMPLICIT NONE
+
+     CALL TEST_ReplaceXMLTag
+ WRITE(my_output_unit,*) " TEST_ReplaceXMLTag                - successful."
+
+     CALL TEST_CheckIfPositionIsUnique
+ WRITE(my_output_unit,*) " TEST_CheckIfPositionIsUnique      - successful."
+
+     CALL TEST_ReplaceVariables
+ WRITE(my_output_unit,*) " TEST_ReplaceVariables             - successful."
+
+     CALL TEST_ApplyMacro
+ WRITE(my_output_unit,*) " TEST_ApplyMacro                   - successful."
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE TEST_FortranInputParser
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+ END MODULE mod_TEST_FortranInputParser
 !------------------------------------------------------------------------------

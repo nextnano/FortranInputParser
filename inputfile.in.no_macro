@@ -26,8 +26,8 @@
 
 # Choose GaAs or AlAs
 
-#%Include_GaAs = 1           # if 1 (=true), include material GaAs
-!***macro*** %Include_GaAs = 0           # if 0 (=false), do not include material GaAs (1 replacement)
+#%Include_GaAs = 1                  # if 1 (=true), include material GaAs
+!***macro*** %Include_GaAs = 0                  # if 0 (=false), do not include material GaAs (1 replacement)
 !***macro*** %Include_AlAs = 1 - 0.0e0  # if 1 (=true), include material AlAs, else 0 (=false) (1 replacement)
 
 !***macro*** %BandGap_300K = 1.519 - 0.5405e-3 * 300.0^2 / ( 300.0 + 204.0 ) # band gap at 300 K (DisplayUnit:eV) (1 replacement)
