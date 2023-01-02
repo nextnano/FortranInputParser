@@ -1865,7 +1865,6 @@ END MODULE mod_init_keyword_queue
 !
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units   ,ONLY:my_output_unit
-!USE system_specific_parser      ,ONLY:DebugLevel
  USE mod_FileExtensions_parser   ,ONLY:XML_C,ValidatorC
  USE DirectoryFileExist          ,ONLY:GetGlobalDirectoryName
  USE input_type_names            ,ONLY:char_length_type_name, &

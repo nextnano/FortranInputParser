@@ -1,0 +1,49 @@
+<Keywords>
+   <nextnano3>
+
+      <block   text="$input_filename"                                                           type="group"   required="false">
+         <attribute   text="inputfile.in"                                                      type="string"   required="false">
+         </attribute>
+      </block>
+
+      <block   text="$magnetic-field"                                                           type="group"   required="false">
+         <attribute   text="magnetic-field-on"                                                 type="choice"   required="true"   function="separator">
+            <option   value="yes"></option>
+            <option   value="no"></option>
+         </attribute>
+         <attribute   text="magnetic-field-strength"                                             type="real"   required="true">
+         </attribute>
+         <attribute   text="magnetic-field-direction"                                          type="choice"   required="true">
+            <option   value="1 0 0"></option>
+            <option   value="0 1 0"></option>
+            <option   value="0 0 1"></option>
+         </attribute>
+      </block>
+
+      <block   text="$material"                                                                 type="group"   required="true">
+         <attribute   text="material-number"                                                  type="integer"   required="true"   function="separator">
+         </attribute>
+         <attribute   text="cluster-numbers"                                           type="integer_vector"   required="true">
+         </attribute>
+         <attribute   text="material-name"                                                     type="string"   required="true">
+         </attribute>
+         <attribute   text="alloy-function"                                                    type="choice"   required="false">
+            <option   value="constant"></option>
+            <option   value="linear"></option>
+         </attribute>
+         <attribute   text="alloy-concentration"                                                 type="real"   required="false">
+         </attribute>
+         <attribute   text="band-gaps"                                                    type="real_vector"   required="false">
+         </attribute>
+         <attribute   text="crystal-type"                                                      type="choice"   required="false">
+            <option   value="zincblende"></option>
+            <option   value="wurtzite"></option>
+         </attribute>
+         <attribute   text="use-material-parameters-from-database"                             type="choice"   required="false">
+            <option   value=".TRUE."></option>
+            <option   value=".FALSE."></option>
+         </attribute>
+      </block>
+
+   </nextnano3>
+</Keywords>

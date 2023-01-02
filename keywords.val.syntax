@@ -1,0 +1,31 @@
+!-----------------------------------------------------------------------------!
+! This must be the first keyword. Do not change the order.
+!-----------------------------------------------------------------------------!
+$input_filename                                                    optional   ! Don't change this. This must be the first keyword in this file. Do not change the order!
+ inputfile.in                       character        optional   ! Do not change this. This must be the first specifier in case no input file is specified.
+$end_input_filename                                                optional   !
+!-----------------------------------------------------------------------------!
+! End of first keyword. Now the order does not matter.
+!-----------------------------------------------------------------------------!
+
+!-----------------------------------------------------------------------------!
+$magnetic-field                                  optional                     !
+ magnetic-field-on                               character        required      CHOICE[yes,no]
+ magnetic-field-strength                         double           required    !
+ magnetic-field-direction                        integer_array    required      CHOICE[1 0 0,0 1 0,0 0 1]
+$end_magnetic-field                              optional                     !
+!-----------------------------------------------------------------------------!
+
+!-----------------------------------------------------------------------------!
+$material                                                         required    !
+ material-number                                 integer          required    ! first entry is separator for new input sequence
+ cluster-numbers                                 integer_array    required    !
+ material-name                                   character        required    !
+ alloy-function                                  character        optional      CHOICE[constant,linear]
+ alloy-concentration                             double           optional    !
+ band-gaps                                       double_array     optional    !
+ crystal-type                                    character        optional      CHOICE[zincblende,wurtzite]
+ use-material-parameters-from-database           logical          optional      CHOICE[.TRUE.,.FALSE.]
+$end_material                                                     required    !
+!-----------------------------------------------------------------------------!
+

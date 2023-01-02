@@ -41,6 +41,7 @@
  LOGICAL                         :: ParseKeywordsInputFileL = .FALSE.
  LOGICAL                         :: ParseKeywordsDatabaseL  = .FALSE.
  LOGICAL                         :: ParseInputFileOnlyL     = .FALSE.
+ LOGICAL                         :: WriteCompactFileL       = .FALSE.
 
  LOGICAL                         ::   SetInputFileViaCommandLineL
  LOGICAL                         ::    SetDatabaseViaCommandLineL

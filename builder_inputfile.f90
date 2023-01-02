@@ -81,7 +81,8 @@
  USE My_Input_and_Output_Units ,ONLY:my_output_unit
  USE system_specific_parser    ,ONLY:DebugLevel, &
                                      InputFileName_NoDirectoryNoExtensionC, &
-                                     InputFileName_NoDirectoryC
+                                     InputFileName_NoDirectoryC, &
+                                     WriteCompactFileL
  USE MacroForInputFile         ,ONLY:ApplyMacro
  USE parser_parameters         ,ONLY:comment_signsCV        , &
                                      Data_len               , &
@@ -301,9 +302,10 @@
     !--------------------------------------------------------------------
     CALL ReplaceTAB(    StringsV(line_number)%StringC )
 
-    !---------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------
     ! XML tags <...> can be present. They are ignored and replaced with blanks.
-    !---------------------------------------------------------------------------
+    ! Note: As they are replaced with blanks, they are not visible in the file *.in.no_macro.
+    !-----------------------------------------------------------------------------------------
     CALL ReplaceXMLTag( StringsV(line_number)%StringC )
 
    END DO 
@@ -521,7 +523,7 @@
      !---------------------------------------------------------------------------
      OPEN (33,file = TRIM(Folder_InputFilename_outC)//'.no_macro')  ! This works if -outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
-   IF (DebugLevel > 1) THEN
+   IF (WriteCompactFileL > 1) THEN
      OPEN (34,file = TRIM(Folder_InputFilename_outC)//'.compact')   ! This works if -outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
 

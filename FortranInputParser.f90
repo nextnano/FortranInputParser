@@ -16,9 +16,11 @@
 !##
 !
 !-----------------------------------------------------------------------------
- USE input_driver_module  ,ONLY:input_driver
- USE mod_collect_database ,ONLY:Write_Database_Entries
- USE mod_collect_inputfile,ONLY:Write_Inputfile_Entries
+ USE input_driver_module   ,ONLY:input_driver
+ USE mod_collect_database  ,ONLY:Write_Database_Entries
+ USE mod_collect_inputfile ,ONLY:Write_Inputfile_Entries
+ USE system_specific_parser,ONLY:ParseInputFileOnlyL, &
+                                 WriteCompactFileL
                               
  IMPLICIT NONE
 
@@ -45,6 +47,9 @@
  InputFilenameC              = 'inputfile.in'
  DatabaseFilenameC           = 'database.in'
  
+ ParseInputFileOnlyL = .TRUE. ! If .TRUE., an .xml     file is written out.
+ WriteCompactFileL   = .TRUE. ! If .TRUE., a  .compact file is written out.
+
  !--------------------------------
  ! Call input driver and read in:
  !  - database
