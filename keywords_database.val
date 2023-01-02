@@ -1,6 +1,6 @@
 !-----------------------------------------------------------------------------!
 $input_filename                                                   optional    !
- database.in                                     character        optional    !
+ input/database.in                               character        optional    !
 $end_input_filename                                               optional    !
 !-----------------------------------------------------------------------------!
 

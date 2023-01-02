@@ -1998,8 +1998,8 @@ END MODULE mod_init_keyword_queue
      ELSE
       WRITE(output_unit_VAL,'(A67,A12,A1)')            keywordC , OptionalString_VAL_C ,                                    '!'
       WRITE(output_unit_VAL,'(A80)')         '!------------------------------------------------------------------------------!'
-    ! WRITE(output_unit_VAL,'(A)')           '                                                                                ' ! Option A): Empty line with blanks.
-      WRITE(output_unit_VAL,'(A)')           ''                                                                                 ! Option B): Empty line with no characters seems more reasonable than Option A).
+    ! WRITE(output_unit_VAL,'(A)')           '                                                                              ' ! Option A): Empty line with blanks.
+      WRITE(output_unit_VAL,'(A)')           ''                                                                               ! Option B): Empty line with no characters seems more reasonable than Option A).
      END IF
 
      EXIT  ! If no specifier was found, we move on to the next keyword.

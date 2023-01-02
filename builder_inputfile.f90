@@ -523,7 +523,7 @@
      !---------------------------------------------------------------------------
      OPEN (33,file = TRIM(Folder_InputFilename_outC)//'.no_macro')  ! This works if -outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
-   IF (WriteCompactFileL > 1) THEN
+   IF (WriteCompactFileL) THEN
      OPEN (34,file = TRIM(Folder_InputFilename_outC)//'.compact')   ! This works if -outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
 
@@ -598,7 +598,7 @@
      !---------------------------------------------------
      CALL push(queue_1,bufferC,line_number,comment_signsCV)              ! push node onto top of queue_1
 
-     IF (DebugLevel > 1) THEN
+     IF (WriteCompactFileL) THEN
       IF (bufferC /= '') THEN
           WRITE(34,'(A)') TRIM(bufferC)
       END IF
@@ -617,7 +617,7 @@
     END IF
    END IF
 
-    IF (DebugLevel > 1) THEN
+    IF (WriteCompactFileL) THEN
      CLOSE(34)
     END IF
    

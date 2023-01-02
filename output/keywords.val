@@ -1,6 +1,6 @@
 !------------------------------------------------------------------------------!
 $input_filename                                                    optional    !
- inputfile.in                                     character        optional    !
+ input/inputfile.in                               character        optional    !
 $end_input_filename                                                optional    !
 !------------------------------------------------------------------------------!
 

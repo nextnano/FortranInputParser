@@ -24,7 +24,9 @@
 
  IMPLICIT NONE
 
- CHARACTER(len=30)               :: OperatingSystemC      ! 'windows' (default), 'mac', 'linux', 'unix'
+ CHARACTER(len=30)               :: OperatingSystemC               ! 'windows' (default), 'mac', 'linux', 'unix'
+ LOGICAL                         :: OperatingSystem64bitL = .TRUE. ! .TRUE. if operating system is 64-bit, .FALSE. if 32-bit
+
 
  TYPE :: SystemSpecific
    CHARACTER(len=1)              :: DirectorySeparatorCharC
@@ -58,7 +60,12 @@
 
  CHARACTER(len=987)              ::      OutputDirC             = ''             ! name of global output directory, e.g. 'H:\nextnano3\output\test'
 
+ CHARACTER(len=*),PARAMETER      ::     DebugDirectory_defaultC = 'debug'        ! default name of debug directory
+ CHARACTER(len=987)              ::     DebugDirectoryC         = ''
  INTEGER                         ::     DebugLevel              = 0              ! '0' = no debug information
+ LOGICAL                         ::     DebugLevelL             = .FALSE.
+
+ INTEGER                         :: NumberOfThreads             = 1              ! use 1 thread by default
 
  LOGICAL                         :: GenerateLogFileL = .FALSE.     ! .TRUE. if .log file should be written, i.e. if screen output should be written to file.
  CHARACTER(len=987)              :: LogFilenameC                   ! name of .log file

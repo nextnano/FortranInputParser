@@ -16,11 +16,14 @@
 !##
 !
 !-----------------------------------------------------------------------------
+ USE EnvironmentAndSystem  ,ONLY:AssignDefaultOperatingSystem
  USE input_driver_module   ,ONLY:input_driver
  USE mod_collect_database  ,ONLY:Write_Database_Entries
  USE mod_collect_inputfile ,ONLY:Write_Inputfile_Entries
  USE system_specific_parser,ONLY:ParseInputFileOnlyL, &
-                                 WriteCompactFileL
+                                 WriteCompactFileL  , &
+                                 OperatingSystemC   , &
+                                 OutputDirC
                               
  IMPLICIT NONE
 
@@ -43,13 +46,23 @@
  WRITE(*,'(A)') ""
  WRITE(*,'(A)') "------------------------------------------------------------"
  WRITE(*,'(A)') ""
- 
- InputFilenameC              = 'inputfile.in'
- DatabaseFilenameC           = 'database.in'
+
+!OperatingSystemC = 'windows' ! defines backslash or slash ==> backslash "/" for directories
+ OperatingSystemC = 'linux'   ! defines backslash or slash ==>     slash "\" for directories
+
+ OutputDirC = 'output/'      ! Define name of output directory
+
+ InputFilenameC              = 'input/inputfile.in'
+ DatabaseFilenameC           = 'input/database.in'
  
  ParseInputFileOnlyL = .TRUE. ! If .TRUE., an .xml     file is written out.
  WriteCompactFileL   = .TRUE. ! If .TRUE., a  .compact file is written out.
 
+ !--------------------------
+ ! Update operating system.
+ !--------------------------
+ CALL AssignDefaultOperatingSystem(OperatingSystemC)
+ 
  !--------------------------------
  ! Call input driver and read in:
  !  - database

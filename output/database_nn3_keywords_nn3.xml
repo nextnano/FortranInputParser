@@ -2,7 +2,7 @@
    <nextnano3>
 
       <block   text="$input_filename"                                                           type="group"   required="false">
-         <attribute   text="database.in"                                                       type="string"   required="false">
+         <attribute   text="input/database.in"                                                 type="string"   required="false">
          </attribute>
       </block>
 

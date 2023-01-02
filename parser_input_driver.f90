@@ -21,7 +21,7 @@
  LOGICAL                       :: SetInputFileViaCommandLineL
  LOGICAL                       :: SetDatabaseViaCommandLineL
 
- SetInputFileViaCommandLineL = .FALSE.
+ SetInputFileViaCommandLineL = .TRUE.
  SetDatabaseViaCommandLineL  = .FALSE.
 
  CALL InputDriver(    InputFilenameC , SetInputFileViaCommandLineL, &

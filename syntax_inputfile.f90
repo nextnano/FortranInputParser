@@ -76,7 +76,8 @@
 
  WriteToFileL           = .FALSE.
  ReturnDefaultFilenameL = .FALSE.
-       DefaultFilenameC = "inputfile.in"
+!      DefaultFilenameC =       "inputfile.in"
+       DefaultFilenameC = "input/inputfile.in"
 
  SELECT CASE( TRIM(optionC) )
   CASE('default-filename')
@@ -99,41 +100,41 @@ IF ( ReturnDefaultFilenameL ) THEN
 ELSE
  sC=''
 
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
  sC=sC// "! This must be the first keyword. Do not change the order."//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC// "$input_filename                                                    optional   !"// &
-              " Don't change this. This must be the first keyword in this file. Do not change the order!"//nC
-!sC=sC// " inputfile.in.in                                  character        optional   !"// &
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC// "$input_filename                                                     optional   !"// &
+              " Do not change this. This must be the first keyword in this file. Do not change the order!"//nC
+!sC=sC// " inputfile.in.in                                   character        optional   !"// &
 !             " Do not change this. This must be the first specifier in case no input file is specified."//nC
- sC=sC// " "//DefaultFilenameC//    "                       character        optional   !"// &
+ sC=sC// " "//DefaultFilenameC//    "                        character        optional   !"// &
               " Do not change this. This must be the first specifier in case no input file is specified."//nC
- sC=sC// "$end_input_filename                                                optional   !"//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
+ sC=sC// "$end_input_filename                                                 optional   !"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
  sC=sC// "! End of first keyword. Now the order does not matter."//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC//                                                                                ""//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC// "$magnetic-field                                  optional                     !"//nC
- sC=sC// " magnetic-field-on                               character        required      CHOICE[yes,no]"//nC
- sC=sC// " magnetic-field-strength                         double           required    !"//nC
- sC=sC// " magnetic-field-direction                        integer_array    required      CHOICE[1 0 0,0 1 0,0 0 1]"//nC
- sC=sC// "$end_magnetic-field                              optional                     !"//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC//                                                                                ""//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC// "$material                                                         required    !"//nC
- sC=sC// " material-number                                 integer          required    !"// &
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC//                                                                                 ""//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC// "$magnetic-field                                   optional                     !"//nC
+ sC=sC// " magnetic-field-on                                character        required      CHOICE[yes,no]"//nC
+ sC=sC// " magnetic-field-strength                          double           required    !"//nC
+ sC=sC// " magnetic-field-direction                         integer_array    required      CHOICE[1 0 0,0 1 0,0 0 1]"//nC
+ sC=sC// "$end_magnetic-field                               optional                     !"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC//                                                                                 ""//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC// "$material                                                          required    !"//nC
+ sC=sC// " material-number                                  integer          required    !"// &
               " first entry is separator for new input sequence"//nC
- sC=sC// " cluster-numbers                                 integer_array    required    !"//nC
- sC=sC// " material-name                                   character        required    !"//nC
- sC=sC// " alloy-function                                  character        optional      CHOICE[constant,linear]"//nC
- sC=sC// " alloy-concentration                             double           optional    !"//nC
- sC=sC// " band-gaps                                       double_array     optional    !"//nC
- sC=sC// " crystal-type                                    character        optional      CHOICE[zincblende,wurtzite]"//nC
- sC=sC// " use-material-parameters-from-database           logical          optional      CHOICE[.TRUE.,.FALSE.]"//nC
- sC=sC// "$end_material                                                     required    !"//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
+ sC=sC// " cluster-numbers                                  integer_array    required    !"//nC
+ sC=sC// " material-name                                    character        required    !"//nC
+ sC=sC// " alloy-function                                   character        optional      CHOICE[constant,linear]"//nC
+ sC=sC// " alloy-concentration                              double           optional    !"//nC
+ sC=sC// " band-gaps                                        double_array     optional    !"//nC
+ sC=sC// " crystal-type                                     character        optional      CHOICE[zincblende,wurtzite]"//nC
+ sC=sC// " use-material-parameters-from-database            logical          optional      CHOICE[.TRUE.,.FALSE.]"//nC
+ sC=sC// "$end_material                                                      required    !"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
 
   stringC = sC
 

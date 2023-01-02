@@ -1,6 +1,7 @@
 !------------------------------------------------------------------------------
 !  o MODULE DirectoryFileExist
 !  o MODULE mod_SyntaxFolder
+!  o MODULE EnvironmentAndSystem
 !------------------------------------------------------------------------------
 !
 !
@@ -1625,4 +1626,317 @@
 
 !------------------------------------------------------------------------------
  END MODULE mod_SyntaxFolder
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ MODULE EnvironmentAndSystem
+!------------------------------------------------------------------------------
+!
+!++m* parser_modules.f90/EnvironmentAndSystem
+!
+! NAME 
+!   MODULE EnvironmentAndSystem
+!
+! PURPOSE
+!   Subroutines to return information on environment variables.
+!
+! CONTAINS
+!   o SUBROUTINE AssignDefaultOperatingSystem
+!   o FUNCTION GetOperatingSystem
+!   o SUBROUTINE GetEnvironmentInformation
+!
+! FILENAME
+!   common/compiler_specific.f90
+!
+! NOTES
+!
+!##
+!
+!------------------------------------------------------------------------------
+
+ IMPLICIT NONE
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ SUBROUTINE AssignDefaultOperatingSystem(OperatingSystemC_in)
+!------------------------------------------------------------------------------
+!
+!++s* EnvironmentAndSystem/AssignDefaultOperatingSystem
+!
+! NAME
+!   SUBROUTINE AssignDefaultOperatingSystem
+!
+! PURPOSE
+!   Assigns the default operating system.
+!
+! USAGE
+!   CALL AssignDefaultOperatingSystem(OperatingSystemC_in)
+!
+! INPUT
+!   o OperatingSystemC_in: 'windows', 'linux', 'unix', 'mac', 'default'
+!
+! OUTPUT
+!   none
+! 
+! NOTES
+!   It is important to define the variable CurrentSystem as early as possible in the program.
+!
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE system_specific_parser   ,ONLY:Windows,Linux, &
+                                    CurrentSystem, &
+                                    OperatingSystemC
+ USE SpecialCharacters        ,ONLY:BackSlashC
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*) ,INTENT(in) :: OperatingSystemC_in
+
+ SELECT CASE( TRIM(OperatingSystemC_in) )
+  CASE('default')
+   !-----------------------------------------------------------
+   ! Do not overwrite default settings. ==> Return immediately.
+   !------------------------------------------------------------
+   RETURN
+  CASE DEFAULT
+ END SELECT
+
+!----------------
+! Linux/Unix/Mac
+!----------------
+ Linux%DirectorySeparatorCharC = '/'
+ Linux%Directory_ls_C          = 'ls'
+!Linux%MakeDirC                = 'mkdir'        ! 'mkdir Output/test' does NOT work on Linux if the folder 'Output/' does not exist yet.
+ Linux%MakeDirC                = 'mkdir -p'     ! 'mkdir -p Output/test' works on Linux      if the folder 'Output/' does not exist yet. (-p = --parents, i.e. make parent directories as needed)
+ Linux%PrintWorkingDirC        = 'pwd'
+ Linux%HomeDirC                = 'HOME'
+
+!----------------
+! Windows
+!----------------
+ Windows%DirectorySeparatorCharC = BackSlashC   ! '\'
+ Windows%Directory_ls_C          = 'dir'
+ Windows%MakeDirC                = 'mkdir'      ! 'mkdir Output/test' works on Windows EVEN  if the folder 'Output/' does not exist yet. ('mkdir -p' is not accepted on Windows, i.e. '-p' is not a valid argument.)
+!Windows%PrintWorkingDirC        = 'cd'         ! 'echo %CD%'
+ Windows%PrintWorkingDirC        = 'echo %CD%'  ! 'cd'
+ Windows%HomeDirC                = 'HOMEPATH'
+
+ SELECT CASE( TRIM(OperatingSystemC_in) )
+  CASE('windows')
+   OperatingSystemC     = OperatingSystemC_in
+   CurrentSystem        = Windows
+  CASE('mac','linux','unix')
+   OperatingSystemC     = OperatingSystemC_in
+   CurrentSystem        = Linux
+  CASE('default')
+   !------------------------------------
+   ! Do not overwrite default settings.
+   !------------------------------------
+ ! OperatingSystemC     = ...   <== Do not change variable if OperatingSystemC_in == 'default'.
+ ! CurrentSystem        = ...   <== Do not change variable if OperatingSystemC_in == 'default'.
+   WRITE(my_output_unit,'(A)') " Error AssignDefaultOperatingSystem: Internal error."
+   STOP
+  CASE DEFAULT
+   WRITE(my_output_unit,'(A)') " Error AssignDefaultOperatingSystem: OperatingSystemC_in ill-defined."
+   WRITE(my_output_unit,'(A)') " OperatingSystemC_in = "//TRIM(OperatingSystemC_in)
+   STOP
+ END SELECT
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE AssignDefaultOperatingSystem
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ FUNCTION GetOperatingSystem() RESULT(OperatingSystem_outC)
+!------------------------------------------------------------------------------
+!
+!++f* EnvironmentAndSystem/GetOperatingSystem
+!
+! NAME
+!   FUNCTION GetOperatingSystem
+!
+! PURPOSE
+!   Gets the default operating system.
+!
+! USAGE
+!   GetOperatingSystem(OperatingSystem_outC)
+!
+! INPUT
+!   none
+!
+! OUTPUT
+!   o OperatingSystem_outC
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE system_specific_parser   ,ONLY:OperatingSystemC
+
+ IMPLICIT NONE
+
+ CHARACTER(len=:),ALLOCATABLE :: OperatingSystem_outC ! RESULT
+
+ OperatingSystem_outC = OperatingSystemC
+ 
+!------------------------------------------------------------------------------
+ END FUNCTION GetOperatingSystem
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE GetEnvironmentInformation(OperatingSystemC)
+!------------------------------------------------------------------------------
+! NOTES
+!   GET_ENVIRONMENT_VARIABLE is Fortran 2003 standard, consequently
+!   Fortran 95 does not allow this intrinsic procedure.
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE mod_CallSystem           ,ONLY:Execute_CommandLine
+ USE system_specific_parser   ,ONLY:OperatingSystem64bitL, &
+                                    CurrentSystem, &
+                                    DebugLevel, &
+                                    NEXTNANO_PathC
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*) ,INTENT(in) :: OperatingSystemC
+ 
+ CHARACTER(len=256)           :: name_of_env_variableC
+ CHARACTER(len=256)           :: env_variableC
+ CHARACTER(len=256)           :: stripC
+ CHARACTER(len=180)           :: SystemCommandC
+ INTEGER                      :: status
+ INTEGER                      :: length,last
+
+ WRITE(my_output_unit,'(A)')        ''
+ WRITE(my_output_unit,'(A)')        ' ------------------------------------------------------------------------------'
+ WRITE(my_output_unit,'(A)')        ' Environment / System information'
+ WRITE(my_output_unit,'(A)')        ' ------------------------------------------------------------------------------'
+ 
+ !-----------------------------------------------------------------------------------------
+ ! Select environment variable for corresponding operating system, i.e. 64-bit vs. 32-bit.
+ !-----------------------------------------------------------------------------------------
+ SELECT CASE(TRIM(OperatingSystemC))
+  CASE('windows')
+
+   name_of_env_variableC = 'ProgramFiles(x86)' ! This variable only exists on Windows.
+   CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)   
+   IF (status == 0) THEN
+    OperatingSystem64bitL = .TRUE.
+   ELSE
+    OperatingSystem64bitL = .FALSE.
+   END IF
+  CASE DEFAULT
+    !----------------------------------------------------------------
+    ! We assume 64-bit system as default which might not be correct.
+    !----------------------------------------------------------------
+    OperatingSystem64bitL = .TRUE.
+ END SELECT
+
+ IF (OperatingSystem64bitL) THEN
+    WRITE(my_output_unit,*) " Your operating system is 64-bit."
+ ELSE
+    WRITE(my_output_unit,*) " Your operating system is 32-bit."
+ END IF
+
+ !------------------------------------------------------------------
+ ! Select environment variable for corresponding operating system.
+ !------------------------------------------------------------------
+ name_of_env_variableC = TRIM(CurrentSystem%HomeDirC)
+
+ !------------------------------------------------------------------
+ ! Get this environment variable of corresponding operating system.
+ !------------------------------------------------------------------
+!CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC              ,status=status)
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+
+!WRITE(my_output_unit,*) ' length = ',length
+!WRITE(my_output_unit,*) ' status = ',status
+
+ IF (status /= 0 ) THEN
+   WRITE(my_output_unit,'(A,A,A)') " Error GetEnvironmentInformation:"// &
+                                   " Environment variable '"  ,TRIM(name_of_env_variableC),"' is not known."
+ ! STOP ! 'STOP' has to be set into comments when using nextnano3 via VisRemote.
+ ELSE
+   WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+   last = INDEX(env_variableC,CurrentSystem%DirectorySeparatorCharC,back=.TRUE.)
+
+  !WRITE(my_output_unit,'(A,I8)') " last      = ",last
+   WRITE(my_output_unit,'(A,A)')  " directory = ",env_variableC(1:last)
+
+   IF (last > 0 ) THEN
+            stripC    =   env_variableC(1:last)
+   ELSE
+    WRITE(my_output_unit,*) " No directory."
+    STOP
+   END IF
+!WRITE(my_output_unit,*) " strip     = ",TRIM(stripC)
+
+! SystemCommandC = TRIM(CurrentSystem%Directory_ls_C)//' '//'"'//TRIM(stripC)//'"'
+! WRITE(my_output_unit,*)    TRIM(SystemCommandC)
+! CALL Execute_CommandLine(SystemCommandC) ! Does not work on my Windows PC.
+
+ ! ls 
+! SystemCommandC = TRIM(CurrentSystem%Directory_ls_C)//' '//'"'//TRIM(env_variableC)//'"'
+! WRITE(my_output_unit,*)    TRIM(SystemCommandC)
+! CALL Execute_CommandLine(SystemCommandC)
+
+  SystemCommandC = TRIM(CurrentSystem%PrintWorkingDirC)
+  WRITE(my_output_unit,'(A)') " Your working directory is:"
+! WRITE(my_output_unit,'(4x,A)') TRIM(SystemCommandC)
+  CALL Execute_CommandLine(SystemCommandC)
+
+ END IF
+
+ name_of_env_variableC = 'NEXTNANO'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ NEXTNANO_PathC = TRIM(env_variableC)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(NEXTNANO_PathC)
+
+ name_of_env_variableC = 'OS'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+
+IF (DebugLevel > 0) THEN
+ name_of_env_variableC = 'OMP_NUM_THREADS'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+
+ name_of_env_variableC = 'OMP_STACKSIZE'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+END IF
+
+ name_of_env_variableC = 'NUMBER_OF_PROCESSORS'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+
+ name_of_env_variableC = 'MACHINE'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+
+ name_of_env_variableC = 'PROCESSOR_ARCHITECTURE'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+
+ name_of_env_variableC = 'PROCESSOR_IDENTIFIER'
+ CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(env_variableC)
+
+ WRITE(my_output_unit,'(A)')        ' ------------------------------------------------------------------------------'
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE GetEnvironmentInformation
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+ END MODULE EnvironmentAndSystem
 !------------------------------------------------------------------------------

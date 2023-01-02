@@ -77,7 +77,8 @@
  WriteToFileL           = .FALSE.
  ReturnDefaultFilenameL = .FALSE.
      ! DefaultFilenameC = "../Syntax/database.in"
-       DefaultFilenameC =           "database.in"
+       DefaultFilenameC =     "input/database.in"
+     ! DefaultFilenameC =           "database.in"
 
  SELECT CASE( TRIM(optionC) )
   CASE('default-filename')
@@ -100,19 +101,19 @@ IF ( ReturnDefaultFilenameL ) THEN
 ELSE
  sC = ''
 
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC// "$input_filename                                                   optional    !"//nC
-!sC=sC// " ../Syntax/database.in                           character        optional    !"//nC
- sC=sC// " " // DefaultFilenameC //"                       character        optional    !"//nC
- sC=sC// "$end_input_filename                                               optional    !"//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC//                                                                                ""//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
- sC=sC// "$physical-constants                                               required    !"//nC
- sC=sC// " electron-charge                                 double           required    !"//nC
- sC=sC// " Planck-constant                                 double           required    !"//nC
- sC=sC// "$end_physical-constants                                           required    !"//nC
- sC=sC// "!-----------------------------------------------------------------------------!"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC// "$input_filename                                                    optional    !"//nC
+!sC=sC// " ../Syntax/database.in                            character        optional    !"//nC
+ sC=sC// " " // DefaultFilenameC //"                        character        optional    !"//nC
+ sC=sC// "$end_input_filename                                                optional    !"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC//                                                                                 ""//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC// "$physical-constants                                                required    !"//nC
+ sC=sC// " electron-charge                                  double           required    !"//nC
+ sC=sC// " Planck-constant                                  double           required    !"//nC
+ sC=sC// "$end_physical-constants                                            required    !"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
 
   stringC = sC
 
