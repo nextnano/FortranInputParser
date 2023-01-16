@@ -92,7 +92,8 @@
  USE queue_type_def           ,ONLY:queue_type
  USE mod_init_queue           ,ONLY:init_queue
  USE mod_push                 ,ONLY:push
- USE CharacterManipulation    ,ONLY:ReplaceTAB, &
+ USE CharacterManipulation    ,ONLY:ReplaceTAB              , &
+                                    Replace_NonBreakingSpace, &
                                     ReplaceXMLTag
  USE mod_chrpak               ,ONLY:StringReplace
  USE mod_Array_of_Strings     ,ONLY:String_in_Line
@@ -300,13 +301,14 @@
     ! (2) the nextnano3 input parser produces
     !     a strange error and stops.
     !--------------------------------------------------------------------
-    CALL ReplaceTAB(    StringsV(line_number)%StringC )
+    CALL ReplaceTAB(               StringsV(line_number)%StringC )
+    CALL Replace_NonBreakingSpace( StringsV(line_number)%StringC )
 
     !-----------------------------------------------------------------------------------------
     ! XML tags <...> can be present. They are ignored and replaced with blanks.
     ! Note: As they are replaced with blanks, they are not visible in the file *.in.no_macro.
     !-----------------------------------------------------------------------------------------
-    CALL ReplaceXMLTag( StringsV(line_number)%StringC )
+    CALL ReplaceXMLTag(            StringsV(line_number)%StringC )
 
    END DO 
 
@@ -4676,7 +4678,7 @@ CONTAINS                                                               !
  IMPLICIT NONE
 
  INTEGER,PARAMETER                             :: max_string_length = 1234
- INTEGER,PARAMETER                             :: NumberOfLines     = 20
+ INTEGER,PARAMETER                             :: NumberOfLines     = 60
  TYPE(String_in_Line),DIMENSION(NumberOfLines) :: Strings_inputV
  TYPE(String_in_Line),DIMENSION(NumberOfLines) :: StringsV
 
@@ -4715,7 +4717,33 @@ CONTAINS                                                               !
     Strings_inputV(  18 )%StringC = " %IncludeElectrons = '.FALSE.'"
     Strings_inputV(  19 )%StringC = "!IF %IncludeHoles  valence-band-numbers = 1 2 3"
     Strings_inputV(  20 )%StringC = "!IF %IncludeElectrons  conductions-band-numbers = 1 2 3"
-
+    Strings_inputV(  21 )%StringC = ""
+    Strings_inputV(  22 )%StringC = "%a=2.5"
+    Strings_inputV(  23 )%StringC = "%b=-3.5"
+    Strings_inputV(  24 )%StringC = "%c=4"
+    Strings_inputV(  25 )%StringC = "%d=%b+%c"
+    Strings_inputV(  26 )%StringC = "%e= MIN(%a,%b,2.0,%c,%d)"
+    Strings_inputV(  27 )%StringC = "%f =MAX(%a,%b,2.0,%c,%e)"
+    Strings_inputV(  28 )%StringC = "%g=%e+%f"
+    Strings_inputV(  29 )%StringC = " ==> Result: %g"
+    Strings_inputV(  30 )%StringC = "%h=MIN(2)"
+    Strings_inputV(  31 )%StringC = "%i=MAX(-3.5)"
+    Strings_inputV(  32 )%StringC = "%j=INT(2.0)"
+    Strings_inputV(  33 )%StringC = "%k=MIN(%a)"
+    Strings_inputV(  34 )%StringC = "%result1=%h+%i+%j+%k"
+    Strings_inputV(  35 )%StringC = "%l=min(2)"
+    Strings_inputV(  36 )%StringC = "%m=Max(-3.5)"
+    Strings_inputV(  37 )%StringC = "%n=Int(2.0)"
+    Strings_inputV(  38 )%StringC = "%o=mIN(%a)"
+    Strings_inputV(  39 )%StringC = "%result2=%l+%m+%n+%o"
+    Strings_inputV(  40 )%StringC = " ==> Result 1: %result1"
+    Strings_inputV(  41 )%StringC = " ==> Result 2: %result2"
+    Strings_inputV(  42 )%StringC = "%p=INT( %a + %c )"
+    Strings_inputV(  43 )%StringC = "%q=MAX( %a + %c )"
+!#! Strings_inputV(  42 )%StringC = "%p=INT( MIN( %a , %c))"   ! not working yet
+!#! Strings_inputV(  43 )%StringC = "%q=INT( MAX( %a , %c ) )" ! not working yet
+    Strings_inputV(  44 )%StringC = " ==> p = %p; q = %q"
+    Strings_inputV(  45 )%StringC = ""
 
  DO line=1,NumberOfLines
     StringsV(line)%StringC = Strings_inputV(line)%StringC
@@ -4755,16 +4783,57 @@ CONTAINS                                                               !
       CASE(19)
                 ! "!IF %IncludeHoles  valence-band-numbers = 1 2 3"
        TestStringC = "                valence-band-numbers = 1 2 3"
+      CASE(22)
+       TestStringC = MacroStringC // TRIM(ADJUSTL(Strings_inputV(line)%StringC)) //' '//"(6 replacements)"
+      CASE(23)
+       TestStringC = MacroStringC // TRIM(ADJUSTL(Strings_inputV(line)%StringC)) //' '//"(3 replacements)"
+      CASE(24)
+       TestStringC = MacroStringC // TRIM(ADJUSTL(Strings_inputV(line)%StringC)) //' '//"(5 replacements)"
+      CASE(25)
+       TestStringC = MacroStringC // "%d=-3.50000000e0+4.00000000e0"             //' '//"(1 replacement)"
+      CASE(26)
+       TestStringC = MacroStringC // "%e= MIN(2.50000000e0,-3.50000000e0,2.0,4.00000000e0,0.500000000e0)" &
+                                                                                 //' '//"(2 replacements)" !
+      CASE(27)
+       TestStringC = MacroStringC // "%f =MAX(2.50000000e0,-3.50000000e0,2.0,4.00000000e0,-3.50000000e0)" &
+                                                                                 //' '//"(1 replacement)" !
+      CASE(28)
+       TestStringC = MacroStringC // "%g=-3.50000000e0+4.00000000e0"//' '//"(1 replacement)"
+      CASE(29)
+       TestStringC = " ==> Result: 0.500000000e0"
+      CASE(30,31,32,35,36,37)
+       TestStringC = MacroStringC // Strings_inputV(line)%StringC  //' '//"(1 replacement)"
+      CASE(33)
+       TestStringC = MacroStringC // "%k=MIN(2.50000000e0)"//' '//"(1 replacement)"
+      CASE(34)
+       TestStringC = MacroStringC // "%result1=2.00000000e0+-3.50000000e0+2+2.50000000e0"//' '//"(1 replacement)"
+      CASE(38)
+       TestStringC = MacroStringC // "%o=mIN(2.50000000e0)"//' '//"(1 replacement)"
+      CASE(39)
+       TestStringC = MacroStringC // "%result2=2.00000000e0+-3.50000000e0+2+2.50000000e0"//' '//"(1 replacement)"
+      CASE(40)
+       TestStringC = " ==> Result 1: 3.00000000e0"
+      CASE(41)
+       TestStringC = " ==> Result 2: 3.00000000e0"
+      CASE(42)
+       TestStringC = MacroStringC // "%p=INT( 2.50000000e0 + 4.00000000e0 )"//' '//"(1 replacement)"
+!#!    TestStringC = MacroStringC // "%p=INT( MIN( 2.50000000e0 , 4.00000000e0 ) )"//' '//"(1 replacement)"
+      CASE(43)
+       TestStringC = MacroStringC // "%q=MAX( 2.50000000e0 + 4.00000000e0 )"//' '//"(1 replacement)"
+!#!    TestStringC = MacroStringC // "%q=INT( MAX( 2.50000000e0 , 4.00000000e0 ) )"//' '//"(1 replacement)"
+      CASE(44)
+     ! TestStringC = " ==> p = 3; q = 4"
+       TestStringC = " ==> p = 7; q = 6.50000000e0"
       CASE DEFAULT
        TestStringC =                 Strings_inputV(line)%StringC                            ! unchanged
      END SELECT
 
      IF ( TRIM(StringsV(line)%StringC) /= TestStringC ) THEN
         WRITE(my_output_unit,*) "Error TEST_ApplyMacro failed: line = ",line
-        WRITE(my_output_unit,'(A)')  "       " // TestStringC             // " (expected string)"
-        WRITE(my_output_unit,'(A)')  "       " // TRIM(StringsV(      line)%StringC)
         WRITE(my_output_unit,'(A)')  "       " // TRIM(Strings_inputV(line)%StringC) // " (input)"
-        STOP
+        WRITE(my_output_unit,'(A)')  "       " // TestStringC                        // " (expected string)"
+        WRITE(my_output_unit,'(A)')  "       " // TRIM(StringsV(      line)%StringC) // " (result)"
+        !STOP
      ELSE
         WRITE(my_output_unit,'(A)') " [okay] " // TRIM(StringsV(line)%StringC)
      END IF
@@ -4793,6 +4862,8 @@ CONTAINS                                                               !
     WRITE(my_output_unit,'(A)')  " ---------------------"
     WRITE(my_output_unit,'(A)')  " Done: TEST_ApplyMacro"
     WRITE(my_output_unit,'(A)')  " ---------------------"
+
+! STOP
 
 !------------------------------------------------------------------------------
  END SUBROUTINE TEST_ApplyMacro

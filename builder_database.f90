@@ -77,7 +77,8 @@
  USE queue_type_def           ,ONLY:queue_type
  USE mod_init_queue           ,ONLY:init_queue
  USE mod_push                 ,ONLY:push
- USE CharacterManipulation    ,ONLY:ReplaceTAB, &
+ USE CharacterManipulation    ,ONLY:ReplaceTAB              , &
+                                    Replace_NonBreakingSpace, &
                                     ReplaceXMLTag
  USE mod_Array_of_Strings     ,ONLY:String_in_Line
  USE DirectoryFileExist       ,ONLY:CountLinesInFile, &
@@ -140,12 +141,13 @@
     !                    It seems that it is pretty fast.
     !                    So we better use this feature to make life easier for the users.
     !-------------------------------------------------------------------------------------
-    CALL ReplaceTAB(    StringsV(line_number)%StringC )
+    CALL ReplaceTAB(               StringsV(line_number)%StringC )
+    CALL Replace_NonBreakingSpace( StringsV(line_number)%StringC )
 
     !---------------------------------------------------------------------------
     ! XML tags <...> can be present. They are ignored and replaced with blanks.
     !---------------------------------------------------------------------------
-    CALL ReplaceXMLTag( StringsV(line_number)%StringC )
+    CALL ReplaceXMLTag(            StringsV(line_number)%StringC )
 
    END DO 
 

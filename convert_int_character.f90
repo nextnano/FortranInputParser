@@ -1210,6 +1210,7 @@
 !   o FUNCTION CountCharacters
 !   o SUBROUTINE CharacterReplace
 !   o SUBROUTINE ReplaceTAB
+!   o SUBROUTINE Replace_NonBreakingSpace
 !   o SUBROUTINE ReplaceXMLTag
 !   o SUBROUTINE TEST_ReplaceXMLTag
 !   o SUBROUTINE Replace_BackslashBlank_withBlank
@@ -1228,6 +1229,7 @@
  PUBLIC CountCharacters
  PUBLIC CharacterReplace
  PUBLIC ReplaceTAB
+ PUBLIC Replace_NonBreakingSpace
  PUBLIC ReplaceXMLTag
  PUBLIC TEST_ReplaceXMLTag
  PUBLIC Replace_BackslashBlank_withBlank
@@ -1346,7 +1348,7 @@
 !   o StringC (also output)
 !
 ! OUTPUT
-!   o StringC (also output)
+!   o StringC (also input)
 !
 !##
 !
@@ -1366,6 +1368,51 @@
 
 !------------------------------------------------------------------------------
  END SUBROUTINE ReplaceTAB
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Replace_NonBreakingSpace(StringC)
+!------------------------------------------------------------------------------
+!
+!++s* CharacterManipulation/Replace_NonBreakingSpace
+!
+! NAME
+!   SUBROUTINE Replace_NonBreakingSpace
+!
+! PURPOSE
+!   Replaces the nonbreaking space character with a blank.
+!
+! USAGE
+!   CALL Replace_NonBreakingSpace(StringC)
+! 
+! INPUT 
+!   o StringC (also output)
+!
+! OUTPUT
+!   o StringC (also input)
+!
+!##
+!
+!------------------------------------------------------------------------------
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(inout) :: StringC
+
+ CHARACTER(len=*),PARAMETER     :: NonBreakingSpace = ACHAR ( 160 )  ! The length of this character is 'len=1'.
+ CHARACTER(len=1),PARAMETER     :: BLANK = ' '
+
+ !-------------------------------------------------------
+ ! Replace the nonbreaking space character with a blank.
+ ! https://en.wikipedia.org/wiki/Non-breaking_space
+ ! HTML code: &#160; or &nbsp;
+ !-------------------------------------------------------
+ CALL CharacterReplace (StringC, NonBreakingSpace, BLANK )
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Replace_NonBreakingSpace
 !------------------------------------------------------------------------------
 !
 !

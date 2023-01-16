@@ -172,19 +172,19 @@
 !
 !
 !------------------------------------------------------------------------------
- FUNCTION CompletelyEnclosed(StringC,BracketTypeC) RESULT (EnclosedL)
+ FUNCTION EvenNumberOfBrackets(StringC,BracketTypeC) RESULT (EnclosedL)
 !------------------------------------------------------------------------------
 !
-!++f* mod_Brackets/CompletelyEnclosed
+!++f* mod_Brackets/EvenNumberOfBrackets
 !
 ! NAME
-!   FUNCTION CompletelyEnclosed
+!   FUNCTION EvenNumberOfBrackets
 !
 ! PURPOSE
-!   Counts how often a character or substring occurs in a string.
+!   Checks if a string has an even number of brackets.
 !
 ! USAGE
-!   CompletelyEnclosed(StringC,BracketTypeC)
+!   EvenNumberOfBrackets(StringC,BracketTypeC)
 ! 
 ! INPUT 
 !   o StringC:       string to be examined
@@ -231,14 +231,14 @@
     CASE("'","''")
      Character_OpenC = "'"   ;   Character_ClosedC = "'"
     CASE DEFAULT
-     WRITE(my_output_unit,'(A)')   " Error CompletelyEnclosed: Bracket type not supported."
-     WRITE(my_output_unit,'(A,A)') "                           Bracket type = ",TRIM(BracketTypeC)
+     WRITE(my_output_unit,'(A)')   " Error EvenNumberOfBrackets: Bracket type not supported."
+     WRITE(my_output_unit,'(A,A)') "                             Bracket type = ",TRIM(BracketTypeC)
      STOP
  END SELECT
  
  !--------------------------------------------------------------------------------------
  ! Count number of brackets '(') and ')' to determine if string is completely enclosed.
- ! Compare with FUNCTION CompletelyEnclosed.
+ ! Compare with FUNCTION EvenNumberOfBrackets.
  !--------------------------------------------------------------------------------------
  Brackets_Open   = CountCharacters(StringC,Character_OpenC)
  Brackets_Closed = CountCharacters(StringC,Character_ClosedC)
@@ -250,7 +250,7 @@
  END IF
 
 !------------------------------------------------------------------------------
- END FUNCTION CompletelyEnclosed
+ END FUNCTION EvenNumberOfBrackets
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
@@ -3381,6 +3381,8 @@ END MODULE mod_init_keyword_queue
 !
 ! CONTAINS
 !   o subroutine ApplyMacro
+!   o subroutine FillArrayWithValues
+!   o subroutine Search_for_SpecialString
 !   o subroutine Write_Variables_to_File
 !   o subroutine Check_forbidden_characters
 !   o subroutine CountGetVariables
@@ -3439,7 +3441,10 @@ END MODULE mod_init_keyword_queue
 ! OUTPUT
 !   o StringsV  (also input)
 !   o MacroActiveL: .TRUE. if macro has been executed, else .FALSE.
-! 
+!
+! CONTAINS
+!   o SUBROUTINE Evaluate_Variable_if_function
+!
 ! NOTES
 !   Examples:
 !
@@ -3584,36 +3589,45 @@ END MODULE mod_init_keyword_queue
  SUBROUTINE Evaluate_Variable_if_function
 !------------------------------------------------------------------------------
  use mod_int_to_char999       , only: int_2_char ! converts integer to character
- use mod_Brackets             , only: CompletelyEnclosed
+ use mod_Brackets             , only: EvenNumberOfBrackets
  use CharacterManipulation    , only: CharacterReplace
- use mod_chrpak               , only: StringReplace
  use input_type_names         , only: QuotationMarkC, &
                                       ApostropheC
 
  IMPLICIT NONE
 
  CHARACTER(len=:)                         ,ALLOCATABLE :: VariableNameC
+ CHARACTER(len=:)                         ,ALLOCATABLE :: VariableNameC_temp
  CHARACTER(len=:)                         ,ALLOCATABLE :: VariableValueC
 
- CHARACTER(max_string_length),DIMENSION(:),ALLOCATABLE :: functionCV
-!CHARACTER(len=14)           ,DIMENSION(:),ALLOCATABLE :: FunctionResultCV           ! must be at least 14 characters long
- CHARACTER(len=17)           ,DIMENSION(:),ALLOCATABLE :: FunctionResultCV           ! must be at least 17 characters long
- LOGICAL                     ,DIMENSION(:),ALLOCATABLE :: Real8FunctionSuccessLV
+ CHARACTER(max_string_length)                          :: functionC
+!CHARACTER(len=14)                                     :: FunctionResultC            ! must be at least 14 characters long
+ CHARACTER(len=17)                                     :: FunctionResultC            ! must be at least 17 characters long
+ LOGICAL                                               :: Real8FunctionSuccessL
  LOGICAL                                               :: ReturnIntegerL
+ LOGICAL                                               :: ReturnInteger_deprectatedL
+ LOGICAL                                               :: ReturnIntegerMinMaxL
+ LOGICAL                                               :: ReturnMinMaxL
 !CHARACTER(len=14)           ,DIMENSION(1)             :: temp_FunctionResultCV      ! must be at least 14 characters long
  CHARACTER(len=17)           ,DIMENSION(1)             :: temp_FunctionResultCV      ! must be at least 17 characters long
  LOGICAL                     ,DIMENSION(1)             :: temp_Real8FunctionSuccessLV
 
  INTEGER                                               :: NumberOfFunctions
- INTEGER                                               :: ifunc
  CHARACTER(len=:),ALLOCATABLE                          :: CounterC
  LOGICAL                                               :: TreatFunctionAsStringL
  INTEGER                                               :: length_of_variable_value
- INTEGER                                               :: position_INT
- INTEGER                                               :: position_bracket
  INTEGER                                               :: ii
- INTEGER                                               :: m,n
- LOGICAL                                               :: FoundBracketFollowing_INT_L
+
+ INTEGER                                                   :: NumberOfElements
+ INTEGER                                                   :: NumberOfElements_min
+ INTEGER                                                   :: NumberOfElements_max
+ INTEGER                                                   :: min_max_loop
+ CHARACTER(len=30)                                         :: min_or_maxC
+ CHARACTER(len=max_string_length),DIMENSION(:),ALLOCATABLE :: ValuesCV
+ CHARACTER(len=max_string_length),DIMENSION(:),ALLOCATABLE :: Values_resultCV
+ REAL(8)                         ,DIMENSION(:),ALLOCATABLE :: Values_resultV
+ LOGICAL                                                   :: ErrorL
+ CHARACTER(len=:),ALLOCATABLE                              :: Min_or_Max_labelC
 
 !  IF (DebugLevel > 3) THEN
     WRITE(my_output_unit,'(A,A,A,A,A)') " Macro function parser: The following variables are evaluated: (", &
@@ -3625,13 +3639,6 @@ END MODULE mod_init_keyword_queue
     !------------------------------------------------
     NumberOfFunctions = NumberOfVariables - ( EvaluateVariableLowerBound - 1 )
 
-    ALLOCATE(functionCV            (NumberOfFunctions))
-    ALLOCATE(FunctionResultCV      (NumberOfFunctions))
-    ALLOCATE(Real8FunctionSuccessLV(NumberOfFunctions))
-             Real8FunctionSuccessLV = .FALSE.
-
-    ifunc = 0
-
    LOOP_EVALUATE_VARIABLE: do i = EvaluateVariableLowerBound, NumberOfVariables
     !------------------------------------------------
     ! Here, this loop evaluates all variables first.
@@ -3642,8 +3649,6 @@ END MODULE mod_init_keyword_queue
      WRITE(my_output_unit,'(A)')     " "
      WRITE(my_output_unit,'(A,A,A,I8,A)') " Evaluate variable #",TRIM(CounterC)," of ",NumberOfVariables,":"
     END IF
-
-    ifunc = ifunc + 1
 
     !-------------------------------------------------------------------
     ! Check if macro variable should be treated as string.
@@ -3688,117 +3693,80 @@ END MODULE mod_init_keyword_queue
         VariableV(i)%valueC =  TRIM( ADJUSTL(VariableValueC) )
    else
     
-    !-------------------------------------------------------------------
-    ! Check if macro variable should be treated as an integer variable.
-    !-------------------------------------------------------------------
-    ReturnIntegerL = .FALSE.
-     
-    !-------------------------------------------------------------------------------------------------------------
-    ! Possibility a)
-    ! ==> Take into account 'INT(' in variable value.
-    !                                          -----
-    ! This is similar as having a function 'int' such as 'exp' or 'abs'.
-    ! It is not allowed to have several occurences of INT.
-    ! It is only allowed to have  'INT('  in the beginning and  ')'  at the end of the string.
-    !
-    ! Attention: If a variable name is called 'point', the letters 'int' are contained in 'point' as a substring.
-    !-------------------------------------------------------------------------------------------------------------
-
     !-----------------------------------------
     ! Test if number of brackets makes sense.
     !-----------------------------------------
-    IF ( .NOT. CompletelyEnclosed(VariableValueC,'()') ) THEN
-       WRITE(my_output_unit,'(A)')       " Error ApplyMacro: The number of brackets seems to be odd. It must be even."
-       WRITE(my_output_unit,'(A,A)')     "                   variable value = ",TRIM(VariableValueC)
-       STOP
-    END IF
-    
-    position_INT = INDEX ( StringUpperCase(VariableValueC) , 'INT' )
-    IF      ( position_INT == 0 ) THEN ! This is the default case, i.e. 'INT' does not occur in variable value.
-       CONTINUE
-    ELSE IF ( position_INT == 1 ) THEN ! Here, 'INT' is at the beginning of the string.
-       !---------------------------------------------------------------------------------------------------------
-       ! The variable value starts with 'INT...'. This could be 'INTERBAND' or 'INT(...)'.
-       ! In order to consider 'INT' as an expression, we require that 'INT' has to be followed by a bracket '('.
-       ! There could be blanks between 'INT' and '(' but obviously no other character is allowed.
-       ! Let's check if the next (nonblank) character following 'INT' is a '('.
-       ! Example: %nodes = INT  ( 10 / 3 )   , i.e. with a 'blank' between 'INT' and '('
-       !---------------------------------------------------------------------------------------------------------
-       FoundBracketFollowing_INT_L = .FALSE.
-       ii = position_INT + LEN('INT') ! Start from character following 'INT'.
-       DO n=ii,LEN(VariableValueC)
-         IF      ( VariableValueC(n:n) == ' ') THEN ! A blank is allowed.
-          CONTINUE
-         ELSE IF ( VariableValueC(n:n) == '(') THEN ! Search for '('.
-          FoundBracketFollowing_INT_L = .TRUE.
-          position_bracket = n
-          !-----------------------------
-          ! Replace 'INT(' with blanks.
-          !-----------------------------
-          DO m=position_INT,position_bracket
-             VariableValueC(m:m) = ' '
-          END DO
-          EXIT ! Exit do loop.
-         ELSE                                       ! Exit if any other character has been found.
-          FoundBracketFollowing_INT_L = .FALSE.
-          EXIT ! Exit do loop.
-         END IF
-       END DO
-
-       IF (FoundBracketFollowing_INT_L) THEN
-        CALL StringReplace (    VariableValueC(LEN_TRIM(VariableValueC): &
-                                               LEN_TRIM(VariableValueC)), ')' , ' ' )  ! Replace last bracket in string, assuming that the last character is a ')'.
-       END IF
-
-      !-----------------------------------------
-      ! Test if number of brackets makes sense.
-      !-----------------------------------------
-      IF ( .NOT. CompletelyEnclosed(VariableValueC,'()') ) THEN
+    IF ( .NOT. EvenNumberOfBrackets(VariableValueC,'()') ) THEN
        WRITE(my_output_unit,'(A)')       " Error ApplyMacro: The number of brackets seems to be odd. It must be even."
        WRITE(my_output_unit,'(A,A)')     "                   variable name  = ",TRIM(VariableNameC)
        WRITE(my_output_unit,'(A,A)')     "                   variable value = ",TRIM(VariableValueC)
        STOP
-      END IF
-
-      IF (FoundBracketFollowing_INT_L) THEN
-       ReturnIntegerL = .TRUE.
-      END IF
-
-    ELSE ! 'INT' has been found elsewehere in variable value.
-         !-------------------------------------------------------------------------------------------------------------------------------
-         ! Be careful! The string '%point' includes 'int' as a substring. In this case, this is not meant to be an integer conversion!!!
-         !-------------------------------------------------------------------------------------------------------------------------------
-     CONTINUE
     END IF
 
-         
-    !----------------------------------------------------------------------------------
-    ! Possibility b)
-    ! INTEGER is the case, if the macro variable name starts with '%INT('.
-    ! e.g. %INT(nodes) = 10 / 5   (or)
-    !      %INT(nodes) = nodes
-    ! This is the old implementation which is deprecated because it is not intuitive.
-    !---------------------------------------------------------------------------------
-    !-------------------------------------------------
-    ! ==> Take into account '%INT(' in variable name.
-    !                                           ----
-    !-------------------------------------------------
-    IF      ( INDEX ( StringUpperCase(VariableNameC) , 'INT(' ) == 2 ) THEN ! e.g. %INT(nodes) = 10 / 3   or 
-                                                                            ! e.g. %INT(nodes) = %nodes
-     ReturnIntegerL = .TRUE.
-    END IF 
-    
+    !-------------------------------------------------------------------
+    ! Check if macro variable should be treated as an integer variable.
+    !-------------------------------------------------------------------
+
+    !-------------------------------------------------------------------------------
+    ! Now check if variable value 'VariableValueC' should be intepreted as integer.
+    ! This is the case if the variable value starts with 'INT(' and ends with ')'.
+    !-------------------------------------------------------------------------------
+    CALL Search_for_SpecialString('INT',VariableNameC, VariableValueC, ReturnIntegerL)  ! The variable name 'VariableNameC' is NOT used here.
+
+    !----------------------------------------------------
+    ! Evaluate 'MIN( ... , ... )' or 'MAX( ... , ... )'.
+    !----------------------------------------------------
+    DO min_max_loop=1,2
+     SELECT CASE(min_max_loop)
+      CASE(1)
+       Min_or_Max_labelC = 'MIN'
+      CASE(2)
+       Min_or_Max_labelC = 'MAX'
+     END SELECT
+
+     CALL Search_for_SpecialString(Min_or_Max_labelC,VariableNameC, VariableValueC, ReturnMinMaxL, NumberOfElements)
+
+     IF ( NumberOfElements > 0 ) THEN
+       ALLOCATE(ValuesCV       (NumberOfElements))
+       ALLOCATE(Values_resultCV(NumberOfElements))
+       ALLOCATE(Values_resultV( NumberOfElements))
+       CALL FillArrayWithValues(VariableValueC,",", ValuesCV)
+       DO ii=1,NumberOfElements
+        ReturnIntegerMinMaxL = .FALSE. ! For 'MIN' and 'MAX', we never take into account of treating it as 'integer'.
+        CALL EvaluateFunction([ValuesCV(ii)],[ReturnIntegerMinMaxL],max_string_length,VariableV,DebugLevel, &
+                              temp_FunctionResultCV,temp_Real8FunctionSuccessLV)
+        Values_resultCV(ii) = temp_FunctionResultCV(1)
+        if ( Real8FunctionSuccessL ) then
+           FunctionResultC = temp_FunctionResultCV(1)
+        end if
+       END DO
+       CALL Return_Min_or_Max_of_StringArray(Min_or_Max_labelC,Values_resultCV, min_or_maxC,ErrorL)
+       IF (.NOT. ErrorL) THEN
+        VariableValueC = TRIM(min_or_maxC)
+       END IF
+     END IF
+    END DO
+
+    !--------------------------------------------------------------------------------------------------------------------------
+    ! Now check if variable should be intepreted as integer. This is the case if the variable name starts with '%INT(...) = '.
+    ! CHECK: This is a deprecated feature and could be eliminated in the future.
+    !--------------------------------------------------------------------------------------------------------------------------
+    CALL Search_for_SpecialString_INT('INT',VariableNameC, ReturnInteger_deprectatedL)  ! If variable name indicates it should be interpreted as integer, we consider variable as integer.
+    IF ( ReturnInteger_deprectatedL ) THEN
+         ReturnIntegerL = .TRUE.
+    END IF
+
     !-------------------------------------------------------------------------
     ! The function should have the expression as defined in 'VariableValueC'.
     !-------------------------------------------------------------------------
-    functionCV(ifunc) =  TRIM( ADJUSTL(VariableValueC) )
+    functionC = TRIM( ADJUSTL(VariableValueC) )
 
-    CALL EvaluateFunction([functionCV(ifunc)],[ReturnIntegerL],max_string_length,VariableV,DebugLevel, &
+    CALL EvaluateFunction([functionC],[ReturnIntegerL],max_string_length,VariableV,DebugLevel, &
                           temp_FunctionResultCV,temp_Real8FunctionSuccessLV)
-        Real8FunctionSuccessLV(ifunc) = temp_Real8FunctionSuccessLV(1)
-    REAL8: if (Real8FunctionSuccessLV(ifunc)) then
+        Real8FunctionSuccessL = temp_Real8FunctionSuccessLV(1)
+    REAL8: if ( Real8FunctionSuccessL ) then
         
-        FunctionResultCV(ifunc) = temp_FunctionResultCV(1)
+        FunctionResultC = temp_FunctionResultCV(1)
 
         IF (.NOT. ReturnIntegerL) THEN
            !-----------------------------------------------------------
@@ -3806,32 +3774,32 @@ END MODULE mod_init_keyword_queue
            ! if it does not yet contain 'e', 'E', 'd' or 'D'.
            ! In case it is an integer variable, we leave it as it is.
            !-----------------------------------------------------------
-           IF ( SCAN ( FunctionResultCV(ifunc) , 'eEdD') == 0 ) THEN      ! The FUNCTION SCAN scans a string for any character in a set of characters.
-            FunctionResultCV(ifunc) = TRIM(FunctionResultCV(ifunc))//'e0'
+           IF ( SCAN ( FunctionResultC , 'eEdD') == 0 ) THEN      ! The FUNCTION SCAN scans a string for any character in a set of characters.
+            FunctionResultC = TRIM(FunctionResultC)//'e0'
            END IF
         END IF
         
         !-----------------------------------------
         ! Replace variable with evaluated result.
         !-----------------------------------------
-        VariableV(i)%valueC =  TRIM(FunctionResultCV(ifunc))
+        VariableV(i)%valueC =  TRIM(FunctionResultC)
         WRITE(my_output_unit,'(A,A,A,A,A,A,A,A,A)') &
-        " variable #",TRIM(CounterC),": ",TRIM(VariableV(i)%nameC) ," = ",TRIM(functionCV(ifunc)) ," = ", &
+        " variable #",TRIM(CounterC),": ",TRIM(VariableV(i)%nameC) ," = ",TRIM(functionC) ," = ", &
                                           TRIM(VariableV(i)%valueC)," (evaluated and replaced)"
     else
       IF (DebugLevel > 3) THEN
         WRITE(my_output_unit,'(A,A,A,A,A,A,A)') &
-        " variable #",TRIM(CounterC),": ",TRIM(VariableV(i)%nameC)," = ",TRIM(functionCV(ifunc)) ," (not evaluated)"
+        " variable #",TRIM(CounterC),": ",TRIM(VariableV(i)%nameC)," = ",TRIM(functionC) ," (not evaluated)"
       END IF
     end if REAL8
+
+    IF (ALLOCATED(ValuesCV))        DEALLOCATE(ValuesCV)
+    IF (ALLOCATED(Values_resultCV)) DEALLOCATE(Values_resultCV)
+    IF (ALLOCATED(Values_resultV))  DEALLOCATE(Values_resultV)
     
    end if TREAT_FUNCTION_AS_STRING
 
    end do LOOP_EVALUATE_VARIABLE
-
-    DEALLOCATE(functionCV)
-    DEALLOCATE(FunctionResultCV)
-    DEALLOCATE(Real8FunctionSuccessLV)
 
 !------------------------------------------------------------------------------
  END SUBROUTINE Evaluate_Variable_if_function
@@ -3839,6 +3807,396 @@ END MODULE mod_init_keyword_queue
 
 !------------------------------------------------------------------------------
  END SUBROUTINE ApplyMacro
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE FillArrayWithValues(StringC,SeparatorC, StringArrayCV)
+!------------------------------------------------------------------------------
+!
+!++s* MacroForInputFile/FillArrayWithValues
+!
+! NAME
+!   SUBROUTINE FillArrayWithValues
+!
+! PURPOSE
+!   Takes a string (consisting of several substrings separated by a separator) and fills an array with the substrings.
+!
+! USAGE
+!   CALL FillArrayWithValues(StringC,SeparatorC, StringArrayCV)
+! 
+! INPUT
+!   o StringC:            string, e.g. "2.0 , 3.0 , 4.5"
+!   o SeparatorC:         separator symbol e.g. (',' or ';') which separates elements in a string
+!
+! OUTPUT
+!   o StringArrayCV:      array containing elements, e.g. [2.0 , 3.0 , 4.5 ]
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ use My_Input_and_Output_Units, only: my_output_unit
+ use system_specific_parser    ,only: DebugLevel
+
+ IMPLICIT NONE
+
+ CHARACTER(len=1)             ,INTENT(in)  :: SeparatorC ! e.g. ","
+ CHARACTER(len=*)             ,INTENT(in)  :: StringC
+ CHARACTER(len=*),DIMENSION(:),INTENT(out) :: StringArrayCV
+
+ INTEGER                                   :: i
+ INTEGER                                   :: ii,jj
+ CHARACTER(len=:),ALLOCATABLE              :: String_tempC
+
+ String_tempC = StringC
+
+ DO i=1,SIZE(StringArrayCV)
+    ii = SCAN(String_tempC,SeparatorC)
+    IF (ii /= 0) THEN                                ! separator was found.
+        StringArrayCV(i) = String_tempC(1:ii-1)      ! Store element.
+        StringArrayCV(i) = ADJUSTL(StringArrayCV(i))
+        DO jj=1,ii
+           String_tempC(jj:jj) = " "                 ! Delete element, i.e. replace with blanks, including the comma.
+        END DO
+           String_tempC = ADJUSTL(String_tempC)      ! Remove leading spaces.
+    ELSE                                             ! Comma "," was not found, i.e. last element.
+        StringArrayCV(i) = String_tempC              ! This is last element.
+    END IF
+ END DO
+
+ IF (DebugLevel > 10) THEN
+    WRITE(my_output_unit,'(A)') " variable value = "//TRIM(StringC)
+  DO i=1,SIZE(StringArrayCV)
+    WRITE(my_output_unit,*)     " MIN/MAX: ",TRIM(StringArrayCV(i))
+  END DO
+    WRITE(my_output_unit,*)     " Functions MIN( ... , ... ) and MAX( ... , ... ) are not fully supported yet."
+ END IF
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE FillArrayWithValues
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Return_Min_or_Max_of_StringArray(Minimum_or_MaximumC,StringArrayCV, min_or_maxC,ErrorL)
+!------------------------------------------------------------------------------
+ use My_Input_and_Output_Units, only: my_output_unit
+ use String_Utility           , only: StringLowerCase
+ use mod_chrpak               , only: s_to_r8, &
+                                      r8_to_s_left
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)             ,INTENT(in)  :: Minimum_or_MaximumC
+ CHARACTER(len=*),DIMENSION(:),INTENT(in)  :: StringArrayCV
+ CHARACTER(len=*)             ,INTENT(out) :: min_or_maxC
+ LOGICAL                      ,INTENT(out) :: ErrorL
+
+ REAL(8)         ,DIMENSION(:),ALLOCATABLE :: StringArrayV
+ REAL(8)                                   :: min_or_max
+ REAL(8)                                   :: real_value
+ INTEGER                                   :: i
+ INTEGER                                   :: ierror
+ INTEGER                                   :: length
+
+ ErrorL = .FALSE.
+
+ ALLOCATE(StringArrayV( SIZE(StringArrayCV) ))
+
+ DO i = 1, SIZE(StringArrayCV)
+      !----------------------------------------------------
+      ! We try to replace the variable with a real number.
+      !----------------------------------------------------
+      CALL s_to_r8 ( TRIM(StringArrayCV(i)) , real_value , ierror , length)
+      IF (ierror == 0 .AND. &
+          length == LEN_TRIM(StringArrayCV(i))) THEN
+         !-------------------------------------------
+         ! Variable was replaced with a real number.
+         !-------------------------------------------
+         StringArrayV(i) = real_value
+      ELSE
+         !-----------------------------------------------
+         ! Variable was not replaced with a real number.
+         !-----------------------------------------------
+         ErrorL = .TRUE.
+         !--------------------------------------------------------------------------
+         ! Variable cannot be assigned a real value because it is a sort of string.
+         !--------------------------------------------------------------------------
+         StringArrayV(i) = 0d0
+      END IF
+!print *,TRIM(StringArrayCV(i))," ==> ",StringArrayV(i)
+ END DO
+
+ SELECT CASE( StringLowerCase( TRIM(Minimum_or_MaximumC) ) )
+  CASE('min')
+   min_or_max = MINVAL(StringArrayV)
+  CASE('max')
+   min_or_max = MAXVAL(StringArrayV)
+  CASE DEFAULT
+   WRITE(my_output_unit,'(A)') "Error  Return_Min_or_Max_of_StringArray: Min_or_MaxC ill-defined. Min_or_MaxC = "// &
+                                                                                             TRIM(Min_or_MaxC)
+ END SELECT
+
+ DEALLOCATE(StringArrayV)
+
+ CALL r8_to_s_left( min_or_max, min_or_maxC )
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Return_Min_or_Max_of_StringArray
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Search_for_SpecialString(SpecialStringC,VariableNameC, VariableValueC, SpecialStringL, number_of_elements)
+!------------------------------------------------------------------------------
+!
+!++s* MacroForInputFile/Search_for_SpecialString
+!
+! NAME
+!   SUBROUTINE Search_for_SpecialString
+!
+! PURPOSE
+!   'INT( 5.0 )' means that 5.0 should be converted to an integer.
+!   This subroutine checks whether this should be the case, i.e. whether 'INT' is present.
+!   If this is the case 'INT(' is replaced with blanks, and also the last blank is replaced.
+!   Instead of
+!     o 'INT(...)', this subroutine also works with
+!     o 'MIN(...,...,...)' and
+!     o 'MAX(...,...,...)'
+!   where in addition, the number of elements is counted and returned.
+!
+! USAGE
+!   CALL Search_for_SpecialString(SpecialStringC,VariableNameC, VariableValueC, SpecialStringL, number_of_elements)
+! 
+! INPUT
+!   o SpecialStringC:     'INT' (which means integer), 'MAX' which means maximum, 'MIN' which means minimum
+!   o VariableNameC:
+!   o VariableValueC:     (also output)
+!   o number_of_elements: (optional) number of elements "," contained in string, e.g. MAX(1.0,2.0) contains 2 elements
+!
+! OUTPUT
+!   o VariableValueC:     (also input) variable value can consist of 'INT( 5.0 )'.
+!   o SpecialStringL:     If .TRUE., then variable should be interpreted as special string, e.g. integer.
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ use My_Input_and_Output_Units, only: my_output_unit
+ use String_Utility           , only: StringUpperCase
+ use mod_chrpak               , only: StringReplace
+ use mod_Brackets             , only: EvenNumberOfBrackets
+ use CharacterManipulation    , only: CountCharacters
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(in)           :: SpecialStringC
+ CHARACTER(len=*),INTENT(in)           :: VariableNameC
+ CHARACTER(len=*),INTENT(inout)        :: VariableValueC
+ LOGICAL         ,INTENT(out)          :: SpecialStringL
+ INTEGER         ,INTENT(out),OPTIONAL :: number_of_elements
+
+ INTEGER                               :: position_bracket
+ INTEGER                               :: position_special
+ LOGICAL                               :: FoundBracketFollowing_Special_L
+ LOGICAL                               :: FoundBracket_rightL
+ INTEGER                               :: ii
+ INTEGER                               :: m,n
+ INTEGER                               :: number_of_commas
+
+ SpecialStringL = .FALSE.
+
+ position_special = INDEX ( StringUpperCase(VariableValueC) , StringUpperCase(SpecialStringC) )
+ IF      ( position_special == 0 ) THEN ! This is the default case, i.e. SpecialStringC='INT' (or 'MIN' or 'MAX') does not occur in variable value.
+       CONTINUE
+ ELSE IF ( position_special == 1 ) THEN ! Here, SpecialStringC='INT' is at the beginning of the string.
+
+    !-------------------------------------------------------------------------------------------------------------
+    !                                          -----
+    ! ==> Take into account 'INT(' in variable value.
+    !                                          -----
+    ! This is similar as having a function 'int' such as 'exp' or 'abs'.
+    ! It is not allowed to have several occurences of INT.
+    ! It is only allowed to have
+    !   o 'INT('   or
+    !   o 'INT ('  in the beginning and
+    !
+    !   o ')'  at the end of the string.
+    !
+    ! Attention: If a variable name is called 'point', the letters 'int' are contained in 'point' as a substring.
+    !-------------------------------------------------------------------------------------------------------------
+
+       !---------------------------------------------------------------------------------------------------------
+       ! The variable value starts with 'INT...'. This could be 'INTERBAND' or 'INT(...)'.
+       ! In order to consider 'INT' as an expression, we require that 'INT' has to be followed by a bracket '('.
+       ! There could be blanks between 'INT' and '(' but obviously no other character is allowed.
+       ! Let's check if the next (nonblank) character following 'INT' is a '('.
+       ! Example: %nodes = INT  ( 10 / 3 )   , i.e. with a 'blank' between 'INT' and '('
+       !---------------------------------------------------------------------------------------------------------
+       FoundBracketFollowing_Special_L = .FALSE.
+       FoundBracket_rightL             = .FALSE.
+
+       ii = position_special + LEN(SpecialStringC) ! Start from character following 'INT'.
+       DO n=ii,LEN(VariableValueC)
+         IF      ( VariableValueC(n:n) == ' ') THEN ! A blank is allowed.
+          CONTINUE
+         ELSE IF ( VariableValueC(n:n) == '(') THEN ! Search for '('.
+          FoundBracketFollowing_Special_L = .TRUE.
+          position_bracket = n
+          EXIT ! Exit do loop.
+         ELSE                                       ! Exit if any other character has been found.
+          FoundBracketFollowing_Special_L = .FALSE.
+          EXIT ! Exit do loop.
+         END IF
+       END DO
+
+       IF (FoundBracketFollowing_Special_L) THEN
+        !-------------------------------------
+        ! Check closing bracket at the right.
+        !-------------------------------------
+        IF ( VariableValueC(LEN_TRIM(VariableValueC): &
+                            LEN_TRIM(VariableValueC)) == ')' ) THEN
+             FoundBracket_rightL = .TRUE.
+        END IF
+
+        IF (FoundBracket_rightL) THEN
+         !------------------------------------------------------------------------- 
+         ! If we have found both 'INT(' and ')', then we replace them with blanks.
+         !------------------------------------------------------------------------- 
+
+         !--------------------------------
+         ! 1) Replace 'INT(' with blanks.
+         !--------------------------------
+         DO m=position_special,position_bracket
+            VariableValueC(m:m) = ' '
+         END DO
+
+         !-------------------------------------------------------------------------------
+         ! 2) Replace last bracket in string, assuming that the last character is a ')'.
+         !-------------------------------------------------------------------------------
+         CALL StringReplace ( VariableValueC(LEN_TRIM(VariableValueC): &
+                                             LEN_TRIM(VariableValueC)), ')' , ' ' )
+
+         SpecialStringL = .TRUE.
+
+         VariableValueC = ADJUSTL(VariableValueC)
+
+        END IF
+       END IF
+
+      !-----------------------------------------
+      ! Test if number of brackets makes sense.
+      !-----------------------------------------
+      IF ( .NOT. EvenNumberOfBrackets(VariableValueC,'()') ) THEN
+       WRITE(my_output_unit,'(A)')   " Error Search_for_SpecialString: The number of brackets seems to be odd."// &
+                                                                     " It must be even."
+       WRITE(my_output_unit,'(A,A)') "                                 variable name  = ",TRIM(VariableNameC)
+       WRITE(my_output_unit,'(A,A)') "                                 variable value = ",TRIM(VariableValueC)
+       STOP
+      END IF
+
+
+ ELSE ! 'INT' has been found elsewehere in variable value.
+         !-------------------------------------------------------------------------------------------------------------------------------
+         ! Be careful! The string '%point' includes 'int' as a substring. In this case, this is not meant to be an integer conversion!!!
+         !-------------------------------------------------------------------------------------------------------------------------------
+     CONTINUE
+ END IF
+
+ IF ( PRESENT(number_of_elements) ) THEN ! applies to 'MIN( ... , ... )' and 'MAX( ... , ... )'
+  IF (SpecialStringL) THEN
+   number_of_commas = CountCharacters(VariableValueC,',')
+   number_of_elements = number_of_commas + 1
+  ELSE
+   number_of_elements = 0
+  END IF
+ END IF
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Search_for_SpecialString
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Search_for_SpecialString_INT(SpecialStringC,VariableNameC, SpecialStringL)
+!------------------------------------------------------------------------------
+!
+!++s* MacroForInputFile/Search_for_SpecialString_INT
+!
+! NAME
+!   SUBROUTINE Search_for_SpecialString_INT
+!
+! PURPOSE
+!   If a variable name starts with '%INT(' and ends with ')', e.g.
+!     o '%INT(5.0)    = <value>' or
+!     o '%INT(nodes)  = <value>',
+!   this means that '<value' should be converted to an integer.
+!   This subroutine checks whether this should be the case, i.e. whether 'INT(' is present.
+!   This is a deprecated feature as it is not very intuitive.
+!      ==> This is NOT  intuitive, i.e. '%INT( 5.0 )' in variable name  (NAME).
+!          This is more intuitive, i.e.  'INT( 5.0 )' in variable value (VALUE), see SUBROUTINE Search_for_SpecialString.
+!
+! USAGE
+!   CALL Search_for_SpecialString_INT(SpecialStringC,VariableNameC, SpecialStringL)
+! 
+! INPUT
+!   o SpecialStringC:     'INT' (which means integer)
+!   o VariableNameC:
+!
+! OUTPUT
+!   o SpecialStringL:     If .TRUE., then variable should be interpreted as special string, i.e. integer.
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ use My_Input_and_Output_Units, only: my_output_unit
+ use String_Utility           , only: StringUpperCase
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(in)           :: SpecialStringC
+ CHARACTER(len=*),INTENT(in)           :: VariableNameC
+ LOGICAL         ,INTENT(out)          :: SpecialStringL
+
+ CHARACTER(len=:),ALLOCATABLE          :: VariableNameC_in
+ INTEGER                               :: len_variable
+
+ SpecialStringL = .FALSE.
+
+ ! CHECK: This feature should be eliminated: %INT(nodes), e.g. test if all previous input files do not use this feature anymore.
+
+    !----------------------------------------------------------------------------------
+    ! INTEGER is the case, if the macro variable name starts with '%INT('.
+    ! e.g. %INT(nodes) = 10 / 5   (or)
+    !      %INT(nodes) = nodes
+    ! This is the old implementation which is deprecated because it is not intuitive.
+    !---------------------------------------------------------------------------------
+    !-------------------------------------------------
+    !                                           ----
+    ! ==> Take into account '%INT(' in variable name.  ==> Substring 'INT(' must occur at position 2 directly after the variable sign '%'.
+    !                                           ----
+    !-------------------------------------------------
+    IF      ( INDEX ( StringUpperCase(VariableNameC) , &
+                      StringUpperCase(SpecialStringC)//'(' ) == 2 ) THEN ! e.g. %INT(nodes) = 10 / 3   or 
+                                                                         ! e.g. %INT(nodes) = %nodes
+                                                                         !      %INT(
+     WRITE(my_output_unit,'(A)') " Warning '%"  //SpecialStringC//"(...)' is a deprecated feature."// &
+                                 " Please use '"//SpecialStringC//"(...)' instead."
+
+     len_variable = LEN_TRIM(VariableNameC)
+
+     ! Now we check if variable name ensds with ')'.
+     IF ( TRIM(VariableNameC(len_variable:len_variable) ) == ')' ) THEN
+       SpecialStringL = .TRUE.
+     END IF
+
+    END IF 
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Search_for_SpecialString_INT
 !------------------------------------------------------------------------------
 !
 !
@@ -4378,18 +4736,18 @@ END MODULE mod_init_keyword_queue
  INTEGER                                      :: length
  CHARACTER(len=max_string_length),DIMENSION(:),ALLOCATABLE :: VariableNameCV
 
-   NumberOfFunctions = SIZE(functionCV)
-   NumberOfVariables = SIZE(VariableV)
+ NumberOfFunctions = SIZE(functionCV)
+ NumberOfVariables = SIZE(VariableV)
 
-   ALLOCATE(valueV(NumberOfVariables))
-   valueV = 0d0
+ ALLOCATE(valueV(NumberOfVariables))
+ valueV = 0d0
 
-   ALLOCATE(VariableNameCV(NumberOfVariables))
-   DO i = 1,NumberOfVariables
-      VariableNameCV(i) = VariableV(i)%nameC
-   END DO
+ ALLOCATE(VariableNameCV(NumberOfVariables))
+ DO i = 1,NumberOfVariables
+    VariableNameCV(i) = VariableV(i)%nameC
+ END DO
 
-   DO i = 1,NumberOfVariables
+ DO i = 1,NumberOfVariables
       !----------------------------------------------------
       ! We try to replace the variable with a real number.
       !----------------------------------------------------
@@ -4480,10 +4838,10 @@ END MODULE mod_init_keyword_queue
          Real8FunctionSuccessLV(i) = .TRUE.
       END IF
 
-   END DO
+ END DO
 
-   DEALLOCATE(valueV)
-   DEALLOCATE(VariableNameCV)
+ DEALLOCATE(valueV)
+ DEALLOCATE(VariableNameCV)
 
 !-----------------------------------------------------------------------
  END SUBROUTINE EvaluateFunction
