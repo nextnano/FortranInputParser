@@ -61,7 +61,7 @@
                                     is_no
  USE Parser_Errors            ,ONLY:STOP_UnexpectedNumbers, &
                                     STOP_Yes_or_No_is_required, &
-                                    Error_SmallerThanZero, &
+                                    Error_CheckRange, &
                                     Print_Keyword_Specifier_Line
  USE mod_input_data           ,ONLY:type_data
  !-------------------------------------------------
@@ -257,7 +257,7 @@
         ! WRITE(my_output_unit,'(A)') " Error: "//TRIM(specifierC)//" must be a positive value."
         ! CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
 
-          CALL Error_SmallerThanZero(keywordC,specifierC,line,value%double)
+          CALL Error_CheckRange('<0',keywordC,specifierC,line,value%double)
 
          ELSE
           MagneticField%strength = value%double
