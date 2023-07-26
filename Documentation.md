@@ -217,6 +217,21 @@ $material                                                             ! begin of
 
 $end_material                                                         ! This is matching end keyword.
 !---------------------------------------------------------------------!
+
+#------------------------------------------------------------------------
+# Here, a batch file in the output folder is generated.
+#------------------------------------------------------------------------
+
+!---------------------------------------------------------------------!
+$command-line                                                         !
+ execute-command-line = yes                                           ! 'yes'/'no'
+!execute-command-line = no                                            ! 'yes'/'no'
+$end_command-line                                                     !
+!---------------------------------------------------------------------!
+
+!DATA
+ ls
+!ENDDATA
 ```
 Note: The sum of all specifiers corresponding to one keyword is referred to as input sequence in the following.
 
