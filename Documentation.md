@@ -450,6 +450,6 @@ Example
 ```
 !DATA
  pwd
- ls
+ ls *.md
 !ENDDATA
 ```
