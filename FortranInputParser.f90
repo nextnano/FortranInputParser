@@ -34,8 +34,8 @@
  CHARACTER(len=:),ALLOCATABLE  :: InputFilenameC
  CHARACTER(len=:),ALLOCATABLE  :: DatabaseFilenameC
 
- CHARACTER(len=:),ALLOCATABLE  :: Directory_for_execute_commandC
  CHARACTER(len=:),ALLOCATABLE  :: commandC
+ CHARACTER(len=:),ALLOCATABLE  :: Directory_for_execute_commandC
 
  WRITE(*,'(A)') "============================================================"
  WRITE(*,'(A)') " Fortran Input Parser"
@@ -114,7 +114,8 @@
                                        my_output_unit,OperatingSystemC)
     END IF
 
-     CALL Execute_Command_in_Directory(Directory_for_execute_commandC,'"'//TRIM(DATA_FileC)//'"', &
+     commandC =               '"'//TRIM(DATA_FileC)//'"'
+     CALL Execute_Command_in_Directory(Directory_for_execute_commandC,commandC, &
                                        my_output_unit,OperatingSystemC)
   END IF
  ELSE
