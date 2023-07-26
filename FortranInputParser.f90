@@ -33,7 +33,9 @@
 
  CHARACTER(len=:),ALLOCATABLE  :: InputFilenameC
  CHARACTER(len=:),ALLOCATABLE  :: DatabaseFilenameC
+
  CHARACTER(len=:),ALLOCATABLE  :: Directory_for_execute_commandC
+ CHARACTER(len=:),ALLOCATABLE  :: commandC
 
  WRITE(*,'(A)') "============================================================"
  WRITE(*,'(A)') " Fortran Input Parser"
@@ -98,10 +100,22 @@
     !------------------------------------------------
     ! Always execute command in local output folder.
     !------------------------------------------------
-    Directory_for_execute_commandC = ''
   IF ( DATA_FILEC /= '') THEN ! If file is not present, it has not been written. Then there is no need for post-processing.
-   CALL Execute_Command_in_Directory(Directory_for_execute_commandC,'"'//TRIM(DATA_FileC)//'"', &
-                                     my_output_unit,OperatingSystemC)
+    Directory_for_execute_commandC = ''
+
+    IF ( TRIM(OperatingSystemC) /= 'windows' ) THEN
+
+     !-----------------------------------------------
+     ! Make sure that script has execute permission.
+     !-----------------------------------------------
+     commandC = 'chmod a+x '//'"'//TRIM(DATA_FileC)//'"'
+
+     CALL Execute_Command_in_Directory(Directory_for_execute_commandC,commandC, &
+                                       my_output_unit,OperatingSystemC)
+    END IF
+
+     CALL Execute_Command_in_Directory(Directory_for_execute_commandC,'"'//TRIM(DATA_FileC)//'"', &
+                                       my_output_unit,OperatingSystemC)
   END IF
  ELSE
   WRITE(*,'(A)') ""
