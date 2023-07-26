@@ -16,19 +16,24 @@
 !##
 !
 !-----------------------------------------------------------------------------
- USE EnvironmentAndSystem  ,ONLY:AssignDefaultOperatingSystem
- USE input_driver_module   ,ONLY:input_driver
- USE mod_collect_database  ,ONLY:Write_Database_Entries
- USE mod_collect_inputfile ,ONLY:Write_Inputfile_Entries
- USE system_specific_parser,ONLY:ParseInputFileOnlyL, &
-                                 WriteCompactFileL  , &
-                                 OperatingSystemC   , &
-                                 OutputDirC
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE EnvironmentAndSystem     ,ONLY:AssignDefaultOperatingSystem
+ USE input_driver_module      ,ONLY:input_driver
+ USE mod_collect_database     ,ONLY:Write_Database_Entries
+ USE mod_collect_inputfile    ,ONLY:Write_Inputfile_Entries
+ USE system_specific_parser   ,ONLY:OperatingSystemC   , &
+                                    ParseInputFileOnlyL, &
+                                    WriteCompactFileL  , &
+                                    OutputDirC
+ USE parser_parameters        ,ONLY:DATA_FileC
+ USE mod_CallSystem           ,ONLY:Execute_Command_in_Directory
+ USE variables_inputfile      ,ONLY:CommandLineBatchL
                               
  IMPLICIT NONE
 
  CHARACTER(len=:),ALLOCATABLE  :: InputFilenameC
  CHARACTER(len=:),ALLOCATABLE  :: DatabaseFilenameC
+ CHARACTER(len=:),ALLOCATABLE  :: Directory_for_execute_commandC
 
  WRITE(*,'(A)') "============================================================"
  WRITE(*,'(A)') " Fortran Input Parser"
@@ -80,11 +85,31 @@
  !--------------------------------
  CALL Write_Inputfile_Entries
 
- WRITE(*,'(A)') ""
- WRITE(*,'(A)') "------------------------------------------------------------"
- WRITE(*,'(A)') " Input files have been parsed successfully."
- WRITE(*,'(A)') "------------------------------------------------------------"
- WRITE(*,'(A)') ""
+  WRITE(*,'(A)') ""
+  WRITE(*,'(A)') "------------------------------------------------------------"
+  WRITE(*,'(A)') " Input files have been parsed successfully."
+  WRITE(*,'(A)') "------------------------------------------------------------"
+  WRITE(*,'(A)') ""
+
+ !------------------------------------
+ ! Execute command line (==> '!DATA')
+ !------------------------------------
+ IF ( CommandLineBatchL ) THEN
+    !------------------------------------------------
+    ! Always execute command in local output folder.
+    !------------------------------------------------
+    Directory_for_execute_commandC = ''
+  IF ( DATA_FILEC /= '') THEN ! If file is not present, it has not been written. Then there is no need for post-processing.
+   CALL Execute_Command_in_Directory(Directory_for_execute_commandC,'"'//TRIM(DATA_FileC)//'"', &
+                                     my_output_unit,OperatingSystemC)
+  END IF
+ ELSE
+  WRITE(*,'(A)') ""
+  WRITE(*,'(A)') "------------------------------------------------------------"
+  WRITE(*,'(A)') " Batch file has not been executed."
+  WRITE(*,'(A)') "------------------------------------------------------------"
+  WRITE(*,'(A)') ""
+ END IF
  
 !------------------------------------------------------------------------------
  END PROGRAM FortranInputParser

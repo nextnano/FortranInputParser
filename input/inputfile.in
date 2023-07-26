@@ -53,6 +53,14 @@ $end_magnetic-field                                                   !
 /* This is also a comment. */
 // Note: No line breaks are allowed for the comments /* ... */. 
 < This is also a comment. >
+
+!TEXT
+
+ This is a multi-
+ line comment.
+
+!ENDTEXT
+
 !---------------------------------------------------------------------!
 $material                                                             ! begin of input sequence for this keyword
 
@@ -94,3 +102,18 @@ $material                                                             ! begin of
 
 $end_material                                                         ! This is matching end keyword.
 !---------------------------------------------------------------------!
+
+#------------------------------------------------------------------------
+# Here, a batch file in the output folder is generated called batch.bat.
+#------------------------------------------------------------------------
+
+!---------------------------------------------------------------------!
+$command-line                                                         !
+ execute-command-line = yes                                           ! 'yes'/'no'
+!execute-command-line = no                                            ! 'yes'/'no'
+$end_command-line                                                     !
+!---------------------------------------------------------------------!
+
+!DATA
+ ls
+!ENDDATA

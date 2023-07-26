@@ -1,31 +1,35 @@
-! MODULE parser_parameters
-! MODULE mod_queue
-! MODULE input_data_types
-! MODULE input_spec_node_def
-! MODULE input_specifier_queue_def
-! MODULE input_key_node_def
-! MODULE input_key_queue_def
-! MODULE mod_init_input_key_queue
-! MODULE mod_add_input_key
-! MODULE position_at_key_interface
-! MODULE add_inp_spec_interface
-! MODULE scan_inp_key_interface
-! MODULE input_built_up_interface
-! MODULE mod_value_to_queue
-! MODULE common_queues
-! MODULE common_nodes
-! MODULE mod_check_presence
-! MODULE mod_read_and_analyze_input
-! MODULE generic_inputfile
-! MODULE mod_input_driver
-! MODULE mod_TEST_FortranInputParser
+!------------------------------------------------------------------------------
+! o MODULE parser_parameters
+! o MODULE mod_queue
+! o MODULE input_data_types
+! o MODULE input_spec_node_def
+! o MODULE input_specifier_queue_def
+! o MODULE input_key_node_def
+! o MODULE input_key_queue_def
+! o MODULE mod_init_input_key_queue
+! o MODULE mod_add_input_key
+! o MODULE position_at_key_interface
+! o MODULE add_inp_spec_interface
+! o MODULE scan_inp_key_interface
+! o MODULE input_built_up_interface
+! o MODULE mod_value_to_queue
+! o MODULE common_queues
+! o MODULE common_nodes
+! o MODULE mod_check_presence
+! o MODULE mod_read_and_analyze_input
+! o MODULE generic_inputfile
+!
+! Modules not present in FortranInputParser/builder_database.f90:
+! o MODULE mod_input_driver
+! o MODULE mod_TEST_FortranInputParser
+!------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
  MODULE parser_parameters
 !------------------------------------------------------------------------------
  USE mod_FileExtensions_parser,ONLY:ValidatorC
 
-  IMPLICIT NONE
+ IMPLICIT NONE
 
 !------------------------------------------------------------------------------
 ! Note: For the specification of some large 1D devices it might be an advantage
@@ -53,6 +57,13 @@
                                                                         '//'   , '/*' ]       ! Comment signs. Comment sign and text towards right is ignored.
 ! CHARACTER(len=*),DIMENSION(4),PARAMETER :: XML_tagCV              = [ '< '   , '</'  , &
 !                                                                       '> '   , '/>' ]       ! XML tags
+  LOGICAL                      ,PARAMETER :: DATA_Filename_FixedL   = .TRUE.                  ! use fixed filename for batch file rather than filename which is <inputfilename>.bat
+  CHARACTER(len=:),ALLOCATABLE            :: DATA_FileC
+  CHARACTER(len=*)             ,PARAMETER :: DATA_String_BeginC     = '!DATA'                 ! special string                       (case insensitive)
+  CHARACTER(len=*)             ,PARAMETER :: DATA_String_EndC       = '!ENDDATA'              ! special string                       (case insensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_BeginC     = '!TEXT'                 ! special string for multiline comment (case insensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case insensitive)
+
   CHARACTER(len=*)             ,PARAMETER :: keyword_filetypeC      = 'input file'            ! This is how we call these type of files that we want to parse.
   CHARACTER(len=*)             ,PARAMETER :: keyword_filenameC      = 'keywords'//ValidatorC  ! name of file, containing definitions of keywords and specifiers without file extension
 
@@ -70,32 +81,86 @@
 !------------------------------------------------------------------------------
  MODULE mod_queue
 !------------------------------------------------------------------------------
+!
+!++m* builder_inputfile.f90/mod_queue
+!
+! NAME 
+!   MODULE mod_queue
+!
+! PURPOSE
+!   MODULE to build up the queue of the input file.
+!
+! CONTAINS
+!   o SUBROUTINE queue_built_up
+!
+! FILENAME
+!   FortranInputParser/builder_inputfile.f90
+!
+!##
+!
+!------------------------------------------------------------------------------
 
  IMPLICIT NONE
+
+ PRIVATE
+
+ PUBLIC queue_built_up
 
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE queue_built_up(input_filename_C,queue_1)
+ SUBROUTINE queue_built_up(input_filename_C, queue_1)
 !------------------------------------------------------------------------------
- USE My_Input_and_Output_Units ,ONLY:my_output_unit
- USE system_specific_parser    ,ONLY:DebugLevel, &
-                                     InputFileName_NoDirectoryNoExtensionC, &
-                                     InputFileName_NoDirectoryC, &
-                                     WriteCompactFileL
- USE MacroForInputFile         ,ONLY:ApplyMacro
- USE parser_parameters         ,ONLY:comment_signsCV        , &
-                                     Data_len               , &
-                                     Data_len_long          , &
-                                     SpecialMacroCharacterC , &
-                                     IF_STATEMENT_CV
+!
+!++s* mod_queue/queue_built_up
+!
+! NAME
+!   SUBROUTINE queue_built_up
+!
+! PURPOSE
+!   Builds up the queue of the input file.
+!
+! USAGE
+!   CALL queue_built_up(input_filename_C, queue_1)
+!
+! INPUT
+!   o input_filename_C:
+!
+! OUTPUT
+!   o queue_1:
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE system_specific_parser   ,ONLY:DebugLevel, &
+                                    InputFileName_NoDirectoryNoExtensionC, &
+                                    InputFileName_NoDirectoryC, &
+                                    WriteCompactFileL, &
+                                    OperatingSystemC
+ USE MacroForInputFile        ,ONLY:ApplyMacro
+ USE parser_parameters        ,ONLY:comment_signsCV        , &
+                                    Data_len               , &
+                                    Data_len_long          , &
+                                    SpecialMacroCharacterC , &
+                                    IF_STATEMENT_CV        , &
+                                    DATA_String_BeginC     , &
+                                    DATA_String_EndC       , &
+                                    DATA_Filename_FixedL   , &
+                                    DATA_FileC             , &
+                                    TEXT_String_BeginC     , &
+                                    TEXT_String_EndC
+ USE mod_FileExtensions_parser,ONLY:Batch_WindowsC, &
+                                    Batch_LinuxC
+ USE mod_SpecialStrings       ,ONLY:Multiline_Comment, &
+                                    Extract_DATA
+ USE mod_chrpak               ,ONLY:StringReplace
  USE queue_type_def           ,ONLY:queue_type
  USE mod_init_queue           ,ONLY:init_queue
  USE mod_push                 ,ONLY:push
  USE CharacterManipulation    ,ONLY:ReplaceTAB              , &
                                     Replace_NonBreakingSpace, &
                                     ReplaceXMLTag
- USE mod_chrpak               ,ONLY:StringReplace
  USE mod_Array_of_Strings     ,ONLY:String_in_Line
  USE DirectoryFileExist       ,ONLY:CountLinesInFile          , &
                                     FileExistREAD             , &
@@ -108,7 +173,7 @@
  IMPLICIT NONE
 
  CHARACTER(len=*),INTENT(in)                            :: input_filename_C
- TYPE(queue_type)                                       :: queue_1
+ TYPE(queue_type),INTENT(out)                           :: queue_1
 
  INTEGER,PARAMETER                                      :: Linelength_very_long = 98765   ! Data_len_very_long
  CHARACTER(Linelength_very_long)                        :: bufferC_read
@@ -117,6 +182,13 @@
  CHARACTER(len=:),ALLOCATABLE                           :: buffer_before_ReplacementC
  CHARACTER(len=:),ALLOCATABLE                           :: Folder_InputFilename_outC
  TYPE(String_in_Line)         ,DIMENSION(:),ALLOCATABLE :: StringsV
+ TYPE(String_in_Line)         ,DIMENSION(:),ALLOCATABLE :: Strings_for_DATA_V
+ INTEGER                                                :: Line_of_DATA           ! line where special string '!DATA' was found
+ INTEGER                                                :: Line_of_DATA_count     ! line where special string '!DATA' was found
+ LOGICAL                                                :: Write_DATA_FileL       ! .TRUE.  if special string '!DATA' was found
+ CHARACTER(len=:),ALLOCATABLE                           :: Batch_FileExtensionC
+ LOGICAL                                                :: DATA_Comment_OnL       ! .TRUE.  if special string '!DATA' was found
+ LOGICAL                                                :: Multiline_Comment_OnL  ! .TRUE.  if special string '!TEXT' was found
  INTEGER                                                :: max_string_length
  INTEGER                                                :: ios
  INTEGER                                                :: NumberOfLines
@@ -205,13 +277,19 @@
                           Find_and_Replace_36, Find_and_Replace_37, Find_and_Replace_38, Find_and_Replace_39, &
                           Find_and_Replace_40
 
-   UseMacroFindAndReplaceL = .FALSE.
-   NumberOfFindReplace_max = 40       ! Find_and_Replace_1,Find_and_Replace_2,...,Find_and_Replace_40
-   filename                = ''
+ Multiline_Comment_OnL   = .FALSE.
+ DATA_Comment_OnL        = .FALSE.
+ DATA_FileC              = ''
+ Write_DATA_FileL        = .FALSE.
+ Line_of_DATA_count      = 0
 
-   !--------------------------------------
-   ! Default initialization is necessary.
-   !--------------------------------------
+ UseMacroFindAndReplaceL = .FALSE.
+ NumberOfFindReplace_max = 40       ! Find_and_Replace_1,Find_and_Replace_2,...,Find_and_Replace_40
+ filename                = ''
+
+ !--------------------------------------
+ ! Default initialization is necessary.
+ !--------------------------------------
    UnrealisticStringC = 'unrealistic_stringC'
    Find_and_Replace%StringToFindC    = UnrealisticStringC
    Find_and_Replace%StringToReplaceC = UnrealisticStringC
@@ -257,10 +335,10 @@
    Find_and_Replace_40 = Find_and_Replace
    !********************************************************************
 
-   !----------------------------------------------------------------------------
-   ! By default, no macro is used, thus this logical variable is set to .FALSE.
-   !----------------------------------------------------------------------------
-   AnyMacroL               = .FALSE.
+ !----------------------------------------------------------------------------
+ ! By default, no macro is used, thus this logical variable is set to .FALSE.
+ !----------------------------------------------------------------------------
+ AnyMacroL               = .FALSE.
 
    !----------------------------------------------------------
    ! Disassociate pointer 'queue_1' to top and rear of queue.
@@ -317,7 +395,7 @@
    !
    !     %width = 10d0 ! quantum well width
    !
-   ! to input file, i.e. replace all occurences of '%width' with '10d0'.
+   ! to input file, i.e. replace all occurences of '%width' with '10.0'.
    !---------------------------------------------------------------------
    CALL ApplyMacro(SpecialMacroCharacterC,comment_signsCV,IF_STATEMENT_CV,DebugLevel,NumberOfLines,max_string_length, &
                    StringsV,AnyMacroL)
@@ -523,10 +601,10 @@
      ! Example: 'my_input_file.in' ==> 'my_input_file.in.no_macro'
      !                                 'my_input_file.in.compact'
      !---------------------------------------------------------------------------
-     OPEN (33,file = TRIM(Folder_InputFilename_outC)//'.no_macro')  ! This works if -outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+     OPEN (33,file = TRIM(Folder_InputFilename_outC)//'.no_macro')  ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
    IF (WriteCompactFileL) THEN
-     OPEN (34,file = TRIM(Folder_InputFilename_outC)//'.compact')   ! This works if -outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+     OPEN (34,file = TRIM(Folder_InputFilename_outC)//'.compact')   ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
 
    line_number = 0
@@ -539,7 +617,7 @@
      ! CHECK: This assignment is not necessary any more because the
      ! information is contained in 'StringsV'.
      ! However, we keep it because of 'Find & Replace String' macro
-     ! as we do (probably) not know the line number in this case.
+     ! as we (probably) do not know the line number in this case.
      !---------------------------------------------------------------
      READ (10,'(A)',IOSTAT = ios) bufferC_read
      IF (ios < 0) EXIT
@@ -595,12 +673,66 @@
          WRITE(33,'(A)') TRIM(bufferC)
      END IF
 
+     !----------------------------------------------------
+     ! Allow for multiline comments.
+     !
+     !   !TEXT
+     !       This is a multi-
+     !       line comment.
+     !   !ENDTEXT
+     !
+     ! If multiline comment, then bufferC will be erased.
+     !----------------------------------------------------
+     CALL Multiline_Comment( TEXT_String_BeginC, &
+                             TEXT_String_EndC  , &
+                             bufferC , Multiline_Comment_OnL )
+
+     !---------------------------------------------------------------------
+     ! Allow for '!DATA'.
+     !
+     !   !DATA
+     !       Some data.
+     !   !ENDDATA                ('!ENDDATA' is optional)
+     !
+     ! Everything until '!ENDDATA' or end of file will be treated as DATA.
+     !---------------------------------------------------------------------
+     CALL Extract_DATA( DATA_String_BeginC, &
+                        DATA_String_EndC  , &
+                        bufferC , DATA_Comment_OnL ) ! bufferC is input and output
+     IF (DATA_Comment_OnL) THEN
+        IF ( .NOT. ALLOCATED(Strings_for_DATA_V) ) THEN
+           Line_of_DATA = line_number
+           Line_of_DATA_count = 0
+           ALLOCATE( Strings_for_DATA_V(NumberOfLines - Line_of_DATA) )
+         ! bufferC = ''                             ! erase bufferC (Not needed here as bufferC was already erased in SUBROUTINE Extract_DATA.)
+         Write_DATA_FileL = .TRUE.
+         SELECT CASE( TRIM(OperatingSystemC) )
+          CASE('windows')
+           Batch_FileExtensionC = Batch_WindowsC    ! '.bat' on Windows
+          CASE DEFAULT
+           Batch_FileExtensionC = Batch_LinuxC      ! '.sh' on Linux
+         END SELECT
+         IF ( DATA_Filename_FixedL ) THEN
+              DATA_FileC = TRIM(GetGlobalDirectoryName(''))//'batch'//Batch_FileExtensionC
+         ELSE
+              DATA_FileC = TRIM(Folder_InputFilename_outC)          //Batch_FileExtensionC
+         END IF
+        ELSE
+           Line_of_DATA_count = Line_of_DATA_count + 1
+           Strings_for_DATA_V(Line_of_DATA_count)%StringC = bufferC
+           bufferC = ''                             ! erase bufferC
+        END IF
+     END IF
+
      !---------------------------------------------------
      ! 'bufferC' is input and output to this subroutine.
      !---------------------------------------------------
      CALL push(queue_1,bufferC,line_number,comment_signsCV)              ! push node onto top of queue_1
 
      IF (WriteCompactFileL) THEN
+      !-------------------------------------------------------------------------------------
+      ! Compact file does not include content that was intended for special string '!DATA'.
+      !-------------------------------------------------------------------------------------
       IF (bufferC /= '') THEN
           WRITE(34,'(A)') TRIM(bufferC)
       END IF
@@ -612,16 +744,24 @@
    ! Close the input file where the macro has been "executed".
    !-----------------------------------------------------------
    IF (AnyMacroL) THEN
-     CLOSE(33)
+      CLOSE(33)
    ELSE
     IF (DebugLevel > 1) THEN
-     WRITE(my_output_unit,'(A)') " Macro status: No macro definition found in input file. Macro feature is not used."
+      WRITE(my_output_unit,'(A)') " Macro status: No macro definition found in input file. Macro feature is not used."
     END IF
    END IF
 
-    IF (WriteCompactFileL) THEN
-     CLOSE(34)
-    END IF
+   IF (WriteCompactFileL) THEN
+      CLOSE(34)
+   END IF
+
+   IF (Write_DATA_FileL) THEN
+      OPEN (35,file = DATA_FileC)   ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+       DO i=1,Line_of_DATA_count
+        WRITE(35,'(A)') TRIM( Strings_for_DATA_V(i)%StringC )
+       END DO
+      CLOSE(35)
+   END IF
    
    !-----------------------------------------------------------
    ! Close the real input file.
@@ -630,6 +770,9 @@
 
    DEALLOCATE(StringsV)
 
+   IF ( ALLOCATED( Strings_for_DATA_V ) ) THEN
+        DEALLOCATE(Strings_for_DATA_V)
+   END IF
 
    !********************************************************************
    IF (UseMacroFindAndReplaceL) THEN
@@ -806,7 +949,7 @@ END MODULE input_key_queue_def                                         !
  CONTAINS
 
 !------------------------------------------------------------------------------
-SUBROUTINE init_input_key_queue (s)                                    ! Initialize an empty keyword_queue 
+SUBROUTINE init_input_key_queue(s)                                    ! Initialize an empty keyword_queue 
 !------------------------------------------------------------------------------
    USE input_key_queue_def,ONLY:input_key_queue
 
@@ -2213,7 +2356,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
  USE queue_type_def         ,ONLY:queue_type
  USE node_type_def          ,ONLY:node_type
  USE mod_string_in_list     ,ONLY:string_in_list
- USE mod_queue
+ USE mod_queue              ,ONLY:queue_built_up
  USE mod_get_line           ,ONLY:get_next_line, &
                                   get_prev_line
  USE input_built_up_interface,ONLY:input_built_up
@@ -2263,17 +2406,14 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
  LOGICAL                         :: found_enda,found_endb            !
  LOGICAL                         :: start_at_endL,found_topL         !
  LOGICAL                         :: start_reading
-!LOGICAL                         :: stop_reading                     !
  LOGICAL                         :: read_restL                       !
 
  LOGICAL                         :: keys_are_ok                      !
-!LOGICAL                         :: spec_are_ok                      !
 
  CHARACTER(Data_len)             :: first_spec                       !
  CHARACTER(Data_len)             :: last_spec                        !
  CHARACTER(Data_len)             :: sep_spec                         !
  LOGICAL                         :: got_first_spec                   !
-!LOGICAL                         :: spec_next_line                   !
  LOGICAL                         :: new_keyword                      !
  LOGICAL                         :: process_line                     !
 
@@ -2383,7 +2523,6 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
     found_endL    = .FALSE.                                            !
     icount       = 0                                                   !
     keys_are_ok  = .TRUE.                                              !
-  ! spec_are_ok  = .TRUE.                                              !
 
     !---------------------------------------------------------------------------------------
     ! It has to be nullified because SUBROUTINE key_positions checks its associated status.
@@ -2504,7 +2643,6 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
                                                                        !
 !----------------------------------------------------------------------!
         got_first_spec = .FALSE.                                       !
-      ! spec_next_line = .TRUE.                                        !
 
          !----------------------------------------------------------------------------------------
          ! It has to be nullified because SUBROUTINE spec_positions checks its associated status.
@@ -2546,7 +2684,6 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
        IF(.NOT.found_keyL)  CALL ERROR(3)                               !
          IF (.NOT.found_specL) CALL ERROR(5)                            !
          got_first_spec = .TRUE.                                       !
-       ! spec_next_line = .TRUE.                                       !
        ELSE                                                            !
         first_spec = ' '                                               !
         DO ii=start_position,end_spec_pos(1)                           !
@@ -2563,7 +2700,6 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
        IF(.NOT.found_keyL)    CALL ERROR(3)                             !
        IF(.NOT.found_specL)   CALL ERROR(5)                             !
         got_first_spec = .TRUE.                                        !
-      ! spec_next_line = .FALSE.                                       !
                                                                        !
        END IF                                                          !
         IF(got_first_spec) THEN                                        !
@@ -2577,7 +2713,6 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
        IF (start_reading) THEN                                         !
         stop_position = SCAN(bufferC,key_char)-1                        !
         IF (stop_position <= 0) stop_position = LEN_TRIM(bufferC)       !
-      ! IF (start_position > LEN_TRIM(bufferC)) stop_reading = .TRUE.   !
         read_restL = .FALSE.                                           !
         IF (NumOfSpecifiersInLine > 0) THEN                            !
          IF (spec_pos(1) > 0) THEN                                     !
@@ -3687,8 +3822,8 @@ CONTAINS                                                               !
 !**********************************************************************!
 
 !**********************************************************************!
-  SUBROUTINE get_spec_data_inar(keyword,new,specifier,cont,inar_t,    &!
-                                pres,line,last)                        !
+  SUBROUTINE get_spec_data_inar(keyword,new,specifier,cont,inar_t, &
+                                pres,line,last)
 !----------------------------------------------------------------------!
    USE parser_parameters   ,ONLY:keyword_filetypeC
    USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
@@ -3829,7 +3964,7 @@ CONTAINS                                                               !
   END SUBROUTINE ERROR                                                 !
                                                                        !
 !----------------------------------------------------------------------!
-  END SUBROUTINE get_spec_data_inar                                    !
+  END SUBROUTINE get_spec_data_inar
 !**********************************************************************!
 
 !**********************************************************************!
@@ -4149,7 +4284,7 @@ CONTAINS                                                               !
                         SecondEntryL_in)
 !------------------------------------------------------------------------------
  USE mod_read_and_analyze_input     ,ONLY:read_and_analyze_input
- USE mod_d_read_and_analyze_input   ,ONLY:d_read_and_analyze_input
+ USE d_mod_read_and_analyze_input   ,ONLY:d_read_and_analyze_input
 
  IMPLICIT NONE
 

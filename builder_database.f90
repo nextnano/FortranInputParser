@@ -1,22 +1,27 @@
-! MODULE d_parser_parameters
-! MODULE mod_d_queue
-! MODULE d_input_data_types
-! MODULE d_input_spec_node_def
-! MODULE d_input_specifier_queue_def
-! MODULE d_input_key_node_def
-! MODULE d_input_key_queue_def
-! MODULE mod_d_init_input_key_queue
-! MODULE mod_d_add_input_key
-! MODULE d_position_at_key_interface
-! MODULE d_scan_inp_key_interface
-! MODULE d_add_inp_spec_interface
-! MODULE d_input_built_up_interface
-! MODULE d_mod_value_to_queue
-! MODULE d_common_queues
-! MODULE d_common_nodes
-! MODULE mod_d_check_presence
-! MODULE mod_d_read_and_analyze_input
-! MODULE generic_database
+!------------------------------------------------------------------------------
+! o MODULE d_parser_parameters
+! o MODULE d_mod_queue
+! o MODULE d_input_data_types
+! o MODULE d_input_spec_node_def
+! o MODULE d_input_specifier_queue_def
+! o MODULE d_input_key_node_def
+! o MODULE d_input_key_queue_def
+! o MODULE d_mod_init_input_key_queue
+! o MODULE d_mod_add_input_key
+! o MODULE d_position_at_key_interface
+! o MODULE d_scan_inp_key_interface
+! o MODULE d_add_inp_spec_interface
+! o MODULE d_input_built_up_interface
+! o MODULE d_mod_value_to_queue
+! o MODULE d_common_queues
+! o MODULE d_common_nodes
+! o MODULE d_mod_check_presence
+! o MODULE d_mod_read_and_analyze_input
+! o MODULE generic_database
+!
+! Modules not present in FortranInputParser/builder_database.f90:
+! o MODULE mod_SpecialStrings
+!------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
  MODULE d_parser_parameters
@@ -46,6 +51,9 @@
                                                                         '//'   , '/*' ]       ! Comment signs. Comment sign and text towards right is ignored.
 ! CHARACTER(len=*),DIMENSION(4),PARAMETER :: XML_tagCV              = [ '< '   , '</'  , &
 !                                                                       '> '   , '/>' ]       ! XML tags
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_BeginC     = '!TEXT'                 ! special string for multiline comment (case insensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case insensitive)
+
 
   ! Define 'database_nn3_keywords.val'
   ! Define 'database_nn3.in'
@@ -61,19 +69,305 @@
 !
 !
 !------------------------------------------------------------------------------
- MODULE mod_d_queue
+ MODULE mod_SpecialStrings
+!------------------------------------------------------------------------------
+!
+!++m* builder_database.f90/mod_SpecialStrings
+!
+! NAME 
+!   MODULE mod_SpecialStrings
+!
+! PURPOSE
+!   MODULE to treat special strings, e.g. '!TEXT'/'!ENDTEXT'.
+!
+! CONTAINS
+!   o SUBROUTINE Multiline_Comment
+!   o SUBROUTINE Extract_DATA
+!
+! FILENAME
+!   FortranInputParser/builder_database.f90
+!
+!##
+!
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
 
+ PRIVATE
+
+ PUBLIC Multiline_Comment
+ PUBLIC Extract_DATA
+
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE d_queue_built_up(input_filename_C,queue_1)
+ SUBROUTINE Multiline_Comment(String_beginC,String_endC, bufferC , Multiline_Comment_OnL )
+!------------------------------------------------------------------------------
+!
+!++s* mod_SpecialStrings/Multiline_Comment
+!
+! NAME
+!   SUBROUTINE Multiline_Comment
+!
+! PURPOSE
+!   Checks for multiline comment, and if found, replaces the comment with blanks.
+!
+!   Example:
+!      !TEXT
+!           This is a multi-
+!           line comment.
+!      !ENDTEXT
+!
+! USAGE
+!   CALL Multiline_Comment(String_beginC,String_endC, bufferC , Multiline_Comment_OnL )
+!
+! INPUT
+!   o String_beginC:           '!TEXT'
+!   o String_endC:             '!ENDTEXT'
+!   o bufferC:                 (also output)  string of line
+!   o Multiline_Comment_OnL:   (also output)  .TRUE. if '!TEXT' had had been found before call of subroutine in previous lines, else .FALSE.
+!
+! OUTPUT
+!   o bufferC:                 (also input)  string of line, will be erased if line should be treated as comment
+!   o Multiline_Comment_OnL:   (also input)  .TRUE. if '!TEXT' had been found in beginning of string 'bufferC', or if it had been found before call of subroutine.
+!                                             It will be set from .TRUE. to .FALSE. if '!ENDTEXT' had been found in beginning of string 'bufferC'.
+!
+! NOTES
+!   '!TEXT' is not case-sensitive, so '!Text' will also work.
+!
+!##
+!
+!------------------------------------------------------------------------------
+ USE String_Utility            ,ONLY:StringUpperCase
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(in)    :: String_beginC
+ CHARACTER(len=*),INTENT(in)    :: String_endC
+ CHARACTER(len=*),INTENT(inout) :: bufferC
+ LOGICAL         ,INTENT(inout) :: Multiline_Comment_OnL
+
+ INTEGER                        :: length_of_string_begin
+ INTEGER                        :: length_of_string_end
+ CHARACTER(len=:),ALLOCATABLE   :: buffer_adjust_leftC
+ LOGICAL                        :: TreatLineAsCommentL
+
+ TreatLineAsCommentL = .FALSE.
+
+ buffer_adjust_leftC = ADJUSTL(bufferC)          ! Remove leading blanks.
+
+ IF ( Multiline_Comment_OnL ) THEN
+  !----------------------------------------------------------------------------
+  ! '!TEXT' has already been found before call of this soubroutine,
+  ! therefore treat line as comment and search for end string '!ENDTEXT'.
+  !----------------------------------------------------------------------------
+  TreatLineAsCommentL = .TRUE.
+
+  length_of_string_end  = LEN(String_endC)     ! Determine length of special string '!ENDTEXT'.
+  IF ( LEN(buffer_adjust_leftC) >= length_of_string_end ) THEN ! Minimum length is required so that next line does not break.
+
+   !------------------------------------------------------
+   ! Check if '!ENDTEXT' is at the beginning of the line.
+   !------------------------------------------------------
+   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_end)   ) == String_endC   ) THEN ! Check if special string is first word in line.
+      Multiline_Comment_OnL = .FALSE.  ! special string was found as the first word in the line, therefore reset logical value that indicates begin of multiline comment.
+   END IF
+
+  END IF
+
+ ELSE
+
+  length_of_string_begin = LEN(String_beginC)  ! Determine length of special string '!TEXT'.
+  IF ( LEN(buffer_adjust_leftC) >= length_of_string_begin ) THEN ! Minimum length is required so that next line does not break.
+
+   !------------------------------------------------------
+   ! Check if '!TEXT' is at the beginning of the line.
+   !------------------------------------------------------
+   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_begin) ) == String_beginC ) THEN ! Check if special string is first word in line.
+      Multiline_Comment_OnL = .TRUE. ! special string was found as the first word in the line
+      TreatLineAsCommentL   = .TRUE.
+   END IF
+
+  END IF
+
+ END IF
+
+ IF ( TreatLineAsCommentL ) THEN
+      bufferC = ''                ! Erase line as it is treated as comment.
+ END IF
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Multiline_Comment
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Extract_DATA(String_beginC,String_endC, bufferC , Data_Comment_OnL )
+!------------------------------------------------------------------------------
+!
+!++s* mod_SpecialStrings/Extract_DATA
+!
+! NAME
+!   SUBROUTINE Extract_DATA
+!
+! PURPOSE
+!   Checks for '!DATA' and '!ENDDATA' comment, and if found, replaces this specific line with blanks.
+!   Everything after '!DATA' is treated as DATA and is not deleted here.
+!
+!   Example:
+!      !DATA
+!           Some data goes here.
+!      !ENDDATA    (This line is optional. If not present, everything until end of file is considered to be DATA.)
+!
+! USAGE
+!   CALL Extract_DATA(String_beginC,String_endC, bufferC , Data_Comment_OnL )
+!
+! INPUT
+!   o String_beginC:           '!DATA'
+!   o String_endC:             '!ENDDATA'
+!   o bufferC:                 (also output)  string of line
+!   o Data_Comment_OnL:        (also output)  .TRUE. if '!DATA' had had been found before call of subroutine in previous lines, else .FALSE.
+!
+! OUTPUT
+!   o bufferC:                 (also input)  string of line, will be erased if line starts with '!DATA' or '!ENDDATA'
+!   o Data_Comment_OnL:        (also input)  .TRUE. if '!DATA' had been found in beginning of string 'bufferC', or if it had been found before call of subroutine.
+!                                             It will be set from .TRUE. to .FALSE. if '!ENDDATA' had been found in beginning of string 'bufferC'.
+!
+! NOTES
+!   '!DATA' is not case-sensitive, so '!Data' will also work.
+!
+!##
+!
+!------------------------------------------------------------------------------
+ USE String_Utility            ,ONLY:StringUpperCase
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*),INTENT(in)    :: String_beginC
+ CHARACTER(len=*),INTENT(in)    :: String_endC
+ CHARACTER(len=*),INTENT(inout) :: bufferC
+ LOGICAL         ,INTENT(inout) :: Data_Comment_OnL
+
+ INTEGER                        :: length_of_string_begin
+ INTEGER                        :: length_of_string_end
+ CHARACTER(len=:),ALLOCATABLE   :: buffer_adjust_leftC
+ LOGICAL                        :: TreatLineAsCommentL
+
+ TreatLineAsCommentL = .FALSE.
+
+ buffer_adjust_leftC = ADJUSTL(bufferC)          ! Remove leading blanks.
+
+ IF ( Data_Comment_OnL ) THEN
+  !----------------------------------------------------------------------------
+  ! '!DATA' has already been found before call of this soubroutine,
+  ! therefore treat line as DATA and search for end string '!ENDDATA'.
+  !----------------------------------------------------------------------------
+
+  length_of_string_end   = LEN(String_endC)    ! Determine length of special string '!ENDDATA'.
+  IF ( LEN(buffer_adjust_leftC) >= length_of_string_end   ) THEN ! Minimum length is required so that next line does not break.
+
+   !------------------------------------------------------
+   ! Check if '!ENDDATA' is at the beginning of the line.
+   !------------------------------------------------------
+   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_end)   ) == String_endC  ) THEN ! Check if special string '!ENDDATA' is first word in line.
+      Data_Comment_OnL     = .FALSE. ! special string '!ENDDATA' was found as the first word in the line
+      TreatLineAsCommentL  = .TRUE.
+   END IF
+
+  END IF
+
+ ELSE
+
+  length_of_string_begin = LEN(String_beginC)  ! Determine length of special string '!DATA'.
+  IF ( LEN(buffer_adjust_leftC) >= length_of_string_begin ) THEN ! Minimum length is required so that next line does not break.
+
+   !------------------------------------------------------
+   ! Check if '!DATA' is at the beginning of the line.
+   !------------------------------------------------------
+   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_begin) ) == String_beginC ) THEN ! Check if special string '!DATA' is first word in line.
+      Data_Comment_OnL      = .TRUE. ! special string '!DATA' was found as the first word in the line
+      TreatLineAsCommentL   = .TRUE.
+   END IF
+
+  END IF
+
+ END IF
+
+ IF ( TreatLineAsCommentL ) THEN
+      bufferC = ''                ! Erase line as it is treated as comment.
+ END IF
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Extract_DATA
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+ END MODULE mod_SpecialStrings
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ MODULE d_mod_queue
+!------------------------------------------------------------------------------
+!
+!++m* builder_inputfile.f90/mod_queue
+!
+! NAME 
+!   MODULE mod_queue
+!
+! PURPOSE
+!   MODULE to build up the queue of the input file.
+!
+! CONTAINS
+!   o SUBROUTINE queue_built_up
+!
+! FILENAME
+!   FortranInputParser/builder_inputfile.f90
+!
+!##
+!
+!------------------------------------------------------------------------------
+
+ IMPLICIT NONE
+
+ PRIVATE
+
+ PUBLIC d_queue_built_up
+
+ CONTAINS
+
+!------------------------------------------------------------------------------
+ SUBROUTINE d_queue_built_up(input_filename_C, queue_1)
+!------------------------------------------------------------------------------
+!
+!++s* mod_queue/queue_built_up
+!
+! NAME
+!   SUBROUTINE queue_built_up
+!
+! PURPOSE
+!   Builds up the queue of the input file.
+!
+! USAGE
+!   CALL queue_built_up(input_filename_C, queue_1)
+!
+! INPUT
+!   o input_filename_C:
+!
+! OUTPUT
+!   o queue_1:
+! 
+!##
+!
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE system_specific_parser   ,ONLY:DebugLevel
- USE d_parser_parameters      ,ONLY:comment_signsCV
+ USE d_parser_parameters      ,ONLY:comment_signsCV        , &
+                                    TEXT_String_BeginC     , &
+                                    TEXT_String_EndC
+ USE mod_SpecialStrings       ,ONLY:Multiline_Comment
  USE queue_type_def           ,ONLY:queue_type
  USE mod_init_queue           ,ONLY:init_queue
  USE mod_push                 ,ONLY:push
@@ -86,13 +380,16 @@
 
  IMPLICIT NONE
 
- CHARACTER(len=*)                 ,INTENT(in)  :: input_filename_C
- TYPE(queue_type)                              :: queue_1
+ CHARACTER(len=*),INTENT(in)                            :: input_filename_C
+ TYPE(queue_type),INTENT(out)                           :: queue_1
 
  CHARACTER(len=:),ALLOCATABLE                  :: bufferC
  TYPE(String_in_Line),DIMENSION(:),ALLOCATABLE :: StringsV
- INTEGER                                       :: NumberOfLines
- INTEGER                                       :: line_number
+ LOGICAL                                                :: Multiline_Comment_OnL  ! .TRUE.  if special string '!TEXT' was found
+ INTEGER                                                :: NumberOfLines
+ INTEGER                                                :: line_number
+
+ Multiline_Comment_OnL   = .FALSE.
 
  !----------------------------------------------------------
  ! Disassociate pointer 'queue_1' to top and rear of queue.
@@ -144,9 +441,9 @@
     CALL ReplaceTAB(               StringsV(line_number)%StringC )
     CALL Replace_NonBreakingSpace( StringsV(line_number)%StringC )
 
-    !---------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------
     ! XML tags <...> can be present. They are ignored and replaced with blanks.
-    !---------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------
     CALL ReplaceXMLTag(            StringsV(line_number)%StringC )
 
    END DO 
@@ -154,6 +451,20 @@
    DO line_number=1,NumberOfLines
 
      bufferC = StringsV(line_number)%StringC
+     !----------------------------------------------------
+     ! Allow for multiline comments.
+     !
+     !   !TEXT
+     !       This is a multi-
+     !       line comment.
+     !   !ENDTEXT
+     !
+     ! If multiline comment, then bufferC will be erased.
+     !----------------------------------------------------
+     CALL Multiline_Comment( TEXT_String_BeginC, &
+                             TEXT_String_EndC  , &
+                             bufferC , Multiline_Comment_OnL )
+
 
      !---------------------------------------------------
      ! 'bufferC' is input and output to this subroutine.
@@ -175,7 +486,7 @@
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
- END MODULE mod_d_queue
+ END MODULE d_mod_queue
 !------------------------------------------------------------------------------
 !
 !
@@ -327,7 +638,7 @@ END MODULE d_input_key_queue_def                                       !
 !
 !
 !------------------------------------------------------------------------------
- MODULE mod_d_init_input_key_queue
+ MODULE d_mod_init_input_key_queue
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
@@ -335,7 +646,7 @@ END MODULE d_input_key_queue_def                                       !
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE d_init_input_key_queue (s)                                  ! Initialize an empty keyword_queue 
+ SUBROUTINE d_init_input_key_queue(s)                                  ! Initialize an empty keyword_queue 
 !------------------------------------------------------------------------------
    USE d_input_key_queue_def,ONLY:input_key_queue
 
@@ -349,13 +660,13 @@ END MODULE d_input_key_queue_def                                       !
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
- END MODULE mod_d_init_input_key_queue
+ END MODULE d_mod_init_input_key_queue
 !------------------------------------------------------------------------------
 !
 !
 !
 !------------------------------------------------------------------------------
-MODULE mod_d_add_input_key
+MODULE d_mod_add_input_key
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
@@ -447,7 +758,7 @@ END SUBROUTINE d_add_input_key
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-END MODULE mod_d_add_input_key
+END MODULE d_mod_add_input_key
 !------------------------------------------------------------------------------
 !
 !
@@ -957,8 +1268,8 @@ SUBROUTINE d_input_built_up(collected_input,bufferC)
    USE d_input_key_queue_def      ,ONLY:input_key_queue,input_key_node
    USE d_scan_inp_key_interface   ,ONLY:d_scan_inp_keys
    USE d_position_at_key_interface,ONLY:d_position_at_key
-   USE mod_d_add_input_key        ,ONLY:d_add_input_key
-   USE mod_d_init_input_key_queue ,ONLY:d_init_input_key_queue
+   USE d_mod_add_input_key        ,ONLY:d_add_input_key
+   USE d_mod_init_input_key_queue ,ONLY:d_init_input_key_queue
 
  IMPLICIT NONE
 
@@ -1368,7 +1679,7 @@ END MODULE d_common_nodes
 !
 !
 !------------------------------------------------------------------------------
- MODULE mod_d_check_presence
+ MODULE d_mod_check_presence
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
@@ -1569,13 +1880,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
- END MODULE mod_d_check_presence
+ END MODULE d_mod_check_presence
 !------------------------------------------------------------------------------
 !
 !
 !
 !------------------------------------------------------------------------------
-MODULE mod_d_read_and_analyze_input
+MODULE d_mod_read_and_analyze_input
 !------------------------------------------------------------------------------
 
 IMPLICIT NONE
@@ -1622,7 +1933,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
  USE queue_type_def         ,ONLY:queue_type
  USE node_type_def          ,ONLY:node_type
  USE mod_string_in_list,ONLY:string_in_list
- USE mod_d_queue
+ USE d_mod_queue                ,ONLY:d_queue_built_up
  USE mod_get_line               ,ONLY:get_next_line, &
                                       get_prev_line
  USE d_input_built_up_interface,ONLY:d_input_built_up
@@ -1632,7 +1943,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
  USE mod_Get_Separation_Specifier,ONLY:Get_Separation_Specifier
  USE d_common_queues     ,ONLY:keywords,collected_input,input_key_node              ! Module containing queues and type definitions of queues
  USE mod_get_keyword     ,ONLY:get_keyword
- USE mod_d_check_presence,ONLY:d_CheckPresenceOfRequiredInputSpecifiers
+ USE d_mod_check_presence,ONLY:d_CheckPresenceOfRequiredInputSpecifiers
  USE mod_Print_Keywords_Queue,ONLY:Print_Keywords
  USE mod_syntax_validator    ,ONLY:InputSyntax
 
@@ -1671,17 +1982,14 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
  LOGICAL                      :: found_enda,found_endb               !
  LOGICAL                      :: start_at_endL,found_topL            !
  LOGICAL                      :: start_reading
- LOGICAL                      :: stop_reading                        !
  LOGICAL                      :: read_restL                          !
 
  LOGICAL                      :: keys_are_ok                         !
- LOGICAL                      :: spec_are_ok                         !
 
  CHARACTER(Data_len)          :: first_spec                          !
  CHARACTER(Data_len)          :: last_spec                           !
  CHARACTER(Data_len)          :: sep_spec                            !
  LOGICAL                      :: got_first_spec                      !
- LOGICAL                      :: spec_next_line                      !
  LOGICAL                      :: new_keyword                         !
  LOGICAL                      :: process_line                        !
 
@@ -1780,7 +2088,6 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
     found_endL    = .FALSE.                                            !
     icount       = 0                                                   !
     keys_are_ok  = .TRUE.                                              !
-    spec_are_ok  = .TRUE.                                              !
 
     !---------------------------------------------------------------------------------------
     ! It has to be nullified because SUBROUTINE key_positions checks its associated status.
@@ -1901,7 +2208,6 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
                                                                        !
 !----------------------------------------------------------------------!
         got_first_spec = .FALSE.                                       !
-        spec_next_line = .TRUE.                                        !
 
          !----------------------------------------------------------------------------------------
          ! It has to be nullified because SUBROUTINE spec_positions checks its associated status.
@@ -1943,7 +2249,6 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
        IF(.NOT.found_keyL)  CALL ERROR(3)                               !
          IF (.NOT.found_specL) CALL ERROR(5)                            !
          got_first_spec = .TRUE.                                       !
-         spec_next_line = .TRUE.                                       !
        ELSE                                                            !
         first_spec = ' '                                               !
         DO ii=start_position,end_spec_pos(1)                           !
@@ -1960,7 +2265,6 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
        IF(.NOT.found_keyL)  CALL ERROR(3)                               !
         IF (.NOT.found_specL) CALL ERROR(5)                             !
         got_first_spec = .TRUE.                                        !
-        spec_next_line = .FALSE.                                       !
                                                                        !
        END IF                                                          !
         IF(got_first_spec) THEN                                        !
@@ -1974,7 +2278,6 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
        IF (start_reading) THEN                                         !
         stop_position = SCAN(bufferC,key_char)-1                        !
         IF (stop_position <= 0) stop_position = LEN_TRIM(bufferC)       !
-        IF (start_position > LEN_TRIM(bufferC)) stop_reading = .TRUE.   !
         read_restL = .FALSE.                                           !
         IF (NumOfSpecifiersInLine > 0) THEN                            !
          IF (spec_pos(1) > 0) THEN                                     !
@@ -2421,7 +2724,7 @@ CONTAINS                                                               !
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
- END MODULE mod_d_read_and_analyze_input
+ END MODULE d_mod_read_and_analyze_input
 !------------------------------------------------------------------------------
 !
 !
@@ -3077,8 +3380,8 @@ CONTAINS                                                               !
 !**********************************************************************!
 
 !**********************************************************************!
-  SUBROUTINE d_get_spec_datab_inar(keyword,new,specifier,cont,inar_t,    &!
-                                pres,line,last)                        !
+  SUBROUTINE d_get_spec_datab_inar(keyword,new,specifier,cont,inar_t, &
+                                pres,line,last)
 !----------------------------------------------------------------------!
    USE d_parser_parameters   ,ONLY:keyword_filetypeC
    USE d_common_queues    ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
@@ -3219,7 +3522,7 @@ CONTAINS                                                               !
   END SUBROUTINE ERROR                                                 !
                                                                        !
 !----------------------------------------------------------------------!
-  END SUBROUTINE d_get_spec_datab_inar                                    !
+  END SUBROUTINE d_get_spec_datab_inar
 !**********************************************************************!
 
 !**********************************************************************!

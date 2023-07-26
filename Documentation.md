@@ -168,6 +168,14 @@ $end_magnetic-field                                                   !
 /* This is also a comment. */
 // Note: No line breaks are allowed for the comments /* ... */. 
 < This is also a comment. >
+
+!TEXT
+
+ This is a multi-
+ line comment.
+
+!ENDTEXT
+
 !---------------------------------------------------------------------!
 $material                                                             ! begin of input sequence for this keyword
 
@@ -414,4 +422,18 @@ $end_input_filename                                                optional   !
 !-----------------------------------------------------------------------------!
 ! End of first keyword. Now the order does not matter.
 !-----------------------------------------------------------------------------!
+```
+
+## Execute a batch file defined in the input file
+
+Using `!DATA`, a list of commands can be written that are executed during runtime
+using a batch script (`.bat` on Windows and `.sh` on Linux/macOS).
+
+Example
+
+```
+!DATA
+ pwd
+ ls
+!ENDDATA
 ```

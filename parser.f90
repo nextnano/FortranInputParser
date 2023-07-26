@@ -39,11 +39,13 @@
 
  IMPLICIT NONE
 
- CHARACTER(len=*),PARAMETER :: ValidatorC    = '.val'      ! file extension validator files (syntax definition)
- CHARACTER(len=*),PARAMETER :: InputC        = '.in'       ! file extension input files
- CHARACTER(len=*),PARAMETER :: TextC         = '.txt'      ! file extension for text data which cannot be plotted (ASCII format)
- CHARACTER(len=*),PARAMETER :: XML_C         = '.xml'      ! file extension for XML files
- CHARACTER(len=*),PARAMETER :: LogC          = '.log'      ! file extension for log files
+ CHARACTER(len=*),PARAMETER :: ValidatorC     = '.val'      ! file extension validator files (syntax definition)
+ CHARACTER(len=*),PARAMETER :: InputC         = '.in'       ! file extension input files
+ CHARACTER(len=*),PARAMETER :: TextC          = '.txt'      ! file extension for text data which cannot be plotted (ASCII format)
+ CHARACTER(len=*),PARAMETER :: XML_C          = '.xml'      ! file extension for XML files
+ CHARACTER(len=*),PARAMETER :: LogC           = '.log'      ! file extension for log files
+ CHARACTER(len=*),PARAMETER :: Batch_WindowsC = '.bat'      ! file extension for batch file on Windows (command prompt script)
+ CHARACTER(len=*),PARAMETER :: Batch_LinuxC   = '.sh'       ! file extension for batch file on Linux (shell script)
 
 !------------------------------------------------------------------------------
  END MODULE mod_FileExtensions_parser

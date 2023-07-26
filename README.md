@@ -9,7 +9,7 @@ The Fortran Input Parser is compatible to the [nextnanomat](https://www.nextnano
 For details, please refer to: https://github.com/nextnano/FortranInputParser
 
 Further explanation on the features (Syntax definition, Macro, Function Parser) are available here:
-https://www.nextnano.com/manual/nextnano3/input_file/macro.html
+https://www.nextnano.com/documentation/tools/nextnano3/input_syntax/macro.html
 
 For questions, please contact stefan.birner@nextnano.com.
 

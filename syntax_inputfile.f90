@@ -135,6 +135,12 @@ ELSE
  sC=sC// " use-material-parameters-from-database            logical          optional      CHOICE[.TRUE.,.FALSE.]"//nC
  sC=sC// "$end_material                                                      required    !"//nC
  sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC//                                                                                 ""//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
+ sC=sC// "$command-line                                                      optional    !"//nC
+ sC=sC// " execute-command-line                             character        required      CHOICE[yes,no]"//nC
+ sC=sC// "$end_command-line                                                  optional    !"//nC
+ sC=sC// "!------------------------------------------------------------------------------!"//nC
 
   stringC = sC
 

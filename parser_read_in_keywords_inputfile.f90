@@ -33,6 +33,8 @@
 
  TYPE(type_material),DIMENSION(:),ALLOCATABLE :: MaterialV
 
+ LOGICAL                           :: CommandLineBatchL
+
 !------------------------------------------------------------------------------
  END MODULE variables_inputfile
 !------------------------------------------------------------------------------
@@ -68,7 +70,8 @@
  ! These variables are read in from the inputfile.
  !-------------------------------------------------
  USE variables_inputfile      ,ONLY:MagneticField, &
-                                    MaterialV
+                                    MaterialV, &
+                                    CommandLineBatchL
                        
  IMPLICIT NONE
 
@@ -240,7 +243,7 @@
      IF (presentL) THEN                                                           
         IF (      is_yes(value%stringC) ) THEN
            MagneticField%onL = .TRUE.
-        ELSE IF ( is_no( value%stringC)  ) THEN
+        ELSE IF ( is_no( value%stringC) ) THEN
            MagneticField%onL = .FALSE.
         ELSE
            CALL STOP_Yes_or_No_is_required(keywordC,specifierC,value%stringC,line)
@@ -281,6 +284,36 @@
 
       END IF ! If 'magnetic-field-on' was present.
       newL = .FALSE.  ;  continueL = .TRUE.                                          
+  END DO                                                                 
+
+
+ !++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ! Execute command line.
+ !++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ newL = .TRUE.   ;  continueL = .FALSE. ; lastL = .FALSE.
+
+ !-----------------------------------------------------------------------------
+  keywordC = '$command-line'
+ !-----------------------------------------------------------------------------
+
+  DO WHILE (.NOT. lastL)                                                   
+
+     !----------------------------------------------------------------------------
+     specifierC = 'execute-command-line'
+     !----------------------------------------------------------------------------
+     CALL get_from_inputfile(keywordC,newL,specifierC,continueL,value%stringC,presentL,line,lastL)    
+     IF (presentL) THEN                                                           
+        IF (      is_yes(value%stringC) ) THEN
+           CommandLineBatchL = .TRUE.
+        ELSE IF ( is_no( value%stringC) ) THEN
+           CommandLineBatchL = .FALSE.
+        ELSE
+           CALL STOP_Yes_or_No_is_required(keywordC,specifierC,value%stringC,line)
+        END IF
+      END IF
+      newL = .FALSE.  ;  continueL = .TRUE.                                          
+
   END DO                                                                 
 
  CONTAINS
