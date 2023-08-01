@@ -59,10 +59,10 @@
 !                                                                       '> '   , '/>' ]       ! XML tags
   LOGICAL                      ,PARAMETER :: DATA_Filename_FixedL   = .TRUE.                  ! use fixed filename for batch file rather than filename which is <inputfilename>.bat
   CHARACTER(len=:),ALLOCATABLE            :: DATA_FileC
-  CHARACTER(len=*)             ,PARAMETER :: DATA_String_BeginC     = '!DATA'                 ! special string                       (case insensitive)
-  CHARACTER(len=*)             ,PARAMETER :: DATA_String_EndC       = '!ENDDATA'              ! special string                       (case insensitive)
-  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_BeginC     = '!TEXT'                 ! special string for multiline comment (case insensitive)
-  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case insensitive)
+  CHARACTER(len=*)             ,PARAMETER :: DATA_String_BeginC     = '!DATA'                 ! special string                       (case sensitive)
+  CHARACTER(len=*)             ,PARAMETER :: DATA_String_EndC       = '!ENDDATA'              ! special string                       (case sensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_BeginC     = '!TEXT'                 ! special string for multiline comment (case sensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case sensitive)
 
   CHARACTER(len=*)             ,PARAMETER :: keyword_filetypeC      = 'input file'            ! This is how we call these type of files that we want to parse.
   CHARACTER(len=*)             ,PARAMETER :: keyword_filenameC      = 'keywords'//ValidatorC  ! name of file, containing definitions of keywords and specifiers without file extension
@@ -1737,7 +1737,9 @@ CONTAINS                                                               !
  CHARACTER(len=:),ALLOCATABLE           :: IntegerArrayStringC              
  INTEGER                                :: i
 
-!WRITE(my_output_unit,*) " value_to_queue: SpecifierValueC = ",TRIM(SpecifierValueC)
+ IF ( DebugLevel > 100000 ) THEN
+  WRITE(my_output_unit,'(A)') TRIM(keywordC)//": "//TRIM(specifierC)//" = "//TRIM(SpecifierValueC)
+ END IF
 
  !------------------------------------------------------
  ! Check if specifier provided in input file is valid
@@ -1767,7 +1769,6 @@ CONTAINS                                                               !
    ! Convert the string 'SpecifierValueC' of specifier 'specifierC'
    ! in line number 'line_number' to data type 'data_typeC'.
    !----------------------------------------------------------------
- ! PRINT *,"SpecifierValueC = ",TRIM(SpecifierValueC)
    CALL convert_string_to_value(keyword_filetypeC,data_typeC,SpecifierValueC,line_number,specifierC, &
                                 xs_t,xd_t,in_t,ca_t,lo_t)
 
@@ -2306,7 +2307,22 @@ CONTAINS                                                               !
 !
 !
 !------------------------------------------------------------------------------
-MODULE mod_read_and_analyze_input
+ MODULE mod_read_and_analyze_input
+!------------------------------------------------------------------------------
+!
+!++m* builder_inputfile.f90/mod_read_and_analyze_input
+!
+! NAME 
+!   MODULE mod_read_and_analyze_input
+!
+! CONTAINS
+!   o SUBROUTINE read_and_analyze_input
+!
+! FILENAME
+!   builder_inputfile.f90
+!
+!##
+!
 !------------------------------------------------------------------------------
 
 IMPLICIT NONE
@@ -2314,28 +2330,42 @@ IMPLICIT NONE
 CONTAINS
 
 !------------------------------------------------------------------------------
-SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntryL)
+SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntryL, InputFilename_usedC)
 !------------------------------------------------------------------------------
+!
+!++s* mod_read_and_analyze_input/read_and_analyze_input
+!
+! NAME
+!   SUBROUTINE read_and_analyze_input
 !
 ! PURPOSE
 !   Build up input queue.
 !
+! USAGE
+!   CALL read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntryL, InputFilename_usedC)
+!
 ! INPUT
 !   o InputFilenameC_in:      string could be undefined
+!   o FileNamePresentL:       
 !   o SecondEntryL:           The SecondEntry flag is needed for the input parser
 !                             if the input file is read in several times.
 !     SecondEntryL = .FALSE.: If the input file is read in for the first time.
 !     SecondEntryL = .TRUE. : If the input file is read in later again, this flag must be set to .TRUE.
 !
 ! OUTPUT
-!   none
+!   o InputFilename_usedC:    filename that was actually used
+!
+! CONTAINS
+!   o SUBROUTINE Add_value_to_queue
+!   o SUBROUTINE ERROR
+!
+!##
 !
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE system_specific_parser   ,ONLY:DebugLevel, &
                                     ParseInputFileOnlyL, &
-                                    ParseKeywordsInputFileL, &
-                                    InputFileName_DirectoryExtension_C
+                                    ParseKeywordsInputFileL
  USE mod_SyntaxFolder         ,ONLY:GetFilenameIncludingSyntaxFolder
  USE mod_InputFileName        ,ONLY:GetInputFileNameFromValidatorFile
  USE parser_parameters,ONLY:key_char, &
@@ -2375,6 +2405,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
  CHARACTER(len=*)    ,INTENT(in) :: InputFilenameC_in
  LOGICAL             ,INTENT(in) :: FileNamePresentL
  LOGICAL             ,INTENT(in) :: SecondEntryL
+ CHARACTER(len=*)   ,INTENT(out) :: InputFilename_usedC
 
  LOGICAL                         :: Print_Keywords_XML_File_DebugLevelL
  CHARACTER(len=Data_len_long)    :: input_filenameC                  !
@@ -2446,7 +2477,9 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
       ! Get input file name from 'keyword_filenameC'.
       ! The name of the input file is specified in 'keywords.val'.
       !-------------------------------------------------------------------------
-      IF (ParseKeywordsInputFileL) THEN ! <== Use keywords validator file, i.e. the file keywords.val is read in.
+      IF (ParseKeywordsInputFileL) THEN ! <== Use keywords validator file, i.e. the file
+                                        !     keywords.val
+                                        !     is read in.
        !------------------------------------------
        ! Get input file name from validator file.
        !------------------------------------------
@@ -2466,17 +2499,18 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
        input_filenameC = input_filename_allocatableC
       END IF
     END IF
-    InputFileName_DirectoryExtension_C = input_filenameC
+
+    InputFilename_usedC = TRIM(input_filenameC)
 
     WRITE(my_output_unit,'(A)')         ""
     WRITE(my_output_unit,'(A)')         " ------------------------------------------------------------------------------"
     WRITE(my_output_unit,'(A,A,A,A,A)') " Reading in ",TRIM(keyword_filetypeC),": '", &
-                                           TRIM(  input_filenameC),"'"
+                                                       TRIM(InputFilename_usedC),"'"
 
     !-----------------------------
     ! ==> 1: queue for input file
     !-----------------------------
-    CALL queue_built_up(input_filenameC, input_queue) ! Essentially stores lines and associated information.
+    CALL queue_built_up(InputFilename_usedC, input_queue) ! Essentially stores lines and associated information.
 
     !----------------------------------------------------------------------
     ! Initialize variable in order to avoid that it is used uninitialized.
@@ -2503,7 +2537,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
                                  Data_len_long, &
                                  key_char,comment_signsCV,required_key,not_required_key, &
                                  required_input,not_required_input, keywords)
-   ! WRITE(my_output_unit,*) TRIM(input_filenameC),": queue for keywords and specifiers file built up."
+   ! WRITE(my_output_unit,*) TRIM(InputFilename_usedC),": queue for keywords and specifiers file built up."
 
      IF (ParseInputFileOnlyL) THEN
          Print_Keywords_XML_File_DebugLevelL = .TRUE.
@@ -2578,7 +2612,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
 
   ! IF (DebugLevel > 3) &
   ! WRITE(my_output_unit,'(1x,A,A,A,A)') &
-  !      TRIM(input_filenameC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries."
+  !      TRIM(InputFilename_usedC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries."
 
     DO                                                                 !
      bufferC  = " "                                                     !
@@ -2819,7 +2853,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
     END DO                                                             ! end loop over input lines
 
   ! WRITE(my_output_unit,'(1x,A,A,A,A)') &
-  !     TRIM(input_filenameC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries. (finished)"
+  !     TRIM(InputFilename_usedC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries. (finished)"
 
 !----------------------------------------------------------------------!
   CALL CheckPresenceOfRequiredInputSpecifiers                          ! Check presence of required input specifiers.
@@ -2850,7 +2884,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
 
   NULLIFY(a2)                                                          !
 
-! WRITE(my_output_unit,*) TRIM(input_filenameC),": read_and_analyze_input finished."
+! WRITE(my_output_unit,*) TRIM(InputFilename_usedC),": read_and_analyze_input finished."
 
 !**********************************************************************!
 !----------------------------------------------------------------------!
@@ -3149,7 +3183,7 @@ CONTAINS                                                               !
   CASE(12)
       WRITE(my_output_unit,*)"Couldn't find keyword = ",TRIM(ADJUSTL(bufferC))       !
       WRITE(my_output_unit,*)'This keyword was defined to be required, but it'      !
-      WRITE(my_output_unit,*)"does not show up in your ",TRIM(keyword_filetypeC)," = ",TRIM(input_filenameC),"."
+      WRITE(my_output_unit,*)"does not show up in your ",TRIM(keyword_filetypeC)," = ",TRIM(InputFilename_usedC),"."
       WRITE(my_output_unit,*)                                                       !
   CASE DEFAULT
       WRITE(my_output_unit,*)"Error number not defined: ierr = ",ierr 
@@ -3198,7 +3232,7 @@ CONTAINS                                                               !
 !------------------------------------------------------------------------------
  USE parser_parameters   ,ONLY:keyword_filetypeC
  USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
- USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
  IMPLICIT NONE
 
@@ -3326,9 +3360,9 @@ CONTAINS                                                               !
   SUBROUTINE get_spec_data_xs(keyword,new,specifier,cont,xs_t,        &!
                               pres,line,last)                          !
 !----------------------------------------------------------------------!
-   USE parser_parameters   ,ONLY:keyword_filetypeC
-   USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
-   USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE parser_parameters   ,ONLY:keyword_filetypeC
+ USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
    IMPLICIT NONE
 
@@ -3449,9 +3483,9 @@ CONTAINS                                                               !
   SUBROUTINE get_spec_data_xd(keyword,new,specifier,cont,xd_t,        &!
                               pres,line,last)                          !
 !----------------------------------------------------------------------!
-   USE parser_parameters   ,ONLY:keyword_filetypeC
-   USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
-   USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE parser_parameters   ,ONLY:keyword_filetypeC
+ USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
    IMPLICIT NONE
 
@@ -3572,9 +3606,10 @@ CONTAINS                                                               !
  SUBROUTINE get_spec_data_ca(keyword,new,specifier,cont,ca_t,        &!
                              pres,line,last)                          !
 !----------------------------------------------------------------------!
- USE parser_parameters   ,ONLY:keyword_filetypeC
- USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
- USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+!USE system_specific_parser,ONLY:DebugLevel
+ USE parser_parameters     ,ONLY:keyword_filetypeC
+ USE common_queues         ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes          ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
  IMPLICIT NONE
 
@@ -3591,17 +3626,18 @@ CONTAINS                                                               !
  LOGICAL                      :: found_keyL
  LOGICAL                      :: found_specL
 
-   ca_t = ''
-                                                                       !
-    IF (first_entry) NULLIFY(a1)                                       !
-    IF (new) THEN                                                      !
+ ca_t = ''
+
+ IF (first_entry) NULLIFY(a1)
+
+ IF (new) THEN
      last_keyC = ''                                                     !
      a1 => collected_input%top                                         !
      first_entry = .FALSE.                                             !
      found_keyL = .FALSE.                                               !
      DO
       IF (.NOT. ASSOCIATED(a1)) EXIT
-      IF(LEN_TRIM(keyword)==a1%length)THEN                             !
+      IF (LEN_TRIM(keyword)==a1%length) THEN
        found_keyL = .TRUE.                                              !
        DO i=1,a1%length                                                !
         IF(a1%keyword(i) /= keyword(i:i)) found_keyL = .FALSE.          !
@@ -3612,16 +3648,16 @@ CONTAINS                                                               !
       a1 => a1%next_key                                                !
      END DO                                                            !
 
-      IF (.NOT.found_keyL) THEN                                         !
+     IF (.NOT.found_keyL) THEN                                         !
        pres = .FALSE. ; line = -1 ; last = .TRUE. ; RETURN             !
-      END IF                                                           !
-      IF (.NOT.found_keyL) CALL ERROR(1)                                !(a1%keyword(i),i=1,a1%length)            !
-    ELSE                                                               !
-      IF (TRIM(last_keyC) /= TRIM(keyword)) CALL ERROR(4)               !
-    END IF                                                             !
-    IF(.NOT.ASSOCIATED(a1)) CALL ERROR(2)                              !
+     END IF                                                           !
+     IF (.NOT.found_keyL) CALL ERROR(1)                                ! (a1%keyword(i),i=1,a1%length)
+ ELSE
+      IF ( TRIM(last_keyC) /= TRIM(keyword) ) CALL ERROR(4)
+ END IF
+ IF(.NOT.ASSOCIATED(a1)) CALL ERROR(2)                              !
                                                                        !
-    IF ( new ) b1 => a1%entries%top                                    !
+ IF ( new ) b1 => a1%entries%top                                    !
     IF (cont .AND. .NOT.new ) b1 => b1%next_specifier                  !
     last = .FALSE.                                                     !
     IF (.NOT.ASSOCIATED(b1%next_specifier)) last = .TRUE.              !
@@ -3651,7 +3687,7 @@ CONTAINS                                                               !
 
  IMPLICIT NONE  
 
-   INTEGER,INTENT(in)  :: error_number
+ INTEGER,INTENT(in)  :: error_number
                                                                        !
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                         !
@@ -3702,9 +3738,9 @@ CONTAINS                                                               !
   SUBROUTINE get_spec_data_lo(keyword,new,specifier,cont,lo_t,        &!
                               pres,line,last)                          !
 !----------------------------------------------------------------------!
-   USE parser_parameters   ,ONLY:keyword_filetypeC
-   USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
-   USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE parser_parameters   ,ONLY:keyword_filetypeC
+ USE common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
  IMPLICIT NONE   
 
@@ -3825,9 +3861,9 @@ CONTAINS                                                               !
   SUBROUTINE get_spec_data_inar(keyword,new,specifier,cont,inar_t, &
                                 pres,line,last)
 !----------------------------------------------------------------------!
-   USE parser_parameters   ,ONLY:keyword_filetypeC
-   USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
-   USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE parser_parameters   ,ONLY:keyword_filetypeC
+ USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
  IMPLICIT NONE
 
@@ -3971,9 +4007,9 @@ CONTAINS                                                               !
   SUBROUTINE get_spec_data_xsar(keyword,new,specifier,cont,xsar_t,    &!
                                 pres,line,last)                        !
 !----------------------------------------------------------------------!
-   USE parser_parameters   ,ONLY:keyword_filetypeC
-   USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
-   USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE parser_parameters   ,ONLY:keyword_filetypeC
+ USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
  IMPLICIT NONE
 
@@ -4118,9 +4154,9 @@ CONTAINS                                                               !
   SUBROUTINE get_spec_data_xdar(keyword,new,specifier,cont,xdar_t,    &!
                                 pres,line,last)                        !
 !----------------------------------------------------------------------!
-   USE parser_parameters   ,ONLY:keyword_filetypeC
-   USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
-   USE common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
+ USE parser_parameters   ,ONLY:keyword_filetypeC
+ USE common_queues     ! ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
+ USE common_nodes        ,ONLY:a1,b1,first_entry,last_keyC           ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
 
  IMPLICIT NONE
 
@@ -4285,6 +4321,8 @@ CONTAINS                                                               !
 !------------------------------------------------------------------------------
  USE mod_read_and_analyze_input     ,ONLY:read_and_analyze_input
  USE d_mod_read_and_analyze_input   ,ONLY:d_read_and_analyze_input
+ USE system_specific_parser         ,ONLY:DatabaseFileName_DirectoryExtension_C, &
+                                             InputFileName_DirectoryExtension_C
 
  IMPLICIT NONE
 
@@ -4295,6 +4333,7 @@ CONTAINS                                                               !
  LOGICAL                  ,INTENT(in),OPTIONAL :: SecondEntryL_in
 
  LOGICAL                                       :: SecondEntryL ! control variable for reading in input file several times
+ CHARACTER(len=987)                            :: InputFilename_usedC
 
  !----------------------------------------------------------------------------------------------------
  ! The SecondEntryL flag is needed for the input parser if the input file is read in several times.
@@ -4308,11 +4347,13 @@ CONTAINS                                                               !
  END IF
 
 ! WRITE(*,'(A)') ' Reading input file: '//TRIM(InputFilenameC)
-  CALL read_and_analyze_input(InputFilenameC,SetInputFileViaCommandLineL,SecondEntryL) ! Build up input queue.
+  CALL read_and_analyze_input(InputFilenameC,SetInputFileViaCommandLineL,SecondEntryL, InputFilename_usedC) ! Build up input queue.
+  InputFileName_DirectoryExtension_C    = TRIM(InputFilename_usedC)
 
  IF ( PRESENT(DatabaseFilenameC) ) THEN
 ! WRITE(*,'(A)') ' Reading database:   '//TRIM(DatabaseFilenameC)
-  CALL d_read_and_analyze_input(DatabaseFilenameC,SetDatabaseViaCommandLineL)          ! Build up database queue.
+  CALL d_read_and_analyze_input(DatabaseFilenameC,SetDatabaseViaCommandLineL,          InputFilename_usedC)  ! Build up database queue.
+  DatabaseFileName_DirectoryExtension_C = TRIM(InputFilename_usedC)
  END IF
 
 !------------------------------------------------------------------------------

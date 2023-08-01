@@ -441,7 +441,7 @@
   REAL(8),DIMENSION(:),POINTER             :: double_arrayV
   LOGICAL                                  :: booleanL
   CHARACTER(char_length_specifier_content) :: stringC ! to allow for long strings, e.g. long directory names
-! CHARACTER(len=:),ALLOCATABLE             :: stringC ! to allow for long strings, e.g. long directory names  <= does not work
+! CHARACTER(len=:),ALLOCATABLE             :: stringC ! to allow for long strings, e.g. long directory names  <= does not work (Why?)
  END TYPE type_data
 
 !------------------------------------------------------------------------------
@@ -6773,7 +6773,7 @@ END SUBROUTINE add_xsar_element
 
 !------------------------------------------------------------------------------
  SUBROUTINE Error_control_variables(get_data_subroutineC,keyword_filetypeC, &
-                                    keywordC,specifierC,line,last_keywordC,newL,contL)
+                                    keywordC,specifierC,line,last_keywordC,newL,continueL)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE Parser_Errors            ,ONLY:Print_Keyword_Specifier_Line
@@ -6787,15 +6787,23 @@ END SUBROUTINE add_xsar_element
  INTEGER         ,INTENT(in)  :: line
  CHARACTER(len=*),INTENT(in)  :: last_keywordC
  LOGICAL         ,INTENT(in)  :: newL
- LOGICAL         ,INTENT(in)  :: contL
+ LOGICAL         ,INTENT(in)  :: continueL
 
+ WRITE(my_output_unit,'(A)') " ======================================================================================="
  WRITE(my_output_unit,'(A)') " Error in SUBROUTINE "//TRIM(get_data_subroutineC)//" for "//TRIM(keyword_filetypeC)//"."
- WRITE(my_output_unit,'(A)') " You specified to reuse old keyword = "//TRIM(last_keywordC)
- WRITE(my_output_unit,'(A)') " However, the keyword = "//TRIM(keywordC)//" in the dummy"// &
-                             " argument list differs from the keyword previously used."
+ WRITE(my_output_unit,'(A)') " You specified to reuse the old"
+ WRITE(my_output_unit,'(A)') "    keyword = '"//TRIM(last_keywordC)//"'"
+ WRITE(my_output_unit,'(A)') " However, the "
+ WRITE(my_output_unit,'(A)') "    keyword = '"//TRIM(     keywordC)//"'"
+ WRITE(my_output_unit,'(A)') " in the dummy argument list differs from the keyword previously used."
+IF ( TRIM(last_keywordC) == "" ) THEN
+ WRITE(my_output_unit,'(A)') " In fact, your 'previously' used keyword is empty."
+ WRITE(my_output_unit,'(A)') " I think you forgot to set 'newL = .TRUE.', which indicates to search for '" &
+                               //TRIM(keywordC)//"'."
+END IF
  WRITE(my_output_unit,'(A)') " Do you really know what you want?"
  WRITE(my_output_unit,'(A)') " Control variables are set as follows:"
- WRITE(my_output_unit,*)     " newL = ",newL,"; contL = ",contL
+ WRITE(my_output_unit,*)     " newL = ",newL,"; continueL = ",continueL
  CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
 
 !------------------------------------------------------------------------------

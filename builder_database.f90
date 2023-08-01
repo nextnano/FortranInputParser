@@ -51,8 +51,8 @@
                                                                         '//'   , '/*' ]       ! Comment signs. Comment sign and text towards right is ignored.
 ! CHARACTER(len=*),DIMENSION(4),PARAMETER :: XML_tagCV              = [ '< '   , '</'  , &
 !                                                                       '> '   , '/>' ]       ! XML tags
-  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_BeginC     = '!TEXT'                 ! special string for multiline comment (case insensitive)
-  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case insensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_BeginC     = '!TEXT'                 ! special string for multiline comment (case sensitive)
+  CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case sensitive)
 
 
   ! Define 'database_nn3_keywords.val'
@@ -133,12 +133,12 @@
 !                                             It will be set from .TRUE. to .FALSE. if '!ENDTEXT' had been found in beginning of string 'bufferC'.
 !
 ! NOTES
-!   '!TEXT' is not case-sensitive, so '!Text' will also work.
+!   '!TEXT' is case-sensitive, so '!Text' will not work (to avoid errors when e.g. the substring "!Text is written..." is part of a string).
 !
 !##
 !
 !------------------------------------------------------------------------------
- USE String_Utility            ,ONLY:StringUpperCase
+!USE String_Utility            ,ONLY:StringUpperCase
 
  IMPLICIT NONE
 
@@ -169,7 +169,8 @@
    !------------------------------------------------------
    ! Check if '!ENDTEXT' is at the beginning of the line.
    !------------------------------------------------------
-   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_end)   ) == String_endC   ) THEN ! Check if special string is first word in line.
+ ! IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_end)   ) == String_endC   ) THEN ! Check if special string is first word in line.
+   IF (                  buffer_adjust_leftC(1:length_of_string_end)     == String_endC   ) THEN ! Check if special string is first word in line. [CASE SENSITIVE] to avoid errors such as "!Text will be added later"
       Multiline_Comment_OnL = .FALSE.  ! special string was found as the first word in the line, therefore reset logical value that indicates begin of multiline comment.
    END IF
 
@@ -183,7 +184,8 @@
    !------------------------------------------------------
    ! Check if '!TEXT' is at the beginning of the line.
    !------------------------------------------------------
-   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_begin) ) == String_beginC ) THEN ! Check if special string is first word in line.
+ ! IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_begin) ) == String_beginC ) THEN ! Check if special string is first word in line.
+   IF (                  buffer_adjust_leftC(1:length_of_string_begin)   == String_beginC ) THEN ! Check if special string is first word in line. [CASE SENSITIVE] to avoid errors such as "!Text will be added later"
       Multiline_Comment_OnL = .TRUE. ! special string was found as the first word in the line
       TreatLineAsCommentL   = .TRUE.
    END IF
@@ -235,12 +237,12 @@
 !                                             It will be set from .TRUE. to .FALSE. if '!ENDDATA' had been found in beginning of string 'bufferC'.
 !
 ! NOTES
-!   '!DATA' is not case-sensitive, so '!Data' will also work.
+!   '!DATA' is case-sensitive, so '!data' will not work (to avoid errors when e.g. the substring "!data-out-every-nth-step = 1" is part of a string).
 !
 !##
 !
 !------------------------------------------------------------------------------
- USE String_Utility            ,ONLY:StringUpperCase
+!USE String_Utility            ,ONLY:StringUpperCase
 
  IMPLICIT NONE
 
@@ -270,7 +272,8 @@
    !------------------------------------------------------
    ! Check if '!ENDDATA' is at the beginning of the line.
    !------------------------------------------------------
-   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_end)   ) == String_endC  ) THEN ! Check if special string '!ENDDATA' is first word in line.
+ ! IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_end)   ) == String_endC  ) THEN ! Check if special string '!ENDDATA' is first word in line. 
+   IF (                  buffer_adjust_leftC(1:length_of_string_end)     == String_endC  ) THEN ! Check if special string '!ENDDATA' is first word in line. [CASE SENSITIVE] to avoid errors such as "!data-out-every-nth-step"
       Data_Comment_OnL     = .FALSE. ! special string '!ENDDATA' was found as the first word in the line
       TreatLineAsCommentL  = .TRUE.
    END IF
@@ -285,7 +288,8 @@
    !------------------------------------------------------
    ! Check if '!DATA' is at the beginning of the line.
    !------------------------------------------------------
-   IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_begin) ) == String_beginC ) THEN ! Check if special string '!DATA' is first word in line.
+ ! IF ( StringUpperCase( buffer_adjust_leftC(1:length_of_string_begin) ) == String_beginC ) THEN ! Check if special string '!DATA' is first word in line.
+   IF (                  buffer_adjust_leftC(1:length_of_string_begin)   == String_beginC ) THEN ! Check if special string '!DATA' is first word in line. [CASE SENSITIVE] to avoid errors such as "!data-out-every-nth-step"
       Data_Comment_OnL      = .TRUE. ! special string '!DATA' was found as the first word in the line
       TreatLineAsCommentL   = .TRUE.
    END IF
@@ -1371,43 +1375,48 @@ CONTAINS                                                               !
 !##
 !
 !------------------------------------------------------------------------------
-  USE My_Input_and_Output_Units,ONLY:my_output_unit
-   USE mod_string_to_value      ,ONLY:convert_string_to_value
-   USE input_type_names  ,ONLY:name_xs,name_xd,name_in,name_ca,       &
-                               name_lo,name_inar,name_xsar,name_xdar, &
-                               char_length_type_name
- ! USE   input_data_types, ONLY: xs_t,xd_t,in_t,ca_t,lo_t
-   USE d_input_data_types, ONLY: xs_t,xd_t,in_t,ca_t,lo_t                ! If character string is long, e.g. 267 characters, then the reading of the database takes longer.
-   USE keyword_queue_def,ONLY:keyword_queue
-   USE d_input_key_queue_def
-   USE d_position_at_key_interface,ONLY:d_position_at_key
-   USE mod_string_in_list,ONLY:string_in_list
-   USE generic_add                                                     !
-   USE d_parser_parameters,ONLY:Data_len, &
-                                key_char, &
-                                keyword_filetypeC
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE system_specific_parser   ,ONLY:DebugLevel
+  USE mod_string_to_value      ,ONLY:convert_string_to_value
+  USE input_type_names  ,ONLY:name_xs,name_xd,name_in,name_ca,       &
+                              name_lo,name_inar,name_xsar,name_xdar, &
+                              char_length_type_name
+! USE   input_data_types, ONLY: xs_t,xd_t,in_t,ca_t,lo_t
+  USE d_input_data_types, ONLY: xs_t,xd_t,in_t,ca_t,lo_t                ! If character string is long, e.g. 267 characters, then the reading of the database takes longer.
+  USE keyword_queue_def,ONLY:keyword_queue
+  USE d_input_key_queue_def
+  USE d_position_at_key_interface,ONLY:d_position_at_key
+  USE mod_string_in_list,ONLY:string_in_list
+  USE generic_add                                                     !
+  USE d_parser_parameters,ONLY:Data_len, &
+                               key_char, &
+                               keyword_filetypeC
 
-   IMPLICIT NONE
+  IMPLICIT NONE
 
-   TYPE(input_key_queue)             :: s                              !
-   TYPE(keyword_queue),POINTER       :: keywords                       !
-   CHARACTER(len=*)   ,INTENT(in)    :: keywordC                            !
-   CHARACTER(len=*)   ,INTENT(in)    :: specifierC                           !
-   CHARACTER(len=*)   ,INTENT(in)    :: SpecifierValueC                !
-   INTEGER            ,INTENT(in)    :: line_number                    !
+  TYPE(input_key_queue)             :: s                              !
+  TYPE(keyword_queue),POINTER       :: keywords                       !
+  CHARACTER(len=*)   ,INTENT(in)    :: keywordC                            !
+  CHARACTER(len=*)   ,INTENT(in)    :: specifierC                           !
+  CHARACTER(len=*)   ,INTENT(in)    :: SpecifierValueC                !
+  INTEGER            ,INTENT(in)    :: line_number                    !
 
-   TYPE(input_key_node),POINTER,SAVE :: node                           !
-   TYPE(inp_spec_node),POINTER       :: spec_node                      !
-   TYPE(in_array_node),POINTER       :: local_inar                     !
-   TYPE(xs_array_node),POINTER       :: local_xsar                     !
-   TYPE(xd_array_node),POINTER       :: local_xdar                     !
-   LOGICAL                           :: key_positioned                 !
-   LOGICAL                           :: found_keyL,found_specL           !
-   LOGICAL                           :: added_value                    !
+  TYPE(input_key_node),POINTER,SAVE :: node                           !
+  TYPE(inp_spec_node),POINTER       :: spec_node                      !
+  TYPE(in_array_node),POINTER       :: local_inar                     !
+  TYPE(xs_array_node),POINTER       :: local_xsar                     !
+  TYPE(xd_array_node),POINTER       :: local_xdar                     !
+  LOGICAL                           :: key_positioned                 !
+  LOGICAL                           :: found_keyL,found_specL           !
+  LOGICAL                           :: added_value                    !
 
-   CHARACTER(len=char_length_type_name) :: data_typeC                   !
+  CHARACTER(len=char_length_type_name) :: data_typeC                   !
 
-   INTEGER :: num_xs,num_xd,num_in,num_ca,num_lo
+  INTEGER :: num_xs,num_xd,num_in,num_ca,num_lo
+
+ IF ( DebugLevel > 200000 ) THEN
+  WRITE(my_output_unit,'(A)') TRIM(keywordC)//": "//TRIM(specifierC)//" = "//TRIM(SpecifierValueC)
+ END IF
 
  !------------------------------------------------------
  ! Check if specifier provided in input file is valid
@@ -1436,7 +1445,6 @@ CONTAINS                                                               !
    ! Convert the string 'SpecifierValueC' of specifier 'specifierC'
    ! in line number 'line_number' to data type 'data_typeC'.
    !----------------------------------------------------------------
- ! PRINT *,"SpecifierValueC = ",TRIM(SpecifierValueC)
    CALL convert_string_to_value(keyword_filetypeC,data_typeC,SpecifierValueC,line_number,specifierC, &
                                 xs_t,xd_t,in_t,ca_t,lo_t)
 
@@ -1886,25 +1894,55 @@ CONTAINS
 !
 !
 !------------------------------------------------------------------------------
-MODULE d_mod_read_and_analyze_input
+ MODULE d_mod_read_and_analyze_input
+!------------------------------------------------------------------------------
+!
+!++m* builder_database.f90/d_mod_read_and_analyze_input
+!
+! NAME 
+!   MODULE d_mod_read_and_analyze_input
+!
+! CONTAINS
+!   o SUBROUTINE d_read_and_analyze_input
+!
+! FILENAME
+!   builder_database.f90
+!
+!##
+!
 !------------------------------------------------------------------------------
 
-IMPLICIT NONE
+ IMPLICIT NONE
 
-CONTAINS
+ CONTAINS
 
 !------------------------------------------------------------------------------
-SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
+ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL, InputFilename_usedC)
 !------------------------------------------------------------------------------
+!
+!++s* d_mod_read_and_analyze_input/d_read_and_analyze_input
+!
+! NAME
+!   SUBROUTINE d_read_and_analyze_input
 !
 ! PURPOSE
 !   Build up input queue.
 !
+! USAGE
+!   CALL d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL, InputFilename_usedC)
+!
 ! INPUT
 !   o InputFilenameC_in:      string could be undefined
+!   o FileNamePresentL:       
 !
 ! OUTPUT
-!   none
+!   o InputFilename_usedC:    filename that was actually used
+!
+! CONTAINS
+!   o SUBROUTINE Add_value_to_queue
+!   o SUBROUTINE ERROR
+!
+!##
 !
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
@@ -1949,8 +1987,9 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
 
  IMPLICIT NONE
 
- CHARACTER(len=*) ,INTENT(in) :: InputFilenameC_in
- LOGICAL          ,INTENT(in) :: FileNamePresentL
+ CHARACTER(len=*)   ,INTENT(in)  :: InputFilenameC_in
+ LOGICAL            ,INTENT(in)  :: FileNamePresentL
+ CHARACTER(len=*)   ,INTENT(out) :: InputFilename_usedC
 
  LOGICAL                         :: Print_Keywords_XML_File_DebugLevelL
  CHARACTER(len=Data_len_long) :: input_filenameC                     !
@@ -2016,7 +2055,9 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
       ! Get input file name from 'keyword_filenameC'.
       ! The name of the input file is specified in 'database_nn3_keywords.val'.
       !-------------------------------------------------------------------------
-      IF (ParseKeywordsDatabaseL) THEN ! <== Use keywords validator file, i.e. the file database_nn3_keywords.val is read in.
+      IF (ParseKeywordsDatabaseL) THEN ! <== Use keywords validator file, i.e. the file
+                                       !     database_nn3_keywords.val
+                                       ! is read in.
        !------------------------------------------
        ! Get input file name from validator file.
        !------------------------------------------
@@ -2047,15 +2088,17 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
       END IF
     END IF
 
+    InputFilename_usedC = TRIM(input_filenameC)
+
     WRITE(my_output_unit,'(A)')         ""
     WRITE(my_output_unit,'(A)')         " ------------------------------------------------------------------------------"
     WRITE(my_output_unit,'(A,A,A,A,A)') " Reading in ",TRIM(keyword_filetypeC),":   '", &
-                                                       TRIM(  input_filenameC),"'"
+                                                       TRIM(InputFilename_usedC),"'"
 
     !-----------------------------
     ! ==> 1: queue for input file
     !-----------------------------
-    CALL d_queue_built_up(input_filenameC, input_queue) ! Essentially stores lines and associated information.
+    CALL d_queue_built_up(InputFilename_usedC, input_queue) ! Essentially stores lines and associated information.
 
     !----------------------------------------------------------------------
     ! Initialize variable in order to avoid that it is used uninitialized.
@@ -2070,7 +2113,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
                                 Data_len, &
                                 key_char,comment_signsCV,required_key,not_required_key, &
                                 required_input,not_required_input, keywords)
-  ! WRITE(my_output_unit,*) TRIM(input_filenameC),": queue for keywords and specifiers file built up."
+  ! WRITE(my_output_unit,*) TRIM(InputFilename_usedC),": queue for keywords and specifiers file built up."
 
      IF (ParseInputFileOnlyL) THEN
          Print_Keywords_XML_File_DebugLevelL = .TRUE.
@@ -2143,7 +2186,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
 
     IF (DebugLevel > 3) &
      WRITE(my_output_unit,'(1x,A,A,A,A)') &
-          TRIM(input_filenameC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries."
+          TRIM(InputFilename_usedC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries."
 
     DO                                                                 !
      bufferC  = " "                                                     !
@@ -2385,7 +2428,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
 
   IF (DebugLevel > 0 ) THEN
     WRITE(my_output_unit,'(1x,A,A,A,A)') &
-          TRIM(input_filenameC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries. (finished)"
+          TRIM(InputFilename_usedC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries. (finished)"
   END IF
 
 !----------------------------------------------------------------------!
@@ -2417,7 +2460,7 @@ SUBROUTINE d_read_and_analyze_input(InputFilenameC_in,FileNamePresentL)
 
   NULLIFY(a2)                                                          !
 
-! WRITE(my_output_unit,*) TRIM(input_filenameC),": d_read_and_analyze_input finished."
+! WRITE(my_output_unit,*) TRIM(InputFilename_usedC),": d_read_and_analyze_input finished."
 
 !**********************************************************************!
 !----------------------------------------------------------------------!
@@ -2707,7 +2750,7 @@ CONTAINS                                                               !
   CASE(12)
       WRITE(my_output_unit,*) "Couldn't find keyword = ",TRIM(ADJUSTL(bufferC))       !
       WRITE(my_output_unit,*) 'This keyword was defined to be required, but it'      !
-      WRITE(my_output_unit,*) "does not show up in your ",TRIM(keyword_filetypeC)," = ",TRIM(input_filenameC),"."
+      WRITE(my_output_unit,*) "does not show up in your ",TRIM(keyword_filetypeC)," = ",TRIM(InputFilename_usedC),"."
       WRITE(my_output_unit,*)                                                        !
   CASE DEFAULT
       WRITE(my_output_unit,*)"Error number not defined: ierr = ",ierr 

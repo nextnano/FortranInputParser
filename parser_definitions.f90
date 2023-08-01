@@ -54,9 +54,10 @@
 
 !CHARACTER(len=987)              ::      OutputDir_defaultC           = 'output'                ! ==> Replace 'output' with 'InputFileName_NoDirectoryNoExtensionC'.
  CHARACTER(len=50)               ::      OutputDir_default_IndicatorC = '<name_of_input_file>'  ! ==> Replace 'output' with 'InputFileName_NoDirectoryNoExtensionC'.
- CHARACTER(len=987)              :: InputFileName_DirectoryExtension_C    = ''                  ! name of input file wit     directory and with    file extension. Example: "input/QuantumDot.in" ==> "input/QuantumDot.in"
- CHARACTER(len=987)              :: InputFileName_NoDirectoryNoExtensionC = ''                  ! name of input file without directory and without file extension. Example: "input/QuantumDot.in" ==> "QuantumDot"
- CHARACTER(len=987)              :: InputFileName_NoDirectoryC            = ''                  ! name of input file without directory.                            Example: "input/QuantumDot.in" ==> "QuantumDot.in"
+ CHARACTER(len=987)              :: DatabaseFileName_DirectoryExtension_C    = ''                  ! name of database file with    directory and with    file extension. Example: "Syntax/database_nn3.in" ==> "Syntax/database_nn3.in"
+ CHARACTER(len=987)              ::    InputFileName_DirectoryExtension_C    = ''                  ! name of input file    with    directory and with    file extension. Example: "input/QuantumDot.in"    ==> "input/QuantumDot.in"
+ CHARACTER(len=987)              ::    InputFileName_NoDirectoryNoExtensionC = ''                  ! name of input file    without directory and without file extension. Example: "input/QuantumDot.in"    ==> "QuantumDot"
+ CHARACTER(len=987)              ::    InputFileName_NoDirectoryC            = ''                  ! name of input file    without directory.                            Example: "input/QuantumDot.in"    ==> "QuantumDot.in"
 
  CHARACTER(len=987)              ::      OutputDirC             = ''             ! name of global output directory, e.g. 'H:\nextnano3\output\test'
 

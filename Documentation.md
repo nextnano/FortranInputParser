@@ -289,7 +289,7 @@ Examples
 ``` fortran
 CALL get_from_inputfile('$material',newL,'material-number',continueL,value%int,presentL,line,lastL)
 IF (presentL) THEN
- material_numer = value%int
+ material_number = value%int
 ELSE
  ! e.g. error message or use default value
 END IF
@@ -320,7 +320,7 @@ ELSE
 END IF
 ```
 
-In the calling routine, this module must be included by the USE statement:
+In the calling subroutine, this module must be included by the USE statement:
 
 ``` fortran
 USE generic_inputfile,ONLY:get_from_inputfile ! interface to generic subroutine get_from_inputfile(...)
@@ -336,7 +336,7 @@ CHARACTER(len=:),ALLOCATABLE :: keywordC
 CHARACTER(len=:),ALLOCATABLE :: specifierC
 ```
 
-*new*
+*newL*
 
 At first entry in `subroutine get_from_inputfile` `newL` must be set to `.TRUE.`.
 
@@ -354,11 +354,13 @@ newL: .FALSE. stay at actual keyword
 
 *keywordC*
 
-string, containing keyword to be searched for (maximum length 267/3)
+String, containing keyword to be searched for.
+A keyword can contain up to 100 characters. This should be large enough. It can be adjusted by modifying this variable: char_length_keyword_name = 100 
 
 *specifierC*
 
-string, containing specifier, for which data value is requested (maximum length 267/3)
+String, containing specifier, for which data value is requested.
+A specifier can contain up to 100 characters. This should be large enough. It can be adjusted by modifying this variable: char_length_specifier_name = 100 
 
 
 **Informative output variables**
