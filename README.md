@@ -2,7 +2,7 @@
 
 This is the Fortran Input Parser of the nextnano³ software.
 
-(c) 2022, nextnano GmbH, Germany, www.nextnano.com (BSD license)
+(c) 2025, nextnano GmbH, Germany, www.nextnano.com (BSD license)
 
 The Fortran Input Parser is compatible to the [nextnanomat](https://www.nextnano.com/nextnanomat/) graphical user interface.
 
@@ -142,7 +142,7 @@ These source files produce a simple test example for the Fortran Input Parser.
  Reading in input file: 'inputfile.in'
 
  ------------------------------------------------------------------------------
- Reading in database_nn3:   'database.in'
+ Reading in database:   'database.in'
 
 ===============================================================================
  Content of database:
