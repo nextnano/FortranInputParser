@@ -25,3 +25,9 @@ $material                                                          required    !
 $end_material                                                      required    !
 !------------------------------------------------------------------------------!
 
+!------------------------------------------------------------------------------!
+$command-line                                                      optional    !
+ execute-command-line                             character        required      CHOICE[yes,no]
+$end_command-line                                                  optional    !
+!------------------------------------------------------------------------------!
+

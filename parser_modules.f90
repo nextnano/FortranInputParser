@@ -149,7 +149,7 @@
  !-----------------------------------------------------------
  ! The INQUIRE statement determines whether the file exists.
  !-----------------------------------------------------------
- INQUIRE (FILE = filenameC, EXIST = it_existsL)
+ INQUIRE (FILE = TRIM(filenameC), EXIST = it_existsL)
  
  IF (it_existsL) THEN
      FileExistsL = .TRUE.
@@ -740,7 +740,7 @@
 !   FUNCTION FileName_Without_FileExtension
 !
 ! PURPOSE
-!   Returns the filename without file extension such as '.dat' or '.in'.
+!   Returns the filename without file extension such as '.dat' or '.txt'.
 !
 ! USAGE
 !   FileName_Without_FileExtension(FilenameC)
@@ -1524,7 +1524,55 @@
  CONTAINS
 
 !------------------------------------------------------------------------------
- FUNCTION GetFilenameIncludingSyntaxFolder(directoryC,filenameC) RESULT(FolderFilenameC)
+ FUNCTION Assign_NEXTNANO3_Path(NEXTNANO3_PathC) RESULT(RelativeFolderPathC)
+!------------------------------------------------------------------------------
+!
+!++f* mod_SyntaxFolder/Assign_NEXTNANO3_Path
+!
+! NAME
+!   FUNCTION Assign_NEXTNANO3_Path
+!
+! PURPOSE
+!   This function returns the string
+!
+!     "<NEXTNANO3_PathC>/nextnano3"
+!
+! USAGE
+!   Assign_NEXTNANO3_Path(NEXTNANO3_PathC)
+!
+! INPUT
+!   o NEXTNANO3_PathC:       e.g. "/home/nextnano/2023_08_31"
+!
+! OUTPUT
+!   o RelativeFolderPathC:   e.g. "/home/nextnano/2023_08_31/nextnano3"
+!
+! NOTES
+!
+!##
+!
+!------------------------------------------------------------------------------
+ USE DirectoryFileExist    ,ONLY:Add_Slash_To_DirectoryName
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)                                  ,INTENT(in)  :: NEXTNANO3_PathC
+ CHARACTER(len=:),ALLOCATABLE                                   :: RelativeFolderPathC                ! RESULT
+
+ CHARACTER(len=987)                                             :: RelativeFolderPathC_temp           ! cannot be CHARACTER(len=:),ALLOCATABLE
+
+ RelativeFolderPathC_temp = TRIM(NEXTNANO3_PathC)
+ CALL Add_Slash_To_DirectoryName(RelativeFolderPathC_temp) ! String must not be an allocatable string! [ CHARACTER(len=:),ALLOCATABLE ]
+ RelativeFolderPathC      = TRIM(RelativeFolderPathC_temp)//'nextnano3' ! Assume installation folder like "C:\Program Files\nextnano\<date>\nextnano3".
+ ! CHECK: A date could be included such as "C:\Program Files\nextnano\2015-08-05\nextnano\nextnano3".
+
+!------------------------------------------------------------------------------
+ END FUNCTION Assign_NEXTNANO3_Path
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ FUNCTION GetFilenameIncludingSyntaxFolder(WhichFolderC,directoryC,filenameC,ExecuteHTCondor_inL) RESULT(FolderFilenameC)
 !------------------------------------------------------------------------------
 !
 !++f* mod_SyntaxFolder/GetFilenameIncludingSyntaxFolder
@@ -1533,47 +1581,53 @@
 !   FUNCTION GetFilenameIncludingSyntaxFolder
 !
 ! PURPOSE
-!   This function returns (default) (==> Here, we assume that the Syntax folder is one level above the nextnano3.exe executable.)
-!     o '..\Syntax\database_nn3_keywords.val'    for 'database_nn3_keywords'.   [directoryC must be = '', i.e. empty.]
-!     o '..\Syntax\keywords.val'                 for 'keywords'.                [directoryC must be = '', i.e. empty.]
+!   This function returns (default) (==> Here, we assume that the Keywords-Syntax folder is one level above the nextnano3.exe executable.)
+!     o '..\keywords\database_keywords.val'          for 'database_keywords'.       [directoryC must be = '', i.e. empty.]
+!     o '..\keywords\keywords.val'                   for 'keywords'.                [directoryC must be = '', i.e. empty.]
 !
-!   or if ExecuteHTCondorL=.TRUE.   (==> Here, we assume that the Syntax folder is in the same directory as the nextnano3.exe executable.)
-!     o  '.\Syntax\database_nn3_keywords.val'    for 'database_nn3_keywords'.   [directoryC must be = '', i.e. empty.]
-!     o  '.\Syntax\keywords.val'                 for 'keywords'.                [directoryC must be = '', i.e. empty.]
+!   or if ExecuteHTCondorL=.TRUE.   (==> Here, we assume that the Keywords-Syntax folder is in the same directory as the nextnano3.exe executable.)
+!     o  '.\keywords\database_keywords.val'          for 'database_keywords'.       [directoryC must be = '', i.e. empty.]
+!     o  '.\keywords\keywords.val'                   for 'keywords'.                [directoryC must be = '', i.e. empty.]
+!     ==> Note: The Keywords-Syntax folder meanwhile is no longer needed by default as it is contained inside the source code.
+!         In principle, the optional argument 'ExecuteHTCondor_inL' could be removed.
 !
 !   Additionally, the following is possible:
-!     o '..\Syntax\directoryC\filenameC'         for 'directoryC,filenameC'.    [directoryC must be /= '', i.e. not empty, e.g. "NEGF files".]
-!        e.g. '..\Syntax\NEGF files\BesselI.dat' for 'BesselI.dat'
+!     o '..\keywords\directoryC\filenameC'           for 'directoryC,filenameC'.    [directoryC must be /= '', i.e. not empty, e.g. "NEGF files".]
+!        e.g. '..\database\NEGF files\BesselI.dat'   for 'BesselI.dat'
 !
 !   Finally, also an environment variable can be specified.
-!   Instead of '..\' an environment variable NEXTNANO_PATHC could be used.
+!   Instead of '..\' an environment variable NEXTNANO3_PathC could be used.
 !
 ! USAGE
-!   GetFilenameIncludingSyntaxFolder(directoryC,filenameC)
+!   GetFilenameIncludingSyntaxFolder(WhichFolderC,directoryC,filenameC,ExecuteHTCondor_inL)
 !
 ! INPUT
-!   o directoryC
-!   o filenameC
+!   o WhichFolderC:         'keywords' or 'database'
+!   o directoryC:
+!   o filenameC:
+!   o ExecuteHTCondor_inL:  (optional) .TRUE. if executed on HTCondor
 !
 ! OUTPUT
-!   o FolderFilenameC
+!   o FolderFilenameC:
 !
 ! NOTES
 !
 !##
 !
 !------------------------------------------------------------------------------
- USE system_specific_parser,ONLY:NEXTNANO_PathC, &
-                                 ExecuteHTCondorL
+ USE system_specific_parser,ONLY:NEXTNANO3_PathC
  USE mod_FolderNames       ,ONLY:RelativeFolderPathC, &
                                  RelativeFolderPathSameDirectoryC, &
-                                 FolderNameForDefinitionFilesC                                 
+                                 FolderNameForDefinitionFilesC   , &
+                                 FolderNameForDatabaseFilesC
  USE DirectoryFileExist    ,ONLY:Add_Slash_To_DirectoryName
 
  IMPLICIT NONE
 
- CHARACTER(len=*)                                  ,INTENT(in)  :: directoryC
- CHARACTER(len=*)                                  ,INTENT(in)  :: filenameC
+ CHARACTER(len=*)                         ,INTENT(in)           :: WhichFolderC
+ CHARACTER(len=*)                         ,INTENT(in)           :: directoryC
+ CHARACTER(len=*)                         ,INTENT(in)           :: filenameC
+ LOGICAL                                  ,INTENT(in),OPTIONAL  :: ExecuteHTCondor_inL
  CHARACTER(len=:),ALLOCATABLE                                   :: FolderFilenameC ! RESULT
 !CHARACTER(LEN(TRIM(RelativeFolderPathC))                   + &
 !          LEN(TRIM(FolderNameForDefinitionFilesC))         + &
@@ -1583,41 +1637,57 @@
 !          LEN(TRIM(ValidatorC)))                               :: FolderFilenameC ! RESULT
 
 !CHARACTER(len=:),ALLOCATABLE                                   :: RelativeFolderPathC_temp           ! cannot be CHARACTER(len=:),ALLOCATABLE
-!CHARACTER(len=:),ALLOCATABLE                                   :: FolderNameForDefinitionFilesC_temp ! cannot be CHARACTER(len=:),ALLOCATABLE
+!CHARACTER(len=:),ALLOCATABLE                                   :: FolderNameC_temp                   ! cannot be CHARACTER(len=:),ALLOCATABLE
 !CHARACTER(len=:),ALLOCATABLE                                   :: directoryC_temp                    ! cannot be CHARACTER(len=:),ALLOCATABLE
  CHARACTER(len=987)                                             :: RelativeFolderPathC_temp           ! cannot be CHARACTER(len=:),ALLOCATABLE
- CHARACTER(len=987)                                             :: FolderNameForDefinitionFilesC_temp ! cannot be CHARACTER(len=:),ALLOCATABLE
+ CHARACTER(len=987)                                             :: FolderNameC_temp                   ! cannot be CHARACTER(len=:),ALLOCATABLE
  CHARACTER(len=987)                                             :: directoryC_temp                    ! cannot be CHARACTER(len=:),ALLOCATABLE
+ CHARACTER(len=:),ALLOCATABLE                                   :: FolderNameC
+ LOGICAL                                                        :: ExecuteHTCondorL
+
+ IF ( PRESENT(ExecuteHTCondor_inL) ) THEN
+      ExecuteHTCondorL = ExecuteHTCondor_inL
+ ELSE
+      ExecuteHTCondorL = .FALSE.
+ END IF
+
+ SELECT CASE( TRIM(WhichFolderC) )
+  CASE('keywords')
+   FolderNameC = FolderNameForDefinitionFilesC
+  CASE('database')
+   FolderNameC = FolderNameForDatabaseFilesC
+  CASE DEFAULT
+   WRITE (*,'(A)') "Error GetFilenameIncludingSyntaxFolder: WhichFolderC ill-defined: WhichFolderC = "//TRIM(WhichFolderC)
+   STOP
+ END SELECT
 
  !-----------------------------------------------------
  ! Use local variables because slashes might be added.
  !-----------------------------------------------------
  IF ( ExecuteHTCondorL ) THEN
   !-------------------------------------------------------------------------
-  ! Assume Syntax/ folder is on the same level as nextnano3.exe executable.
+  ! Assume keywords/ folder is on the same level as nextnano3.exe executable.
+  ! Assume database/ folder is on the same level as nextnano3.exe executable.
   !-------------------------------------------------------------------------
   RelativeFolderPathC_temp           = RelativeFolderPathSameDirectoryC ! '.' ==> './'
- ELSE IF ( TRIM(NEXTNANO_PathC) /= '' ) THEN
-  RelativeFolderPathC_temp = TRIM(NEXTNANO_PathC)
-  CALL Add_Slash_To_DirectoryName(RelativeFolderPathC_temp) ! String must not be an allocatable string! [ CHARACTER(len=:),ALLOCATABLE ]
-  RelativeFolderPathC_temp = TRIM(RelativeFolderPathC_temp)//'nextnano3' ! Assume installation folder like "C:\Program Files\nextnano\nextnano3".
-  ! CHECK: A date could be included such as "C:\Program Files\nextnano\2015-08-05\nextnano\nextnano3".
+ ELSE IF ( TRIM(NEXTNANO3_PathC) /= '' ) THEN ! Environment variable was set: export NEXTNANO3="/home/nextnano/2023_08_31"
+  RelativeFolderPathC_temp           = Assign_NEXTNANO3_Path( NEXTNANO3_PathC )
  ELSE
   !----------------------------------------------
   ! This should be the most realistic situation.
   !----------------------------------------------
   RelativeFolderPathC_temp           = RelativeFolderPathC               ! '..' ==> '../'
  END IF
-  FolderNameForDefinitionFilesC_temp = FolderNameForDefinitionFilesC     ! 'Syntax'
+  FolderNameC_temp                   = FolderNameC                       ! 'keywords' or 'database'
   directoryC_temp                    = directoryC
 
  CALL Add_Slash_To_DirectoryName(RelativeFolderPathC_temp)           ! String must not be an allocatable string! [ CHARACTER(len=:),ALLOCATABLE ]
- CALL Add_Slash_To_DirectoryName(FolderNameForDefinitionFilesC_temp) ! String must not be an allocatable string! [ CHARACTER(len=:),ALLOCATABLE ]
+ CALL Add_Slash_To_DirectoryName(FolderNameC_temp) ! String must not be an allocatable string! [ CHARACTER(len=:),ALLOCATABLE ]
  CALL Add_Slash_To_DirectoryName(directoryC_temp)                    ! String must not be an allocatable string! [ CHARACTER(len=:),ALLOCATABLE ]
 
- FolderFilenameC = TRIM(RelativeFolderPathC_temp)           // &
-                   TRIM(FolderNameForDefinitionFilesC_temp) // &
-                   TRIM(directoryC_temp)                    // &
+ FolderFilenameC = TRIM(RelativeFolderPathC_temp) // &
+                   TRIM(FolderNameC_temp)         // &
+                   TRIM(directoryC_temp)          // &
                    TRIM(filenameC)
 
 !------------------------------------------------------------------------------
@@ -1803,7 +1873,7 @@
  USE system_specific_parser   ,ONLY:OperatingSystem64bitL, &
                                     CurrentSystem, &
                                     DebugLevel, &
-                                    NEXTNANO_PathC
+                                    NEXTNANO3_PathC
 
  IMPLICIT NONE
 
@@ -1824,7 +1894,7 @@
  !-----------------------------------------------------------------------------------------
  ! Select environment variable for corresponding operating system, i.e. 64-bit vs. 32-bit.
  !-----------------------------------------------------------------------------------------
- SELECT CASE(TRIM(OperatingSystemC))
+ SELECT CASE( TRIM(OperatingSystemC) )
   CASE('windows')
 
    name_of_env_variableC = 'ProgramFiles(x86)' ! This variable only exists on Windows.
@@ -1846,6 +1916,25 @@
  ELSE
     WRITE(my_output_unit,*) " Your operating system is 32-bit."
  END IF
+
+ !---------------------------
+ ! Get and print IP address.
+ !---------------------------
+ SELECT CASE( TRIM(OperatingSystemC) )
+  CASE('windows')
+   IF (DebugLevel > 20) THEN
+   ! SystemCommandC = 'netsh interface ip show address | findstr "IP Address"'
+     SystemCommandC = 'ipconfig | findstr /r /c:"IPv4"'
+     WRITE(my_output_unit,'(A)') "  =============================================================="
+     WRITE(my_output_unit,'(A)') "  Your IP addresses are:"
+     CALL Execute_CommandLine(SystemCommandC)
+   ! SystemCommandC = 'ipconfig | findstr /r /c:"IPv6 Address"'
+     SystemCommandC = 'ipconfig | findstr /r /c:"  IPv6 Address"' ! ==> I added two extra blanks to avoid showing the lines containing "Temporay IPv6 Address".
+     CALL Execute_CommandLine(SystemCommandC)
+     WRITE(my_output_unit,'(A)') "  =============================================================="
+   END IF
+ END SELECT
+
 
  !------------------------------------------------------------------
  ! Select environment variable for corresponding operating system.
@@ -1896,10 +1985,10 @@
 
  END IF
 
- name_of_env_variableC = 'NEXTNANO'
+ name_of_env_variableC = 'NEXTNANO3'
  CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)
- NEXTNANO_PathC = TRIM(env_variableC)
- WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(NEXTNANO_PathC)
+ NEXTNANO3_PathC = TRIM(env_variableC)
+ WRITE(my_output_unit,'(A,A,A,A)') " Environment variable '",TRIM(name_of_env_variableC),"' = ",TRIM(NEXTNANO3_PathC)
 
  name_of_env_variableC = 'OS'
  CALL GET_ENVIRONMENT_VARIABLE(TRIM(name_of_env_variableC),env_variableC,length=length,status=status)

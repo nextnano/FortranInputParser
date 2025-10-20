@@ -1,16 +1,19 @@
 !------------------------------------------------------------------------------
  MODULE mod_FolderNames
 !------------------------------------------------------------------------------
-! The meaning of 'RelativeFolderPathC' is the location of the 'Syntax/' folder
+! The meaning of 'RelativeFolderPathC' is the location of the
+!   o 'database/' folder
+!   o 'keywords/' folder
 ! relative to the executable.
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
 
- CHARACTER(len=*),PARAMETER :: FolderNameForDefinitionFilesC    = 'Syntax'  ! to be consistent to nextnano++: folder name for keyword definition files, database, ...
- CHARACTER(len=*),PARAMETER :: RelativeFolderPathC              = '..'      ! ..\Syntax or ../Syntax:
-!CHARACTER(len=*),PARAMETER :: RelativeFolderPathC              = '.'       !  .\Syntax or  ./Syntax
- CHARACTER(len=*),PARAMETER :: RelativeFolderPathSameDirectoryC = '.'       !  .\Syntax or  ./Syntax:
+ CHARACTER(len=*),PARAMETER :: FolderNameForDefinitionFilesC    = 'keywords'  ! folder name for Keyword-Syntax definition files
+ CHARACTER(len=*),PARAMETER :: FolderNameForDatabaseFilesC      = 'database'  ! folder name for database files
+ CHARACTER(len=*),PARAMETER :: RelativeFolderPathC              = '..'        ! ..\keywords or ../keywords:
+!CHARACTER(len=*),PARAMETER :: RelativeFolderPathC              = '.'         !  .\keywords or  ./keywords
+ CHARACTER(len=*),PARAMETER :: RelativeFolderPathSameDirectoryC = '.'         !  .\keywords or  ./keywords:
 
 !------------------------------------------------------------------------------
  END MODULE mod_FolderNames
@@ -51,13 +54,14 @@
  LOGICAL                         ::   SetOutputDirViaCommandLineL
  LOGICAL                         ::     SetThreadsViaCommandLineL
  LOGICAL                         ::  SetDebugLevelViaCommandLineL
+ LOGICAL                         :: AllowPostProcessingL    = .FALSE.
 
 !CHARACTER(len=987)              ::      OutputDir_defaultC           = 'output'                ! ==> Replace 'output' with 'InputFileName_NoDirectoryNoExtensionC'.
  CHARACTER(len=50)               ::      OutputDir_default_IndicatorC = '<name_of_input_file>'  ! ==> Replace 'output' with 'InputFileName_NoDirectoryNoExtensionC'.
- CHARACTER(len=987)              :: DatabaseFileName_DirectoryExtension_C    = ''                  ! name of database file with    directory and with    file extension. Example: "Syntax/database_nn3.in" ==> "Syntax/database_nn3.in"
- CHARACTER(len=987)              ::    InputFileName_DirectoryExtension_C    = ''                  ! name of input file    with    directory and with    file extension. Example: "input/QuantumDot.in"    ==> "input/QuantumDot.in"
- CHARACTER(len=987)              ::    InputFileName_NoDirectoryNoExtensionC = ''                  ! name of input file    without directory and without file extension. Example: "input/QuantumDot.in"    ==> "QuantumDot"
- CHARACTER(len=987)              ::    InputFileName_NoDirectoryC            = ''                  ! name of input file    without directory.                            Example: "input/QuantumDot.in"    ==> "QuantumDot.in"
+ CHARACTER(len=987)              :: DatabaseFileName_DirectoryExtension_C    = ''               ! name of database file with    directory and with    file extension. Example: "database/database.nn3" ==> "database/database.nn3"
+ CHARACTER(len=987)              ::    InputFileName_DirectoryExtension_C    = ''               ! name of input file    with    directory and with    file extension. Example: "input/QuantumDot.nn3"  ==> "input/QuantumDot.nn3"
+ CHARACTER(len=987)              ::    InputFileName_NoDirectoryNoExtensionC = ''               ! name of input file    without directory and without file extension. Example: "input/QuantumDot.nn3"  ==> "QuantumDot"
+ CHARACTER(len=987)              ::    InputFileName_NoDirectoryC            = ''               ! name of input file    without directory.                            Example: "input/QuantumDot.nn3"  ==> "QuantumDot.nn3"
 
  CHARACTER(len=987)              ::      OutputDirC             = ''             ! name of global output directory, e.g. 'H:\nextnano3\output\test'
 
@@ -73,11 +77,18 @@
  CHARACTER(len=:),ALLOCATABLE    :: NameOfExecutableC
  LOGICAL                         :: gcc_ExecutableL  = .FALSE.     ! .TRUE. if the executable has been compiled with the gcc/gfortran compiler
 
-                                  ! NEXTNANO_PathC                = 'C:\Program Files (x86)\nextnano\nextnano3'
- CHARACTER(len=987)              :: NEXTNANO_PathC                = ''        ! can be changed by environment variable. The location where the nextnano software is installed.
-
- LOGICAL                         :: ExecuteHTCondorL     = .FALSE.
- LOGICAL                         :: ExecutionOnHTCondorL = .FALSE.  ! True, if executable is actually run on HTCondor.
+ !-------------------------------------------------------------------
+ ! You can change the environment variable on Linux as follows:
+ !
+ ! export NEXTNANO3="/home/nextnano/2023_08_31"
+ !
+ ! The following command returns the environment variable NEXTNANO3.
+ !
+ ! echo $NEXTNANO3
+ !
+ !-------------------------------------------------------------------
+                                  ! NEXTNANO3_PathC      = 'C:\Program Files (x86)\nextnano\nextnano3'
+ CHARACTER(len=987)              :: NEXTNANO3_PathC      = ''        ! can be changed by environment variable. The location where the nextnano software is installed.
 
 !------------------------------------------------------------------------------
  END MODULE system_specific_parser

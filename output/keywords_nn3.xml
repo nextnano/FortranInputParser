@@ -45,5 +45,12 @@
          </attribute>
       </block>
 
+      <block   text="$command-line"                                                             type="group"   required="false">
+         <attribute   text="execute-command-line"                                              type="choice"   required="true"   function="separator">
+            <option   value="yes"></option>
+            <option   value="no"></option>
+         </attribute>
+      </block>
+
    </nextnano3>
 </Keywords>

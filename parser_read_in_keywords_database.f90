@@ -41,8 +41,8 @@
 ! To read entries from inputfile.
 !
 !------------------------------------------------------------------------------
- USE generic_database  ,ONLY:get_from_database
- USE mod_input_data    ,ONLY:type_data
+ USE generic_database                 ,ONLY:get_from_database
+ USE mod_FortranInputParser_input_data,ONLY:type_data
  !-------------------------------------------------
  ! These variables are read in from the inputfile.
  !-------------------------------------------------

@@ -1,0 +1,30 @@
+$magnetic-field
+magnetic-field-on        = yes
+magnetic-field-strength  = 5.0
+magnetic-field-direction = 0 0 1
+$end_magnetic-field
+$material
+material-number                         = 1
+cluster-numbers                         = 1 3 5 6
+material-name                           = Al(x)Ga(1-x)As
+alloy-function                          = constant
+alloy-concentration                     = 0.3
+band-gaps                               = 1.4  2.0  3.0
+crystal-type                            = zincblende
+use-material-parameters-from-database   = .TRUE.
+material-number                         = 2
+cluster-numbers                         = 2 4
+material-name                           = GaAs
+material-number                         = 3
+cluster-numbers                         = 7 8
+material-name                           = AlAs
+material-number = 4   cluster-numbers = 9    material-name = GaAs
+material-number = 5   cluster-numbers = 10   material-name = AlAs
+material-number = 6   cluster-numbers = 11   material-name = GaAs   band-gaps = 1.42248214e0  1.9  2.1
+material-number = 7  cluster-numbers = 11   material-name = GaAs
+material-number = 8   cluster-numbers = 12   material-name = InAs
+material-number = 9   cluster-numbers = 13   material-name = AlAs
+$end_material
+$command-line
+execute-command-line = yes
+$end_command-line

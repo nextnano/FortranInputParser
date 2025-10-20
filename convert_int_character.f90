@@ -1686,9 +1686,9 @@
   CASE DEFAULT
    !-----------------------------------------------------------------------------------------------------------------------------------------------------
    ! On Linux, an input file name can look like like the following where '\ ' indicates a blank in Linux.
-   ! nextnano3.exe -inputfile  /home/nextnano/nextnano_exe/nextnano/nextnano3\ sample\ files/1DGreg_Snider_MANUAL.in  <== This works.
-   ! nextnano3.exe -inputfile '/home/nextnano/nextnano_exe/nextnano/nextnano3\ sample\ files/1DGreg_Snider_MANUAL.in' <== We have to CALL StringReplace.
-   ! nextnano3.exe -inputfile "/home/nextnano/nextnano_exe/nextnano/nextnano3\ sample\ files/1DGreg_Snider_MANUAL.in" <== We have to CALL StringReplace.
+   ! nextnano3.exe -inputfile  /home/nextnano/nextnano_exe/nextnano/nextnano3\ sample\ files/1DGreg_Snider_MANUAL.nn3  <== This works.
+   ! nextnano3.exe -inputfile '/home/nextnano/nextnano_exe/nextnano/nextnano3\ sample\ files/1DGreg_Snider_MANUAL.nn3' <== We have to CALL StringReplace.
+   ! nextnano3.exe -inputfile "/home/nextnano/nextnano_exe/nextnano/nextnano3\ sample\ files/1DGreg_Snider_MANUAL.nn3" <== We have to CALL StringReplace.
    !-----------------------------------------------------------------------------------------------------------------------------------------------------
    CALL StringReplace( StringC, DoubleBackSlashC//' ' , ' ') ! ==> '\\ ' ! It is important that '\\ ' comes before '\ '.
    CALL StringReplace( StringC,       BackSlashC//' ' , ' ') ! ==> '\ '

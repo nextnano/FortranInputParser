@@ -1,7 +1,7 @@
 ! MODULE mod_FileExtensions_parser
 ! MODULE Use_FunctionParser
 ! MODULE input_type_names
-! MODULE mod_input_data
+! MODULE mod_FortranInputParser_input_data
 ! MODULE input_line_definition
 ! MODULE node_type_def
 ! MODULE queue_type_def
@@ -40,7 +40,9 @@
  IMPLICIT NONE
 
  CHARACTER(len=*),PARAMETER :: ValidatorC     = '.val'      ! file extension validator files (syntax definition)
- CHARACTER(len=*),PARAMETER :: InputC         = '.in'       ! file extension input files
+!CHARACTER(len=*),PARAMETER :: InputC         = '.in'       ! file extension input files (default)
+ CHARACTER(len=*),PARAMETER :: InputC         = '.nn3'      ! file extension input files (nextnano3)
+ CHARACTER(len=*),PARAMETER :: Input_nnpC     = '.nnp'      ! file extension input files (nextnano++)
  CHARACTER(len=*),PARAMETER :: TextC          = '.txt'      ! file extension for text data which cannot be plotted (ASCII format)
  CHARACTER(len=*),PARAMETER :: XML_C          = '.xml'      ! file extension for XML files
  CHARACTER(len=*),PARAMETER :: LogC           = '.log'      ! file extension for log files
@@ -423,29 +425,30 @@
 !
 !
 !------------------------------------------------------------------------------
- MODULE mod_input_data
+ MODULE mod_FortranInputParser_input_data
 !------------------------------------------------------------------------------
 ! These are helper variables used to read in data from input file.
+! This module is used by "PROGRAM FortranInputParser".
 !------------------------------------------------------------------------------
 
  IMPLICIT NONE
 
- INTEGER,PARAMETER                         :: char_length_specifier_content = 267  ! A specifier content can contain up to 267 characters.
+ INTEGER,PARAMETER                         :: char_length_specifier_content = 987  ! A specifier content can contain up to 987 characters. (If not sufficient, increase this value.)
 
  TYPE  :: type_data
-  INTEGER                                  :: int
-  INTEGER,DIMENSION(:),POINTER             :: int_arrayV
-  REAL(4)                                  :: single
-  REAL(4),DIMENSION(:),POINTER             :: single_arrayV
-  REAL(8)                                  :: double
-  REAL(8),DIMENSION(:),POINTER             :: double_arrayV
-  LOGICAL                                  :: booleanL
+  INTEGER                                  :: int                    ! integer
+  INTEGER,DIMENSION(:),POINTER             :: int_arrayV             ! integer array
+  REAL(4)                                  :: single                 ! single precision number
+  REAL(4),DIMENSION(:),POINTER             :: single_arrayV          ! array of single precision numbers
+  REAL(8)                                  :: double                 ! double precision number
+  REAL(8),DIMENSION(:),POINTER             :: double_arrayV          ! array of double precision number
+  LOGICAL                                  :: booleanL               ! logical
   CHARACTER(char_length_specifier_content) :: stringC ! to allow for long strings, e.g. long directory names
 ! CHARACTER(len=:),ALLOCATABLE             :: stringC ! to allow for long strings, e.g. long directory names  <= does not work (Why?)
  END TYPE type_data
 
 !------------------------------------------------------------------------------
- END MODULE mod_input_data
+ END MODULE mod_FortranInputParser_input_data
 !------------------------------------------------------------------------------
 !
 !
@@ -1240,6 +1243,7 @@ END MODULE mod_init_keyword_queue
  USE keyword_queue_def        ,ONLY:keyword_queue
  USE input_type_names         ,ONLY:DelimiterChoice_leftC, &
                                     DelimiterChoice_rightC
+ USE mod_FileExtensions_parser,ONLY:InputC
 
  IMPLICIT NONE
 
@@ -1346,25 +1350,24 @@ END MODULE mod_init_keyword_queue
    IF     (TRIM(ADJUSTL(temp3C)) == TRIM(    required_input)) THEN
       optional_inputL = .FALSE.
    ELSE IF(TRIM(ADJUSTL(temp3C)) == TRIM(not_required_input)) THEN
-      optional_inputL = .TRUE.                                         !
-   ELSE                                                                !
-      WRITE(my_output_unit,*) "Error add_specifier:"
-      WRITE(my_output_unit,*) "Unknown control string in keyword definition file!"  !
-      WRITE(my_output_unit,*) "Don't know what you mean with -> ",TRIM(ADJUSTL(temp3C))
-      WRITE(my_output_unit,*) "I expected -> ",TRIM(    required_input)    !
-      WRITE(my_output_unit,*) "or         -> ",TRIM(not_required_input)    !
-      WRITE(my_output_unit,*) "bufferC  = ",TRIM(bufferC)
-      WRITE(my_output_unit,*) "temp1C   = ",TRIM(temp1C)
-      WRITE(my_output_unit,*) "temp2C   = ",TRIM(temp2C)
-      WRITE(my_output_unit,*) "temp3C   = ",TRIM(temp3C)
-      WRITE(my_output_unit,*) "temp4C   = ",TRIM(temp4C)
-      WRITE(my_output_unit,*) "This error can happen if you work on Linux/Unix and"
-      WRITE(my_output_unit,*) "if your input files (*.in) are formatted with DOS like line breaks."
-      WRITE(my_output_unit,*) "Solution: Use a text editor to convert your DOS formatted"
-      WRITE(my_output_unit,*) "          input files to UNIX format."
-      STOP                                                             !
-   END IF                                                              !
-                                                                       !
+      optional_inputL = .TRUE.
+   ELSE
+      WRITE(my_output_unit,'(A)') "Error add_specifier:"
+      WRITE(my_output_unit,'(A)') "Unknown control string in keyword definition file!"
+      WRITE(my_output_unit,'(A)') "Don't know what you mean with -> "//TRIM(ADJUSTL(temp3C))
+      WRITE(my_output_unit,'(A)') "I expected -> "//TRIM(    required_input)
+      WRITE(my_output_unit,'(A)') "or         -> "//TRIM(not_required_input)
+      WRITE(my_output_unit,'(A)') "bufferC  = "//TRIM(bufferC)
+      WRITE(my_output_unit,'(A)') "temp1C   = "//TRIM(temp1C)
+      WRITE(my_output_unit,'(A)') "temp2C   = "//TRIM(temp2C)
+      WRITE(my_output_unit,'(A)') "temp3C   = "//TRIM(temp3C)
+      WRITE(my_output_unit,'(A)') "temp4C   = "//TRIM(temp4C)
+      WRITE(my_output_unit,'(A)') "This error can happen if you work on Linux/Unix and"
+      WRITE(my_output_unit,'(A)') "if your input files (*"//TRIM(InputC)//") are formatted with DOS like line breaks."
+      WRITE(my_output_unit,'(A)') "Solution: Use a text editor to convert your DOS formatted input files to UNIX format."
+      STOP
+   END IF
+
    !--------------------------------------------
    ! Determine specifier, data type and choice.
    !--------------------------------------------
@@ -1855,7 +1858,7 @@ END MODULE mod_init_keyword_queue
 ! 
 ! INPUT
 !   o kind_of_fileC:         'inputfile', 'database'
-!   o keyword_filenameC:     'keywords.val' or 'database_nn3_keywords.val'
+!   o keyword_filenameC:     'keywords.val' or 'database_keywords.val'
 !   o keywords:              list of keywords
 !
 ! OUTPUT
@@ -2370,10 +2373,10 @@ END MODULE mod_init_keyword_queue
     ! Option A): Read syntax definition from a file.
     !------------------------------------------------
 
-    filenameC = GetFilenameIncludingSyntaxFolder('',keyword_filenameC)
+    filenameC = GetFilenameIncludingSyntaxFolder('keywords','',keyword_filenameC)
 
     WRITE(my_output_unit,'(A)') ""
-    WRITE(my_output_unit,'(A)') " Reading in syntax validator file: "//TRIM(keyword_filenameC)
+    WRITE(my_output_unit,'(A)') " Reading in keywords syntax validator file: "//TRIM(keyword_filenameC)
 
     CALL FileExistREAD(filenameC)
 
@@ -2416,7 +2419,7 @@ END MODULE mod_init_keyword_queue
        ! Print content of this string for debugging purposes.
        !------------------------------------------------------
        WRITE(my_output_unit,'(A)')    "================================================================================"
-       WRITE(my_output_unit,'(A)')    " Syntax definition file = "//TRIM(keyword_filenameC)
+       WRITE(my_output_unit,'(A)')    " Keywords syntax definition file = "//TRIM(keyword_filenameC)
        WRITE(my_output_unit,'(A)')    "================================================================================"
        WRITE(my_output_unit,'(A)')     filecontentC
        WRITE(my_output_unit,'(A,I8)') " number of lines = ",number_of_lines
@@ -5699,7 +5702,7 @@ END MODULE mod_init_keyword_queue
  LOGICAL                                   :: CommentSign_foundL 
                                                                       !
  CALL FileExistREAD(keywords_definition_filenameC, &
-                    ErrorMessageC = 'For Linux: Check if environment variable NEXTNANO is set correctly '// &
+                    ErrorMessageC = 'For Linux: Check if environment variable NEXTNANO3 is set correctly '// &
                                     'so that definition files can be found.')
 
  OPEN(10,STATUS='OLD', IOSTAT=ios, file=keywords_definition_filenameC)
@@ -6658,6 +6661,7 @@ END SUBROUTINE add_xsar_element
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
+ USE mod_FileExtensions_parser,ONLY:InputC,TextC,LogC
 
  IMPLICIT NONE
 
@@ -6735,12 +6739,12 @@ END SUBROUTINE add_xsar_element
 
   WRITE(my_output_unit,'(A)') " If the error message is due to the evaluation of a variable or a function"
   WRITE(my_output_unit,'(A)') " you can use a 'diff' tool such as WinMerge and compare the differences in the files"
-  WRITE(my_output_unit,'(A)') "   o <input file name>.in           (located in output folder; includes variables)"
-  WRITE(my_output_unit,'(A)') "   o <input file name>.in.no_macro  (located in output folder;"// &
+  WRITE(my_output_unit,'(A)') "   o <input file name>"//InputC//"           (located in output folder; includes variables)"
+  WRITE(my_output_unit,'(A)') "   o <input file name>"//InputC//"_no_macro"//InputC//" (located in output folder;"// &
                                                                   " variables were replaced with evaluated values)"
   WRITE(my_output_unit,'(A)') " The log file and the variables file"
-  WRITE(my_output_unit,'(A)') "   o <input file name>.log          (located in output folder)"
-  WRITE(my_output_unit,'(A)') "   o variables_input.txt            (located in output folder)"
+  WRITE(my_output_unit,'(A)') "   o <input file name>"//LogC  //"           (located in output folder)"
+  WRITE(my_output_unit,'(A)') "   o variables_input"  //TextC //"           (located in output folder)"
   WRITE(my_output_unit,'(A)') " provide additional information how variables and functions were evaluated."
 
  CALL Error_PrintStandardMessage

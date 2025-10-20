@@ -43,7 +43,8 @@
   INTEGER                      ,PARAMETER :: Data_len               =  267                    ! Maximum line length in input file (267 - SUN, arbitrary - DEC)
   INTEGER                      ,PARAMETER :: Data_len_long          =  987                    ! Maximum line length in input file
   INTEGER                      ,PARAMETER :: Data_len_very_long     = 98765                   ! Maximum line length in input file (When using variables in the input file, very long lines can occur for z-grid-lines for instance.
-  INTEGER                      ,PARAMETER :: char_length_specifier_content = 267              ! A specifier content can contain up to 267 characters.
+! INTEGER                      ,PARAMETER :: char_length_specifier_content = 267              ! A specifier content can contain up to 267 characters.
+  INTEGER                      ,PARAMETER :: char_length_specifier_content = 9876             ! A specifier content can contain up to 9876 characters. (A specifier can be very long, e.g. if a long formula is passed.)
   CHARACTER(len=*)             ,PARAMETER :: SpecialMacroCharacterC = '%'                     ! special character used in macro definition
   CHARACTER(len=*)             ,PARAMETER :: key_char               = '$'                     ! Character which specifies beginning of keyword (can be chosen)
   CHARACTER(len=*)             ,PARAMETER :: end_key_char           = ' '                     ! Character which specifies end of keyword (must be a blank)
@@ -151,7 +152,8 @@
                                     TEXT_String_BeginC     , &
                                     TEXT_String_EndC
  USE mod_FileExtensions_parser,ONLY:Batch_WindowsC, &
-                                    Batch_LinuxC
+                                    Batch_LinuxC, &
+                                    InputC
  USE mod_SpecialStrings       ,ONLY:Multiline_Comment, &
                                     Extract_DATA
  USE mod_chrpak               ,ONLY:StringReplace
@@ -384,7 +386,7 @@
 
     !-----------------------------------------------------------------------------------------
     ! XML tags <...> can be present. They are ignored and replaced with blanks.
-    ! Note: As they are replaced with blanks, they are not visible in the file *.in.no_macro.
+    ! Note: As they are replaced with blanks, they are not visible in the file *_no_macro.
     !-----------------------------------------------------------------------------------------
     CALL ReplaceXMLTag(            StringsV(line_number)%StringC )
 
@@ -598,13 +600,13 @@
      ! Here we open a new file where we write out the input file information.
      ! Here, the macro is "executed", i.e. the appropriate strings are replaced.
      ! Then we have a backup of the input file without macro variables.
-     ! Example: 'my_input_file.in' ==> 'my_input_file.in.no_macro'
-     !                                 'my_input_file.in.compact'
+     ! Example: 'my_input_file.nn3' ==> 'my_input_file.nn3_no_macro.nn3'
+     !                                  'my_input_file.nn3_compact.nn3'
      !---------------------------------------------------------------------------
-     OPEN (33,file = TRIM(Folder_InputFilename_outC)//'.no_macro')  ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+     OPEN (33,file = TRIM(Folder_InputFilename_outC)//'_no_macro'//InputC)  ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
    IF (WriteCompactFileL) THEN
-     OPEN (34,file = TRIM(Folder_InputFilename_outC)//'.compact')   ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+     OPEN (34,file = TRIM(Folder_InputFilename_outC)//'_compact'//InputC)   ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
 
    line_number = 0
@@ -667,7 +669,7 @@
     !********************************************************************
 
      !---------------------------------------------
-     ! Write replaced string to '*.no_macro' file.
+     ! Write replaced string to '*_no_macro' file.
      !---------------------------------------------
      IF (AnyMacroL) THEN
          WRITE(33,'(A)') TRIM(bufferC)
@@ -802,11 +804,11 @@
 
  IMPLICIT NONE
 
- REAL(4)                                  :: xs_t !
- REAL(8)                                  :: xd_t !
- INTEGER                                  :: in_t !
- LOGICAL                                  :: lo_t !
-!CHARACTER(Data_len/3)                    :: ca_t !
+ REAL(4)                                  :: xs_t ! single precision
+ REAL(8)                                  :: xd_t ! double precision
+ INTEGER                                  :: in_t ! integer
+ LOGICAL                                  :: lo_t ! logical
+!CHARACTER(Data_len/3)                    :: ca_t ! character strings
 !CHARACTER(Data_len)                      :: ca_t ! to allow for long strings, e.g. long directory names
  CHARACTER(char_length_specifier_content) :: ca_t ! to allow for long strings, e.g. long directory names
 !CHARACTER(len=:),ALLOCATABLE             :: ca_t ! to allow for long strings, e.g. long directory names  <= does not work
@@ -1779,7 +1781,7 @@ CONTAINS                                                               !
      DO num_xs=1,SIZE(spec_node%input_spec%spxs)                       !
      IF(TRIM(spec_node%input_spec%spxs(num_xs))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prxs(num_xs))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1782") ! 1782 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%xs(num_xs)   = xs_t                         !
       spec_node%input_spec%prxs(num_xs) = .TRUE.                       !
@@ -1792,7 +1794,7 @@ CONTAINS                                                               !
      DO num_xd=1,SIZE(spec_node%input_spec%spxd)                       !
      IF(TRIM(spec_node%input_spec%spxd(num_xd))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prxd(num_xd))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1795") ! 1795 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%xd(num_xd)   = xd_t                         !
       spec_node%input_spec%prxd(num_xd) = .TRUE.                       !
@@ -1805,7 +1807,7 @@ CONTAINS                                                               !
      DO num_in=1,SIZE(spec_node%input_spec%spin)                       !
      IF(TRIM(spec_node%input_spec%spin(num_in))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prin(num_in))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1808") ! 1808 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%in(num_in)   = in_t                         !
       spec_node%input_spec%prin(num_in) = .TRUE.                       !
@@ -1818,7 +1820,7 @@ CONTAINS                                                               !
      DO num_ca=1,SIZE(spec_node%input_spec%spca)                       !
      IF( TRIM(spec_node%input_spec%spca(num_ca)) == TRIM(specifierC) )THEN   !
       IF (spec_node%input_spec%prcaL(num_ca)) THEN                     !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1821") ! 1821 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%ca(num_ca)    = TRIM(ca_t)                  !
       spec_node%input_spec%prcaL(num_ca) = .TRUE.                      !
@@ -1831,7 +1833,7 @@ CONTAINS                                                               !
      DO num_lo=1,SIZE(spec_node%input_spec%splo)                       !
      IF(TRIM(spec_node%input_spec%splo(num_lo))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prlo(num_lo))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1834") ! 1834 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%lo(num_lo)   = lo_t                         !
       spec_node%input_spec%prlo(num_lo) = .TRUE.                       !
@@ -1979,7 +1981,7 @@ CONTAINS                                                               !
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE ERROR(error_number)
+ SUBROUTINE ERROR(error_number,AdditionalInfoC)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE parser_parameters        ,ONLY:keyword_filetypeC, &
@@ -1987,7 +1989,12 @@ CONTAINS                                                               !
 
  IMPLICIT NONE
 
- INTEGER,INTENT(in) :: error_number
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+    WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
 
     IF(error_number==1)THEN                                            !
     WRITE(my_output_unit,*)'>>>>>>> ERROR <<<<< >>>>> ERROR <<<<< >>>>>ERROR<<<<<<<'!
@@ -2362,43 +2369,43 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
 !##
 !
 !------------------------------------------------------------------------------
- USE My_Input_and_Output_Units,ONLY:my_output_unit
- USE system_specific_parser   ,ONLY:DebugLevel, &
-                                    ParseInputFileOnlyL, &
-                                    ParseKeywordsInputFileL
- USE mod_SyntaxFolder         ,ONLY:GetFilenameIncludingSyntaxFolder
- USE mod_InputFileName        ,ONLY:GetInputFileNameFromValidatorFile
- USE parser_parameters,ONLY:key_char, &
-                      end_key_char, &
-                         spec_char, &
-                     end_spec_char, &
-                       comment_signsCV, &
-                       keyword_filenameC           , &
-                       keyword_filetypeC           , &
-                       SecondEntry_InputBuiltUpL, &
-                       Data_len_very_long, &
-                       Data_len_long, &
-                       Data_len
- USE input_type_names       ,ONLY:required_key  ,not_required_key, &
-                                  required_input,not_required_input
- USE mod_keyword_queue_built_up,ONLY:keyword_queue_built_up
- USE keyword_node_def       ,ONLY:keyword_node
- USE queue_type_def         ,ONLY:queue_type
- USE node_type_def          ,ONLY:node_type
- USE mod_string_in_list     ,ONLY:string_in_list
- USE mod_queue              ,ONLY:queue_built_up
- USE mod_get_line           ,ONLY:get_next_line, &
-                                  get_prev_line
- USE input_built_up_interface,ONLY:input_built_up
- USE mod_key_positions      ,ONLY:key_positions, &
-                                  spec_positions
- USE add_inp_spec_interface,ONLY:add_inp_spec
+ USE My_Input_and_Output_Units   ,ONLY:my_output_unit
+ USE system_specific_parser      ,ONLY:DebugLevel, &
+                                       ParseInputFileOnlyL, &
+                                       ParseKeywordsInputFileL
+ USE mod_SyntaxFolder            ,ONLY:GetFilenameIncludingSyntaxFolder
+ USE mod_InputFileName           ,ONLY:GetInputFileNameFromValidatorFile
+ USE parser_parameters           ,ONLY:key_char, &
+                                   end_key_char, &
+                                      spec_char, &
+                                  end_spec_char, &
+                                      comment_signsCV, &
+                                      keyword_filenameC        , &
+                                      keyword_filetypeC        , &
+                                      SecondEntry_InputBuiltUpL, &
+                                      Data_len_very_long, &
+                                      Data_len_long, &
+                                      Data_len
+ USE input_type_names            ,ONLY:required_key  ,not_required_key, &
+                                       required_input,not_required_input
+ USE mod_keyword_queue_built_up  ,ONLY:keyword_queue_built_up
+ USE keyword_node_def            ,ONLY:keyword_node
+ USE queue_type_def              ,ONLY:queue_type
+ USE node_type_def               ,ONLY:node_type
+ USE mod_string_in_list          ,ONLY:string_in_list
+ USE mod_queue                   ,ONLY:queue_built_up
+ USE mod_get_line                ,ONLY:get_next_line, &
+                                       get_prev_line
+ USE input_built_up_interface    ,ONLY:input_built_up
+ USE mod_key_positions           ,ONLY:key_positions, &
+                                       spec_positions
+ USE add_inp_spec_interface      ,ONLY:add_inp_spec
  USE mod_Get_Separation_Specifier,ONLY:Get_Separation_Specifier
- USE common_queues     ,ONLY:keywords,collected_input,input_key_node                ! Module containing queues and type definitions of queues
- USE mod_get_keyword   ,ONLY:get_keyword
- USE mod_check_presence,ONLY:CheckPresenceOfRequiredInputSpecifiers
- USE mod_Print_Keywords_Queue,ONLY:Print_Keywords
- USE mod_syntax_validator    ,ONLY:InputSyntax
+ USE common_queues               ,ONLY:keywords,collected_input,input_key_node  ! Module containing queues and type definitions of queues
+ USE mod_get_keyword             ,ONLY:get_keyword
+ USE mod_check_presence          ,ONLY:CheckPresenceOfRequiredInputSpecifiers
+ USE mod_Print_Keywords_Queue    ,ONLY:Print_Keywords
+ USE mod_syntax_validator        ,ONLY:InputSyntax
 
  IMPLICIT NONE
 
@@ -2444,7 +2451,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
  CHARACTER(Data_len)             :: first_spec                       !
  CHARACTER(Data_len)             :: last_spec                        !
  CHARACTER(Data_len)             :: sep_spec                         !
- LOGICAL                         :: got_first_spec                   !
+ LOGICAL                         :: got_first_specL
  LOGICAL                         :: new_keyword                      !
  LOGICAL                         :: process_line                     !
 
@@ -2454,7 +2461,9 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
 
  CHARACTER(len=*),PARAMETER      :: KeywordFileTypeC = 'inputfile'
 
-   bufferC = '' ! has to be initialized because it is an allocatable object
+ bufferC = '' ! has to be initialized because it is an allocatable object
+
+ spec    = '' ! has to be initialized because it is possible printed to screen
 
    IF (SecondEntryL) THEN
        SecondEntry_InputBuiltUpL = .TRUE.
@@ -2477,15 +2486,15 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
       ! Get input file name from 'keyword_filenameC'.
       ! The name of the input file is specified in 'keywords.val'.
       !-------------------------------------------------------------------------
-      IF (ParseKeywordsInputFileL) THEN ! <== Use keywords validator file, i.e. the file
+      IF (ParseKeywordsInputFileL) THEN ! <== Use keywords syntax validator file, i.e. the file
                                         !     keywords.val
                                         !     is read in.
        !------------------------------------------
        ! Get input file name from validator file.
        !------------------------------------------
        WRITE(my_output_unit,'(A)') ""
-       WRITE(my_output_unit,'(A)') " Reading in syntax validator file: "//TRIM(keyword_filenameC)
-       CALL GetInputFileNameFromValidatorFile(GetFilenameIncludingSyntaxFolder('',keyword_filenameC), &
+       WRITE(my_output_unit,'(A)') " Reading in keywords syntax validator file: "//TRIM(keyword_filenameC)
+       CALL GetInputFileNameFromValidatorFile(GetFilenameIncludingSyntaxFolder('keywords','',keyword_filenameC), &
                                               comment_signsCV,key_char,spec_char, &
                                               input_filenameC)
        ! input_filenameC contains the filename (possibly including a relative or absolute path)
@@ -2564,7 +2573,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
     NULLIFY(key_pos)
     NULLIFY(end_key_pos)
 
-    DO                                                                 !
+    DO
      CALL get_next_line (input_queue,bufferC,line_number,start_at_topL, &! Call queue for next line in input file
                          found_endL,act_node)                           !
      IF (found_endL) EXIT                                               ! quit after reading last line in input queue
@@ -2572,12 +2581,12 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
                                                                        ! which is determined by the separating character key_char.
      DO i=1,NumberOfKeywordsInLine                                     ! end_key_pos(i) is last character position of keyword
       icount        = icount + 1                                       !
-      keyC = ""                                                         !
+      keyC = ""
       DO j=key_pos(i),end_key_pos(i)                                   !
-       keyC(j:j) = bufferC(j:j)                                          !
+       keyC(j:j) = bufferC(j:j)
       END DO                                                           !
       IF (key_pos(i) > 1) THEN                                         !
-       IF (bufferC(key_pos(i)-1:key_pos(i)-1) /= " ") CALL ERROR(1)     !
+       IF (bufferC(key_pos(i)-1:key_pos(i)-1) /= " ") CALL ERROR(1)
       END IF                                                           !
       !----------------------------------------------------------------------------
       ! Check if keyword provided in input file (or database input file) is valid.
@@ -2676,7 +2685,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
       END IF                                                           !
                                                                        !
 !----------------------------------------------------------------------!
-        got_first_spec = .FALSE.                                       !
+        got_first_specL = .FALSE.
 
          !----------------------------------------------------------------------------------------
          ! It has to be nullified because SUBROUTINE spec_positions checks its associated status.
@@ -2714,10 +2723,10 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
          ! Check if specifier provided in input file is valid.
          !-----------------------------------------------------
          CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL,first_spec, found_specL)
-       IF(.NOT.found_keyL)  CALL ERROR(1)                               !
-       IF(.NOT.found_keyL)  CALL ERROR(3)                               !
-         IF (.NOT.found_specL) CALL ERROR(5)                            !
-         got_first_spec = .TRUE.                                       !
+         IF (.NOT.found_keyL)  CALL ERROR(1)
+         IF (.NOT.found_keyL)  CALL ERROR(3)
+         IF (.NOT.found_specL) CALL ERROR(5,"(2726) Specifier '"//TRIM(first_spec)//"' not found.",specifierC=first_spec) ! 2726 is internal line number in source code for debugging
+         got_first_specL = .TRUE.
        ELSE                                                            !
         first_spec = ' '                                               !
         DO ii=start_position,end_spec_pos(1)                           !
@@ -2730,15 +2739,21 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
         ! Check if specifier provided in input file is valid.
         !-----------------------------------------------------
         CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL,first_spec, found_specL)
-       IF(.NOT.found_keyL)    CALL ERROR(1)                             !
-       IF(.NOT.found_keyL)    CALL ERROR(3)                             !
-       IF(.NOT.found_specL)   CALL ERROR(5)                             !
-        got_first_spec = .TRUE.                                        !
+        IF (.NOT.found_keyL)    CALL ERROR(1)                             !
+        IF (.NOT.found_keyL)    CALL ERROR(3)                             !
+        IF (.NOT.found_specL)   CALL ERROR(5,"(2742) Specifier '"//TRIM(first_spec)//"' not found.",specifierC=first_spec) ! 2742 is internal line number in source code for debugging
+        got_first_specL = .TRUE.
                                                                        !
        END IF                                                          !
-        IF(got_first_spec) THEN                                        !
+        IF ( got_first_specL ) THEN
          CALL Get_Separation_Specifier(keywords,keyC, sep_spec)
-         IF (TRIM(sep_spec)/=TRIM(first_spec)) CALL ERROR(9)           !
+         IF ( TRIM(sep_spec) /= TRIM(first_spec) ) THEN
+            !-------------------------------------------------------------------------------------
+            ! Check if first specifier is the expected separating specifier.
+            ! Remember: The first specifier after a keyword is the special separationg specifier.
+            !-------------------------------------------------------------------------------------
+            CALL ERROR(9)
+         END IF
         END IF                                                         !
                                                                        !
       END IF                                                           !
@@ -2804,9 +2819,9 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
            ! Check if specifier provided in input file is valid.
            !-----------------------------------------------------
            CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL,spec, found_specL)
-       IF(.NOT.found_keyL)  CALL ERROR(1)                               !
-       IF(.NOT.found_keyL)  CALL ERROR(3)                               !
-       IF(.NOT.found_specL) CALL ERROR(5)                               !
+           IF (.NOT.found_keyL)  CALL ERROR(1)                               !
+           IF (.NOT.found_keyL)  CALL ERROR(3)                               !
+           IF (.NOT.found_specL) CALL ERROR(5,"(2816) Specifier '"//TRIM(spec)//"' not found.",specifierC=spec) ! 2816 is internal line number in source code for debugging
            IF((TRIM(spec) == TRIM(first_spec)).AND.                   &
               (TRIM(spec) == TRIM(sep_spec  ))         ) THEN           !
            tempC = ""                                                   !
@@ -3104,17 +3119,20 @@ CONTAINS                                                               !
 !
 !
 !------------------------------------------------------------------------------
- SUBROUTINE ERROR(ierr)
+ SUBROUTINE ERROR(ierr,AdditionalInfoC,specifierC)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
- USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage, &
+                                    Print_Keyword_Specifier_Line
  USE parser_parameters        ,ONLY:keyword_filetypeC, &
                                     SpecialMacroCharacterC
  USE MacroForInputFile        ,ONLY:Check_forbidden_characters
 
  IMPLICIT NONE
 
- INTEGER      ,INTENT(in)  :: ierr
+ INTEGER         ,INTENT(in)          :: ierr
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: specifierC
 
  CALL Error_PrintStandardMessage(keyword_filetypeC)
 
@@ -3129,23 +3147,37 @@ CONTAINS                                                               !
   CASE(4)
       WRITE(my_output_unit,*)'Odd number of keywords in ',TRIM(keyword_filetypeC),'.'
       WRITE(my_output_unit,'(A)') &
-       '(Unix/Linux/MacOS: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
+       '(Unix/Linux/macOS: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
   CASE(5)
+     IF ( .NOT. PRESENT(specifierC) ) THEN
+      WRITE(my_output_unit,'(A)') " Internal error. specifierC is not present."
+      STOP
+     END IF
+
       WRITE(my_output_unit,'(A,A,A,I15)') &
-                              ' I found invalid specifier >>>',TRIM(spec),'<<<  in line number = ',line_number
+                              ' I found invalid specifier >>>',TRIM(specifierC),'<<<  in line number = ',line_number
       WRITE(my_output_unit,'(A)') " Allowed values are defined in the file: "//TRIM(keyword_filenameC)
       !------------------------------------------------------------------
       ! Check if first character is special sign for variable, i.e. '%'.
       !------------------------------------------------------------------
-      IF ( spec(1:1) == SpecialMacroCharacterC ) THEN
-         WRITE(my_output_unit,'(A)') " You tried to define the variable: "//TRIM(spec)
-         CALL Check_forbidden_characters( TRIM(spec) )
+      IF ( specifierC(1:1) == SpecialMacroCharacterC ) THEN
+         WRITE(my_output_unit,'(A)') " You tried to define the variable: "//TRIM(specifierC)
+         CALL Check_forbidden_characters( TRIM(specifierC) )
       END IF
+      IF ( PRESENT(AdditionalInfoC) ) THEN
+         WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+      END IF
+      CALL Print_Keyword_Specifier_Line(keyC,specifierC,line_number,STOP_L=.TRUE.)
   CASE(6)
-      WRITE(my_output_unit,*)'invalid specifier(s) in ',TRIM(keyword_filetypeC),'.'
-  CASE(7)
-      WRITE(my_output_unit,*)'expect an = after specifier >',TRIM(spec), &          !
-                '<  in line number = ',line_number                     !
+      WRITE(my_output_unit,'(A)')' Invalid specifier(s) in '//TRIM(keyword_filetypeC)//'.'
+! CASE(7)
+!    IF ( .NOT. PRESENT(specifierC) ) THEN
+!     WRITE(my_output_unit,'(A)') " Internal error. specifierC is not present."
+!     STOP
+!    END IF
+!     This error message is not used.
+!     WRITE(my_output_unit,*)'expect an = after specifier >',TRIM(specifierC), &          !
+!               '<  in line number = ',line_number                     !
   CASE(8)
       WRITE(my_output_unit,*)'nonmatching end keyword  >',TRIM(keyC), &              !
                 '<  in line number = ',line_number                     !
@@ -3163,7 +3195,7 @@ CONTAINS                                                               !
       WRITE(my_output_unit,'(7x,A)')        "..."
       WRITE(my_output_unit,'(6x,A)')        key_char//"end_"//keyC(2:LEN_TRIM(keyC))
       WRITE(my_output_unit,'(A)')         ""
-      WRITE(my_output_unit,'(A)')         " Note that however the following syntax is required:"
+      WRITE(my_output_unit,'(A)')         " Note that, however, the following syntax is required:"
       WRITE(my_output_unit,'(6x,A)')        TRIM(keyC)
       WRITE(my_output_unit,'(7x,A,A)')      TRIM(sep_spec)  ," = ...              !  <==  correct"
       WRITE(my_output_unit,'(7x,A)')        "..."
@@ -3630,6 +3662,9 @@ CONTAINS                                                               !
 
  IF (first_entry) NULLIFY(a1)
 
+ !---------
+ ! Keyword
+ !---------
  IF (new) THEN
      last_keyC = ''                                                     !
      a1 => collected_input%top                                         !
@@ -3657,6 +3692,9 @@ CONTAINS                                                               !
  END IF
  IF(.NOT.ASSOCIATED(a1)) CALL ERROR(2)                              !
                                                                        !
+ !-----------
+ ! Specifier
+ !-----------
  IF ( new ) b1 => a1%entries%top                                    !
     IF (cont .AND. .NOT.new ) b1 => b1%next_specifier                  !
     last = .FALSE.                                                     !
@@ -3916,7 +3954,7 @@ CONTAINS                                                               !
      IF (ASSOCIATED(b1%input_spec%inar_queue%top)) THEN                !
       c1 => b1%input_spec%inar_queue%top                               !
      ELSE                                                              !
-      CALL ERROR(5)                                                    !
+      CALL ERROR(5,"3925") ! 3925 is internal line number in source code for debugging
      END IF                                                            !
      DO
       IF (.NOT. ASSOCIATED(c1)) EXIT
@@ -3939,13 +3977,18 @@ CONTAINS                                                               !
     END IF                                                             !
 !----------------------------------------------------------------------!
 CONTAINS                                                               !
-  SUBROUTINE ERROR(error_number)                                       !
+  SUBROUTINE ERROR(error_number,AdditionalInfoC)                                       !
 
  USE My_Input_and_Output_Units,ONLY:my_output_unit
 
  IMPLICIT NONE  
 
-   INTEGER error_number                                                !
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+   WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
                                                                        !
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                         !
@@ -4062,7 +4105,7 @@ CONTAINS                                                               !
      IF (ASSOCIATED(b1%input_spec%xsar_queue%top)) THEN                !
       c1 => b1%input_spec%xsar_queue%top                               !
      ELSE                                                              !
-      CALL ERROR(5)                                                    !
+      CALL ERROR(5,"4071") ! 4071 is internal line number in source code for debugging
      END IF                                                            !
      DO
       IF (.NOT. ASSOCIATED(c1)) EXIT
@@ -4085,14 +4128,19 @@ CONTAINS                                                               !
     END IF                                                             !
 !----------------------------------------------------------------------!
 CONTAINS                                                               !
-  SUBROUTINE ERROR(error_number)                                       !
+  SUBROUTINE ERROR(error_number,AdditionalInfoC)
 
  USE My_Input_and_Output_Units,ONLY:my_output_unit
   
  IMPLICIT NONE
 
-   INTEGER error_number                                                !
-                                                                       !
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+    WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
+
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                         !
     WRITE(my_output_unit,*)'>>>>>>> ERROR <<<<< >>>>> ERROR <<<<< >>>>>ERROR<<<<<<<'!
@@ -4209,7 +4257,7 @@ CONTAINS                                                               !
      IF (ASSOCIATED(b1%input_spec%xdar_queue%top)) THEN                !
       c1 => b1%input_spec%xdar_queue%top                               !
      ELSE                                                              !
-      CALL ERROR(5)                                                    !
+      CALL ERROR(5,"4218") ! 4218 is internal line number in source code for debugging
      END IF                                                            !
      DO
       IF (.NOT. ASSOCIATED(c1)) EXIT
@@ -4232,13 +4280,18 @@ CONTAINS                                                               !
     END IF                                                             !
 !----------------------------------------------------------------------!
 CONTAINS                                                               !
-  SUBROUTINE ERROR(error_number)                                       !
+  SUBROUTINE ERROR(error_number,AdditionalInfoC)
 
  USE My_Input_and_Output_Units,ONLY:my_output_unit
 
  IMPLICIT NONE  
 
-   INTEGER error_number                                                !
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+    WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
                                                                        !
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                         !

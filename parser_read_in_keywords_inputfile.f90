@@ -57,21 +57,21 @@
 ! To read entries from inputfile.
 !
 !------------------------------------------------------------------------------
- USE My_Input_and_Output_Units,ONLY:my_output_unit
- USE generic_inputfile        ,ONLY:get_from_inputfile
- USE Parser_Tools             ,ONLY:is_yes, &
-                                    is_no
- USE Parser_Errors            ,ONLY:STOP_UnexpectedNumbers, &
-                                    STOP_Yes_or_No_is_required, &
-                                    Error_CheckRange, &
-                                    Print_Keyword_Specifier_Line
- USE mod_input_data           ,ONLY:type_data
+ USE My_Input_and_Output_Units        ,ONLY:my_output_unit
+ USE generic_inputfile                ,ONLY:get_from_inputfile
+ USE Parser_Tools                     ,ONLY:is_yes, &
+                                            is_no
+ USE Parser_Errors                    ,ONLY:STOP_UnexpectedNumbers, &
+                                            STOP_Yes_or_No_is_required, &
+                                            Error_CheckRange, &
+                                            Print_Keyword_Specifier_Line
+ USE mod_FortranInputParser_input_data,ONLY:type_data
  !-------------------------------------------------
  ! These variables are read in from the inputfile.
  !-------------------------------------------------
- USE variables_inputfile      ,ONLY:MagneticField, &
-                                    MaterialV, &
-                                    CommandLineBatchL
+ USE variables_inputfile              ,ONLY:MagneticField, &
+                                            MaterialV, &
+                                            CommandLineBatchL
                        
  IMPLICIT NONE
 

@@ -55,12 +55,12 @@
   CHARACTER(len=*)             ,PARAMETER :: TEXT_String_EndC       = '!ENDTEXT'              ! special string for multiline comment (case sensitive)
 
 
-  ! Define 'database_nn3_keywords.val'
-  ! Define 'database_nn3.in'
-  CHARACTER(len=*),PARAMETER :: keyword_filetypeC         = 'database_nn3'                                     ! This is how we call these type of files that we want to parse.
+  ! Define 'database_keywords.val'
+  ! Define 'database.nn3'
+  CHARACTER(len=*),PARAMETER :: keyword_filetypeC         = 'database'                                         ! This is how we call these type of files that we want to parse.
   CHARACTER(len=*),PARAMETER :: keyword_filetype_nnpC     = 'database_nnp'                                     ! This is how we call these type of files that we want to parse.
   CHARACTER(len=*),PARAMETER :: keyword_filenameC         = TRIM(keyword_filetypeC)//'_keywords'//ValidatorC   ! name of file, containing definitions of keywords and specifiers without file extension
-! CHARACTER(len=*),PARAMETER :: MaterialDatabaseFileNameC = TRIM(keyword_filetypeC)//InputC                    ! default name for material database: database_nn3.in
+! CHARACTER(len=*),PARAMETER :: MaterialDatabaseFileNameC = TRIM(keyword_filetypeC)//InputC                    ! default name for material database: database.nn3
 
 !------------------------------------------------------------------------------
  END MODULE d_parser_parameters
@@ -390,6 +390,7 @@
  CHARACTER(len=:),ALLOCATABLE                  :: bufferC
  TYPE(String_in_Line),DIMENSION(:),ALLOCATABLE :: StringsV
  LOGICAL                                                :: Multiline_Comment_OnL  ! .TRUE.  if special string '!TEXT' was found
+ INTEGER                                                :: max_string_length
  INTEGER                                                :: NumberOfLines
  INTEGER                                                :: line_number
 
@@ -417,7 +418,7 @@
  !--------------------------------
  ! Read file and store the lines.
  !--------------------------------
- CALL ReadFileAndStoreLines(input_filename_C, StringsV)
+ CALL ReadFileAndStoreLines(input_filename_C, StringsV,max_string_length)
 
    !---------------
    ! Replace tabs.
@@ -1455,7 +1456,7 @@ CONTAINS                                                               !
      DO num_xs=1,SIZE(spec_node%input_spec%spxs)                       !
      IF(TRIM(spec_node%input_spec%spxs(num_xs))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prxs(num_xs))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1782") ! 1782 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%xs(num_xs)   = xs_t                         !
       spec_node%input_spec%prxs(num_xs) = .TRUE.                       !
@@ -1468,7 +1469,7 @@ CONTAINS                                                               !
      DO num_xd=1,SIZE(spec_node%input_spec%spxd)                       !
      IF(TRIM(spec_node%input_spec%spxd(num_xd))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prxd(num_xd))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1795") ! 1795 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%xd(num_xd)   = xd_t                         !
       spec_node%input_spec%prxd(num_xd) = .TRUE.                       !
@@ -1481,7 +1482,7 @@ CONTAINS                                                               !
      DO num_in=1,SIZE(spec_node%input_spec%spin)                       !
      IF(TRIM(spec_node%input_spec%spin(num_in))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prin(num_in))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1808") ! 1808 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%in(num_in)   = in_t                         !
       spec_node%input_spec%prin(num_in) = .TRUE.                       !
@@ -1494,7 +1495,7 @@ CONTAINS                                                               !
      DO num_ca=1,SIZE(spec_node%input_spec%spca)                       !
      IF(TRIM(spec_node%input_spec%spca(num_ca))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prcaL(num_ca))THEN                       !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1821") ! 1821 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%ca(num_ca)   = TRIM(ca_t)                   !
       spec_node%input_spec%prcaL(num_ca) = .TRUE.                      !
@@ -1507,7 +1508,7 @@ CONTAINS                                                               !
      DO num_lo=1,SIZE(spec_node%input_spec%splo)                       !
      IF(TRIM(spec_node%input_spec%splo(num_lo))==TRIM(specifierC))THEN       !
       IF(spec_node%input_spec%prlo(num_lo))THEN                        !
-       CALL ERROR(5)                                                   !
+       CALL ERROR(5,"1834") ! 1834 is internal line number in source code for debugging
       END IF                                                           !
       spec_node%input_spec%lo(num_lo)   = lo_t                         !
       spec_node%input_spec%prlo(num_lo) = .TRUE.                       !
@@ -1566,7 +1567,7 @@ CONTAINS                                                               !
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE ERROR(error_number)
+ SUBROUTINE ERROR(error_number,AdditionalInfoC)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
  USE d_parser_parameters      ,ONLY:keyword_filetypeC, &
@@ -1574,7 +1575,12 @@ CONTAINS                                                               !
 
    IMPLICIT NONE
 
-   INTEGER,INTENT(in) :: error_number
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+    WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
 
     IF(error_number==1)THEN                                            !
     WRITE(my_output_unit,*) '>>>>>>> ERROR <<<<< >>>>> ERROR <<<<< >>>>>ERROR<<<<<<<'!
@@ -2028,7 +2034,7 @@ CONTAINS
  CHARACTER(Data_len)          :: first_spec                          !
  CHARACTER(Data_len)          :: last_spec                           !
  CHARACTER(Data_len)          :: sep_spec                            !
- LOGICAL                      :: got_first_spec                      !
+ LOGICAL                      :: got_first_specL
  LOGICAL                      :: new_keyword                         !
  LOGICAL                      :: process_line                        !
 
@@ -2051,19 +2057,19 @@ CONTAINS
       !----------------------------------------
       input_filenameC = TRIM(InputFilenameC_in)
     ELSE
-      !-------------------------------------------------------------------------
+      !---------------------------------------------------------------------
       ! Get input file name from 'keyword_filenameC'.
-      ! The name of the input file is specified in 'database_nn3_keywords.val'.
-      !-------------------------------------------------------------------------
+      ! The name of the input file is specified in 'database_keywords.val'.
+      !---------------------------------------------------------------------
       IF (ParseKeywordsDatabaseL) THEN ! <== Use keywords validator file, i.e. the file
-                                       !     database_nn3_keywords.val
+                                       !     database_keywords.val
                                        ! is read in.
        !------------------------------------------
        ! Get input file name from validator file.
        !------------------------------------------
        WRITE(my_output_unit,'(A)') ""
-       WRITE(my_output_unit,'(A)') " Reading in syntax validator file: "//TRIM(keyword_filenameC)
-       CALL GetInputFileNameFromValidatorFile(GetFilenameIncludingSyntaxFolder('',keyword_filenameC), &
+       WRITE(my_output_unit,'(A)') " Reading in keywords syntax validator file: "//TRIM(keyword_filenameC)
+       CALL GetInputFileNameFromValidatorFile(GetFilenameIncludingSyntaxFolder('keywords','',keyword_filenameC), &
                                               comment_signsCV,key_char,spec_char, &
                                               input_filenameC)
        ! input_filenameC contains the filename (possibly including a relative or absolute path)
@@ -2071,17 +2077,17 @@ CONTAINS
        ! If not, we print a message to the screen.
        IF (.NOT. file_existsL(input_filenameC)) THEN
         WRITE(my_output_unit,'(1x,A,A,A,A)') TRIM(keyword_filetypeC)," file '",TRIM(input_filenameC),"' does not exist."
-        input_filenameC = GetFilenameIncludingSyntaxFolder('',TRIM(keyword_filetypeC)//InputC)            ! 'Syntax/database_nn3.in'
+        input_filenameC = GetFilenameIncludingSyntaxFolder('database','',TRIM(keyword_filetypeC)//InputC) ! '../database/database.nn3'
         STOP
       ! WRITE(my_output_unit,'(A,A,A,A,A)') &
-      !                   " Taking default ",TRIM(keyword_filetypeC)," file '",TRIM(input_filenameC),"'." ! This corresponds to reading in 'Syntax/database_nn3.in'.
+      !                   " Taking default ",TRIM(keyword_filetypeC)," file '",TRIM(input_filenameC),"'." ! This corresponds to reading in 'database/database.nn3'.
        END IF
 
       ELSE
-       !----------------------------------------------------------------------------
+       !------------------------------------------------------------------------
        ! Get input file name from source code,
-       ! i.e. the content of database_nn3_keywords.val is contained in source code.
-       !----------------------------------------------------------------------------
+       ! i.e. the content of database_keywords.val is contained in source code.
+       !------------------------------------------------------------------------
        input_filename_allocatableC = ''
        CALL InputSyntax(KeywordFileTypeC,.FALSE.,'default-filename', input_filename_allocatableC)
        input_filenameC = input_filename_allocatableC
@@ -2138,7 +2144,7 @@ CONTAINS
     NULLIFY(key_pos)
     NULLIFY(end_key_pos)
 
-    DO                                                                 !
+    DO
      CALL get_next_line (input_queue,bufferC,line_number,start_at_topL, &! Call queue for next line in input file
                          found_endL,act_node)                           !
      IF (found_endL) EXIT                                               ! quit after reading last line in input queue
@@ -2146,12 +2152,12 @@ CONTAINS
                                                                        ! which is determined by the separating character key_char.
      DO i=1,NumberOfKeywordsInLine                                                    ! end_key_pos(i) is last character position of keyword
       icount        = icount + 1                                       !
-      keyC = ""                                                         !
+      keyC = ""
       DO j=key_pos(i),end_key_pos(i)                                   !
-       keyC(j:j) = bufferC(j:j)                                          !
+       keyC(j:j) = bufferC(j:j)
       END DO                                                           !
       IF (key_pos(i) > 1) THEN                                         !
-       IF (bufferC(key_pos(i)-1:key_pos(i)-1) /= " ") CALL ERROR(1)     !
+       IF (bufferC(key_pos(i)-1:key_pos(i)-1) /= " ") CALL ERROR(1)
       END IF                                                           !
       !----------------------------------------------------------------------------
       ! Check if keyword provided in input file (or database input file) is valid.
@@ -2250,7 +2256,7 @@ CONTAINS
       END IF                                                           !
                                                                        !
 !----------------------------------------------------------------------!
-        got_first_spec = .FALSE.                                       !
+        got_first_specL = .FALSE.
 
          !----------------------------------------------------------------------------------------
          ! It has to be nullified because SUBROUTINE spec_positions checks its associated status.
@@ -2288,10 +2294,10 @@ CONTAINS
          ! Check if specifier provided in input file is valid.
          !-----------------------------------------------------
          CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL,first_spec, found_specL)
-       IF(.NOT.found_keyL)  CALL ERROR(1)                               !
-       IF(.NOT.found_keyL)  CALL ERROR(3)                               !
-         IF (.NOT.found_specL) CALL ERROR(5)                            !
-         got_first_spec = .TRUE.                                       !
+       IF(.NOT.found_keyL)  CALL ERROR(1)
+       IF(.NOT.found_keyL)  CALL ERROR(3)
+         IF (.NOT.found_specL) CALL ERROR(5,"(2726) Specifier '"//TRIM(first_spec)//"' not found.",specifierC=first_spec) ! 2726 is internal line number in source code for debugging
+         got_first_specL = .TRUE.
        ELSE                                                            !
         first_spec = ' '                                               !
         DO ii=start_position,end_spec_pos(1)                           !
@@ -2306,13 +2312,19 @@ CONTAINS
         CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL,first_spec, found_specL)
        IF(.NOT.found_keyL)  CALL ERROR(1)                               !
        IF(.NOT.found_keyL)  CALL ERROR(3)                               !
-        IF (.NOT.found_specL) CALL ERROR(5)                             !
-        got_first_spec = .TRUE.                                        !
+        IF (.NOT.found_specL)   CALL ERROR(5,"(2742) Specifier '"//TRIM(first_spec)//"' not found.",specifierC=first_spec) ! 2742 is internal line number in source code for debugging
+        got_first_specL = .TRUE.
                                                                        !
        END IF                                                          !
-        IF(got_first_spec) THEN                                        !
+        IF ( got_first_specL ) THEN
          CALL Get_Separation_Specifier(keywords,keyC, sep_spec)
-         IF (TRIM(sep_spec)/=TRIM(first_spec)) CALL ERROR(9)           !
+         IF ( TRIM(sep_spec) /= TRIM(first_spec) ) THEN
+            !-------------------------------------------------------------------------------------
+            ! Check if first specifier is the expected separating specifier.
+            ! Remember: The first specifier after a keyword is the special separationg specifier.
+            !-------------------------------------------------------------------------------------
+            CALL ERROR(9)
+         END IF
         END IF                                                         !
                                                                        !
       END IF                                                           !
@@ -2380,14 +2392,14 @@ CONTAINS
            CALL string_in_list(Data_len,key_char,keywords,keyC,found_keyL,spec, found_specL)
        IF(.NOT.found_keyL)  CALL ERROR(1)                               !
        IF(.NOT.found_keyL)  CALL ERROR(3)                               !
-       IF(.NOT.found_specL) CALL ERROR(5)                               !
+           IF (.NOT.found_specL) CALL ERROR(5,"(2816) Specifier '"//TRIM(spec)//"' not found.",specifierC=spec) ! 2816 is internal line number in source code for debugging
            IF((TRIM(spec) == TRIM(first_spec)).AND.                   &
               (TRIM(spec) == TRIM(sep_spec  ))         ) THEN          !
            tempC = ""                                                   !
            tempC = spec                                                 !
-           !----------------------------------------------------------------------------------------------------------
-           ! Add input specifier node and transfer information of database_nn3_keywords.val to queue collected_input.
-           !----------------------------------------------------------------------------------------------------------
+           !------------------------------------------------------------------------------------------------------
+           ! Add input specifier node and transfer information of database_keywords.val to queue collected_input.
+           !------------------------------------------------------------------------------------------------------
            CALL d_add_inp_spec (collected_input,keywords,keyC,spec)     !
            spec = tempC                                                 !
            tempC = ""                                                   !
@@ -2680,15 +2692,18 @@ CONTAINS                                                               !
 !
 ! 
 !------------------------------------------------------------------------------
- SUBROUTINE ERROR(ierr)
+ SUBROUTINE ERROR(ierr,AdditionalInfoC,specifierC)
 !------------------------------------------------------------------------------
  USE My_Input_and_Output_Units,ONLY:my_output_unit
- USE Parser_Errors            ,ONLY:Error_PrintStandardMessage
+ USE Parser_Errors            ,ONLY:Error_PrintStandardMessage, &
+                                    Print_Keyword_Specifier_Line
  USE d_parser_parameters      ,ONLY:keyword_filetypeC
 
  IMPLICIT NONE
 
- INTEGER      ,INTENT(in)  :: ierr
+ INTEGER         ,INTENT(in)          :: ierr
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: specifierC
 
  CALL Error_PrintStandardMessage(keyword_filetypeC)
 
@@ -2703,16 +2718,30 @@ CONTAINS                                                               !
   CASE(4)
       WRITE(my_output_unit,*) 'odd number of keywords in ',TRIM(keyword_filetypeC),'.'
       WRITE(my_output_unit,'(A)') &
-        ' (Unix/Linux/MacOS: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
+        ' (Unix/Linux/macOS: Maybe a carriage return (End of Line) in the last line of the file is missing.)'
   CASE(5)
+     IF ( .NOT. PRESENT(specifierC) ) THEN
+      WRITE(my_output_unit,'(A)') " Internal error. specifierC is not present."
+      STOP
+     END IF
+
       WRITE(my_output_unit,'(A,A,A,I15)') &
-                              ' I found invalid specifier >>>',TRIM(spec),'<<<  in line number = ',line_number
+                              ' I found invalid specifier >>>',TRIM(specifierC),'<<<  in line number = ',line_number
       WRITE(my_output_unit,'(A)') " Allowed values are defined in the file: "//TRIM(keyword_filenameC)
+      IF ( PRESENT(AdditionalInfoC) ) THEN
+         WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+      END IF
+      CALL Print_Keyword_Specifier_Line(keyC,specifierC,line_number,STOP_L=.TRUE.)
   CASE(6)
-      WRITE(my_output_unit,*) 'invalid specifier(s) in ',TRIM(keyword_filetypeC),'.'
-  CASE(7)
-      WRITE(my_output_unit,*) 'expect an = after specifier >',TRIM(spec), &          !
-                '<  in line number = ',line_number                     !
+      WRITE(my_output_unit,'(A)') ' Invalid specifier(s) in '//TRIM(keyword_filetypeC)//'.'
+! CASE(7)
+!    IF ( .NOT. PRESENT(specifierC) ) THEN
+!     WRITE(my_output_unit,'(A)') " Internal error. specifierC is not present."
+!     STOP
+!    END IF
+!     This error message is not used.
+!     WRITE(my_output_unit,*) 'expect an = after specifier >',TRIM(specifierC), &          !
+!               '<  in line number = ',line_number                     !
   CASE(8)
       WRITE(my_output_unit,*) 'nonmatching end keyword  >',TRIM(keyC), &              !
                 '<  in line number = ',line_number                     !
@@ -2730,7 +2759,7 @@ CONTAINS                                                               !
       WRITE(my_output_unit,'(7x,A)')        "..."
       WRITE(my_output_unit,'(6x,A)')        key_char//"end_"//keyC(2:LEN_TRIM(keyC))
       WRITE(my_output_unit,'(A)')         ""
-      WRITE(my_output_unit,'(A)')         " Note that however the following syntax is required:"
+      WRITE(my_output_unit,'(A)')         " Note that, however, the following syntax is required:"
       WRITE(my_output_unit,'(6x,A)')        TRIM(keyC)
       WRITE(my_output_unit,'(7x,A,A)')      TRIM(sep_spec)  ," = ...              !  <==  correct"
       WRITE(my_output_unit,'(7x,A)')        "..."
@@ -3173,6 +3202,7 @@ CONTAINS                                                               !
   SUBROUTINE d_get_spec_datab_ca(keyword,new,specifier,cont,ca_t,        &!
                               pres,line,last)                          !
 !----------------------------------------------------------------------!
+!USE system_specific_parser,ONLY:DebugLevel
  USE d_parser_parameters   ,ONLY:keyword_filetypeC
  USE d_common_queues       ,ONLY:collected_input                       ! Module containing queues and type definitions of queues
  USE d_common_nodes                                                    ! Module to share actual pointer to nodes among subroutines for generic get_from_inputfile
@@ -3193,16 +3223,17 @@ CONTAINS                                                               !
  LOGICAL                      :: found_specL
 
    ca_t = ''
-                                                                       !
-    IF (first_entry) NULLIFY(a1)                                       !
-    IF (new) THEN                                                      !
+
+    IF (first_entry) NULLIFY(a1)
+
+    IF (new) THEN
      last_keyC = ''                                                     !
      a1 => collected_input%top                                         !
      first_entry = .FALSE.                                             !
      found_keyL = .FALSE.                                               !
      DO
       IF (.NOT. ASSOCIATED(a1)) EXIT
-      IF(LEN_TRIM(keyword)==a1%length)THEN                             !
+      IF (LEN_TRIM(keyword)==a1%length) THEN
        found_keyL = .TRUE.                                              !
        DO i=1,a1%length                                                !
         IF(a1%keyword(i) /= keyword(i:i)) found_keyL = .FALSE.          !
@@ -3216,10 +3247,10 @@ CONTAINS                                                               !
     IF (.NOT.found_keyL) THEN                                         !
        pres = .FALSE. ; line = -1 ; last = .TRUE. ; RETURN             !
       END IF                                                           !
-      IF (.NOT.found_keyL) CALL ERROR(1)                                !(a1%keyword(i),i=1,a1%length)            !
-    ELSE                                                               !
-      IF (TRIM(last_keyC) /= TRIM(keyword)) CALL ERROR(4)               !
-    END IF                                                             !
+      IF (.NOT.found_keyL) CALL ERROR(1)                                !(a1%keyword(i),i=1,a1%length)
+    ELSE
+      IF (TRIM(last_keyC) /= TRIM(keyword)) CALL ERROR(4)
+    END IF
     IF(.NOT.ASSOCIATED(a1)) CALL ERROR(2)                              !
                                                                        !
     IF ( new ) b1 => a1%entries%top                                    !
@@ -3481,9 +3512,9 @@ CONTAINS                                                               !
      IF (ASSOCIATED(b1%input_spec%inar_queue%top)) THEN                !
       c1 => b1%input_spec%inar_queue%top                               !
      ELSE                                                              !
-      CALL ERROR(5)                                                    !
+      CALL ERROR(5,"3925") ! 3925 is internal line number in source code for debugging
      END IF                                                            !
-     DO 
+     DO
       IF (.NOT. ASSOCIATED(c1)) EXIT
       IF (TRIM(c1%spinar)==TRIM(specifier)) THEN                       !
        found_specL = .TRUE.                                             !
@@ -3504,13 +3535,18 @@ CONTAINS                                                               !
     END IF                                                             !
 !----------------------------------------------------------------------!
 CONTAINS                                                               !
-  SUBROUTINE ERROR(error_number)                                       !
+  SUBROUTINE ERROR(error_number,AdditionalInfoC)                                       !
 
  USE My_Input_and_Output_Units,ONLY:my_output_unit
 
  IMPLICIT NONE  
 
-   INTEGER error_number                                                !
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+   WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
                                                                        !
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                          !
@@ -3627,9 +3663,9 @@ CONTAINS                                                               !
      IF (ASSOCIATED(b1%input_spec%xsar_queue%top)) THEN                !
       c1 => b1%input_spec%xsar_queue%top                               !
      ELSE                                                              !
-      CALL ERROR(5)                                                    !
+      CALL ERROR(5,"4071") ! 4071 is internal line number in source code for debugging
      END IF                                                            !
-     DO 
+     DO
       IF (.NOT. ASSOCIATED(c1)) EXIT
       IF (TRIM(c1%spxsar)==TRIM(specifier)) THEN                       !
        found_specL = .TRUE.                                             !
@@ -3650,14 +3686,19 @@ CONTAINS                                                               !
     END IF                                                             !
 !----------------------------------------------------------------------!
 CONTAINS                                                               !
-  SUBROUTINE ERROR(error_number)                                       !
+  SUBROUTINE ERROR(error_number,AdditionalInfoC)
 
  USE My_Input_and_Output_Units,ONLY:my_output_unit
+  
+ IMPLICIT NONE
 
- IMPLICIT NONE  
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
 
-   INTEGER error_number                                                !
-                                                                       !
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+    WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
+
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                          !
     WRITE(my_output_unit,*) '>>>>>>> ERROR <<<<< >>>>> ERROR <<<<< >>>>>ERROR<<<<<<<'!
@@ -3774,7 +3815,7 @@ CONTAINS                                                               !
      IF (ASSOCIATED(b1%input_spec%xdar_queue%top)) THEN                !
       c1 => b1%input_spec%xdar_queue%top                               !
      ELSE                                                              !
-      CALL ERROR(5)                                                    !
+      CALL ERROR(5,"4218") ! 4218 is internal line number in source code for debugging
      END IF                                                            !
      DO 
       IF (.NOT. ASSOCIATED(c1)) EXIT
@@ -3797,13 +3838,18 @@ CONTAINS                                                               !
     END IF                                                             !
 !----------------------------------------------------------------------!
 CONTAINS                                                               !
-  SUBROUTINE ERROR(error_number)                                       !
+  SUBROUTINE ERROR(error_number,AdditionalInfoC)
 
  USE My_Input_and_Output_Units,ONLY:my_output_unit
 
  IMPLICIT NONE  
 
-   INTEGER error_number                                                !
+ INTEGER         ,INTENT(in)          :: error_number
+ CHARACTER(len=*),INTENT(in),OPTIONAL :: AdditionalInfoC
+
+ IF ( PRESENT(AdditionalInfoC) ) THEN
+    WRITE(my_output_unit,'(A)') ' (internal info): '//TRIM(AdditionalInfoC)
+ END IF
                                                                        !
    IF(error_number==1)THEN                                             !
     WRITE(my_output_unit,*)                                                          !
