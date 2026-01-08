@@ -47,6 +47,7 @@
  LOGICAL                         :: ParseKeywordsDatabaseL  = .FALSE.
  LOGICAL                         :: ParseInputFileOnlyL     = .FALSE.
  LOGICAL                         :: WriteCompactFileL       = .FALSE.
+ LOGICAL                         :: Write_INI_FileL         = .FALSE.
 
  LOGICAL                         ::   SetInputFileViaCommandLineL
  LOGICAL                         ::    SetDatabaseViaCommandLineL
@@ -130,6 +131,7 @@
  INTEGER           :: my_input_unit        = 5  ! The standard  input unit number. This is the one used by               READ  with an asterisk ('*') unit.
  INTEGER           :: my_output_unit       = 6  ! The standard output unit number. This is the one used by PRINT, and by WRITE with an asterisk ('*') unit.
  INTEGER,PARAMETER :: output_unit_log_file = 81 ! Note: This number must be UNIQUE. It must not be used elsewhere in the code!!!
+ INTEGER,PARAMETER :: output_unit_INI_file = 82 ! Note: This number must be UNIQUE. It must not be used elsewhere in the code!!!
 
 !------------------------------------------------------------------------------
  END MODULE My_Input_and_Output_Units

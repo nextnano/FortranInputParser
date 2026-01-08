@@ -110,7 +110,7 @@
  CONTAINS
 
 !------------------------------------------------------------------------------
- SUBROUTINE queue_built_up(input_filename_C, queue_1)
+ SUBROUTINE queue_built_up(input_filename_C, queue_1,INI_filenameC)
 !------------------------------------------------------------------------------
 !
 !++s* mod_queue/queue_built_up
@@ -122,13 +122,14 @@
 !   Builds up the queue of the input file.
 !
 ! USAGE
-!   CALL queue_built_up(input_filename_C, queue_1)
+!   CALL queue_built_up(input_filename_C, queue_1,INI_filenameC)
 !
 ! INPUT
 !   o input_filename_C:
 !
 ! OUTPUT
 !   o queue_1:
+!   o INI_filenameC:  name of ini file name
 ! 
 !##
 !
@@ -153,7 +154,8 @@
                                     TEXT_String_EndC
  USE mod_FileExtensions_parser,ONLY:Batch_WindowsC, &
                                     Batch_LinuxC, &
-                                    InputC
+                                    InputC, &
+                                    INI_C
  USE mod_SpecialStrings       ,ONLY:Multiline_Comment, &
                                     Extract_DATA
  USE mod_chrpak               ,ONLY:StringReplace
@@ -176,6 +178,7 @@
 
  CHARACTER(len=*),INTENT(in)                            :: input_filename_C
  TYPE(queue_type),INTENT(out)                           :: queue_1
+ CHARACTER(len=*),INTENT(out)                           :: INI_filenameC
 
  INTEGER,PARAMETER                                      :: Linelength_very_long = 98765   ! Data_len_very_long
  CHARACTER(Linelength_very_long)                        :: bufferC_read
@@ -288,6 +291,7 @@
  UseMacroFindAndReplaceL = .FALSE.
  NumberOfFindReplace_max = 40       ! Find_and_Replace_1,Find_and_Replace_2,...,Find_and_Replace_40
  filename                = ''
+ INI_filenameC           = ''
 
  !--------------------------------------
  ! Default initialization is necessary.
@@ -603,11 +607,12 @@
      ! Example: 'my_input_file.nn3' ==> 'my_input_file.nn3_no_macro.nn3'
      !                                  'my_input_file.nn3_compact.nn3'
      !---------------------------------------------------------------------------
-     OPEN (33,file = TRIM(Folder_InputFilename_outC)//'_no_macro'//InputC)  ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+     OPEN (33,file = TRIM(Folder_InputFilename_outC)//'_no_macro'//InputC) ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
    IF (WriteCompactFileL) THEN
-     OPEN (34,file = TRIM(Folder_InputFilename_outC)//'_compact'//InputC)   ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
+     OPEN (34,file = TRIM(Folder_InputFilename_outC)//'_compact'//InputC)  ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
    END IF
+   INI_filenameC   = TRIM(Folder_InputFilename_outC)            //INI_C    ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
 
    line_number = 0
 
@@ -2369,10 +2374,12 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
 !##
 !
 !------------------------------------------------------------------------------
- USE My_Input_and_Output_Units   ,ONLY:my_output_unit
+ USE My_Input_and_Output_Units   ,ONLY:my_output_unit, &
+                                       output_unit_INI_file
  USE system_specific_parser      ,ONLY:DebugLevel, &
                                        ParseInputFileOnlyL, &
-                                       ParseKeywordsInputFileL
+                                       ParseKeywordsInputFileL, &
+                                       Write_INI_FileL
  USE mod_SyntaxFolder            ,ONLY:GetFilenameIncludingSyntaxFolder
  USE mod_InputFileName           ,ONLY:GetInputFileNameFromValidatorFile
  USE parser_parameters           ,ONLY:key_char, &
@@ -2383,6 +2390,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
                                       keyword_filenameC        , &
                                       keyword_filetypeC        , &
                                       SecondEntry_InputBuiltUpL, &
+                                      char_length_specifier_content, &
                                       Data_len_very_long, &
                                       Data_len_long, &
                                       Data_len
@@ -2461,6 +2469,13 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
 
  CHARACTER(len=*),PARAMETER      :: KeywordFileTypeC = 'inputfile'
 
+ CHARACTER(len=:),ALLOCATABLE                 :: INI_keyword_previousC
+ CHARACTER(len=:),ALLOCATABLE                 :: INI_specifier_previousC
+ CHARACTER(len=char_length_specifier_content) :: INI_filenameC
+
+ INI_keyword_previousC   = '' ! for output of .ini file
+ INI_specifier_previousC = '' ! for output of .ini file
+
  bufferC = '' ! has to be initialized because it is an allocatable object
 
  spec    = '' ! has to be initialized because it is possible printed to screen
@@ -2519,7 +2534,7 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
     !-----------------------------
     ! ==> 1: queue for input file
     !-----------------------------
-    CALL queue_built_up(InputFilename_usedC, input_queue) ! Essentially stores lines and associated information.
+    CALL queue_built_up(InputFilename_usedC, input_queue,INI_filenameC) ! Essentially stores lines and associated information.
 
     !----------------------------------------------------------------------
     ! Initialize variable in order to avoid that it is used uninitialized.
@@ -2560,6 +2575,10 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
       CALL Print_Keywords(KeywordFileTypeC,keyword_filenameC,keywords)
      END IF
 
+    END IF
+
+    IF (Write_INI_FileL) THEN
+     OPEN (output_unit_INI_file,file = TRIM(INI_filenameC))  ! This works if --outputdirectory is specified via the command line but if it is specified via input file, it is not taken into account.
     END IF
 
     start_at_topL = .TRUE.                                             !
@@ -2867,6 +2886,11 @@ SUBROUTINE read_and_analyze_input(InputFilenameC_in,FileNamePresentL,SecondEntry
                                                                        !
     END DO                                                             ! end loop over input lines
 
+    IF (Write_INI_FileL) THEN
+     CLOSE(output_unit_INI_file)
+    END IF
+
+
   ! WRITE(my_output_unit,'(1x,A,A,A,A)') &
   !     TRIM(InputFilename_usedC),": Build up input queue for all ",TRIM(keyword_filetypeC)," entries. (finished)"
 
@@ -2908,7 +2932,8 @@ CONTAINS                                                               !
 !------------------------------------------------------------------------------
  SUBROUTINE Add_value_to_queue(bufferC, ii)
 !------------------------------------------------------------------------------
- USE My_Input_and_Output_Units,ONLY:my_output_unit
+ USE My_Input_and_Output_Units,ONLY:my_output_unit, &
+                                    output_unit_INI_file
  USE CharacterManipulation    ,ONLY:CharacterReplace
  USE parser_parameters        ,ONLY:spec_char, &
                                     SpecialMacroCharacterC
@@ -2929,6 +2954,13 @@ CONTAINS                                                               !
  LOGICAL                                         :: SecondApostropheL
 
  INTEGER                                         :: ii_beginning
+ INTEGER                                         :: string_length
+
+ CHARACTER(len=:),ALLOCATABLE                    :: ini_keywordC
+ CHARACTER(len=:),ALLOCATABLE                    :: ini_specifierC
+ CHARACTER(len=:),ALLOCATABLE                    :: ini_valueC
+ LOGICAL                                         :: NewKeywordL
+ LOGICAL                                         :: NewSpecifierL
 
  SpecifierValueC = " "
 
@@ -3104,13 +3136,66 @@ CONTAINS                                                               !
               WRITE(my_output_unit,'(A,A,A)') " Quotation marks: specifier entry = ",TRIM(SpecifierValueC)," (removed)"
             END IF
 
+!---------------------------------------------
+! This is an important line:
+! It contains
+!   o keyword ('keyC')
+!   o specifier ('last_spec')
+!   o value of specifier ('SpecifierValueC')
+!---------------------------------------------
              CALL value_to_queue(collected_input,keywords,keyC,       &
                                  last_spec,SpecifierValueC,line_number)
-           ! WRITE(my_output_unit,*) "keyC             = ",keyC
-           ! WRITE(my_output_unit,*) "last_spec       = ",last_spec
-           ! WRITE(my_output_unit,'(A,A)') " Quotation marks: specifier entry = ",TRIM(SpecifierValueC)
-           ! WRITE(my_output_unit,*) "line_number     = ",line_number
-           ! PAUSE
+
+ !############################################################
+ IF (Write_INI_FileL) THEN
+ !############################################################
+  !-------------------------------------------
+  ! Write .ini file
+  ! CHECK: to do: avoid line breaks for specifier arrays
+  ! CHECK: to do: treat separating specifiers differently to allow for nesting
+  !-------------------------------------------
+  string_length = LEN_TRIM(keyC)
+  ini_keywordC = '['//TRIM(keyC(2:string_length))//']' ! keyword looks like '$electric-field' but we only copy 'electric-field' and encapsulate it within '[' and ']' brackets.
+
+  ini_specifierC = last_spec                           ! copy specifier, e.g. 'electric-field-strength'
+
+  IF ( INI_keyword_previousC   == ini_keywordC ) THEN
+    NewKeywordL = .FALSE.
+  ELSE
+    NewKeywordL = .TRUE.
+  END IF
+
+  IF ( INI_specifier_previousC == ini_specifierC ) THEN
+    NewSpecifierL = .FALSE.
+  ELSE
+    NewSpecifierL = .TRUE.
+  END IF
+
+  IF (NewKeywordL) THEN
+     IF ( INI_keyword_previousC /= '' ) THEN
+      WRITE (output_unit_INI_file,'(A)') ''                        ! Do not write empty line for the first keyword to avoid that the file starts with an empty line.
+     END IF
+      INI_keyword_previousC = ini_keywordC
+      WRITE (output_unit_INI_file,'(A)') TRIM(ini_keywordC)
+      WRITE (output_unit_INI_file,'(A)') TRIM(last_spec)//" = "//TRIM(SpecifierValueC) ! Here we include blanks around the '=' sign for better readability.
+  ELSE
+   IF (NewSpecifierL) THEN
+      INI_specifier_previousC = ini_specifierC
+      WRITE (output_unit_INI_file,'(A)') TRIM(last_spec)//" = "//TRIM(SpecifierValueC) ! Here we include blanks around the '=' sign for better readability.
+   ELSE
+      WRITE (output_unit_INI_file,'(A)') TRIM(SpecifierValueC)
+   END IF
+  END IF
+ !############################################################
+ END IF
+ !############################################################
+
+
+ ! WRITE(my_output_unit,*) "keyC             = ",keyC
+ ! WRITE(my_output_unit,*) "last_spec       = ",last_spec
+ ! WRITE(my_output_unit,'(A,A)') " Quotation marks: specifier entry = ",TRIM(SpecifierValueC)
+ ! WRITE(my_output_unit,*) "line_number     = ",line_number
+ ! PAUSE
 
 !------------------------------------------------------------------------------
  END SUBROUTINE Add_value_to_queue

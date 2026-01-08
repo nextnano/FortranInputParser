@@ -1,12 +1,13 @@
-!-----------------------------------------------------------------------------!
-$input_filename                                                   optional    !
- input/database.in                               character        optional    !
-$end_input_filename                                               optional    !
-!-----------------------------------------------------------------------------!
+!------------------------------------------------------------------------------!
+$input_filename                                                    optional    !
+ input/database.in                                character        optional    !
+$end_input_filename                                                optional    !
+!------------------------------------------------------------------------------!
 
-!-----------------------------------------------------------------------------!
-$physical-constants                                               required    !
- electron-charge                                 double           required    !
- Planck-constant                                 double           required    !
-$end_physical-constants                                           required    !
-!-----------------------------------------------------------------------------!
+!------------------------------------------------------------------------------!
+$physical-constants                                                required    !
+ electron-charge                                  double           required    !
+ Planck-constant                                  double           required    !
+$end_physical-constants                                            required    !
+!------------------------------------------------------------------------------!
+

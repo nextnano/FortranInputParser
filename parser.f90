@@ -48,6 +48,7 @@
  CHARACTER(len=*),PARAMETER :: LogC           = '.log'      ! file extension for log files
  CHARACTER(len=*),PARAMETER :: Batch_WindowsC = '.bat'      ! file extension for batch file on Windows (command prompt script)
  CHARACTER(len=*),PARAMETER :: Batch_LinuxC   = '.sh'       ! file extension for batch file on Linux (shell script)
+ CHARACTER(len=*),PARAMETER :: INI_C          = '.ini'      ! file extension for INI files
 
 !------------------------------------------------------------------------------
  END MODULE mod_FileExtensions_parser
@@ -2625,6 +2626,7 @@ END MODULE mod_init_keyword_queue
 !   o SUBROUTINE STOP_Yes_or_No_is_required
 !   o SUBROUTINE Error_CheckRange_integer
 !   o SUBROUTINE Error_CheckRange_real
+!   o SUBROUTINE Error_Check_Order
 !   o SUBROUTINE Error_WrongValue
 !   o SUBROUTINE Error_WrongEntry
 !   o SUBROUTINE Error_MissingEntry
@@ -3150,6 +3152,94 @@ END MODULE mod_init_keyword_queue
 
 !------------------------------------------------------------------------------
  END SUBROUTINE Error_CheckRange_real
+!------------------------------------------------------------------------------
+!
+!
+!
+!------------------------------------------------------------------------------
+ SUBROUTINE Error_Check_Order(keywordC,specifierC,line,valuesV,DescendingL)
+!------------------------------------------------------------------------------
+!
+!++s* Parser_Errors/Error_Check_Order
+!
+! NAME
+!   SUBROUTINE Error_Check_Order
+!
+! PURPOSE
+!   This subroutine prints out the keyword, specifier and related line of the input file
+!   where an error was encountered.
+!   Here, the error occurs if the order (ascending or descending) of two values is not fulfilled.
+!   i.e. it must hold:
+!
+!     IF (AscendingL)
+!        valuesV(1) < valuesV(2)
+!     ELSE
+!        valuesV(2) > valuesV(1)
+! 
+! USAGE
+!   CALL Error_Check_Order(,keywordC,specifierC,line,valuesV,DescendingL)
+! 
+! INPUT
+!   o keywordC:                      keyword
+!   o specifierC:                    specifier
+!   o line:                          line
+!   o valuesV:                       2 values
+!   o DescendingL:                   if .TRUE., values must be in descending order
+!
+! OUTPUT
+!   none
+! 
+!##
+!
+!------------------------------------------------------------------------------
+ USE My_Input_and_Output_Units,ONLY:my_output_unit
+
+ IMPLICIT NONE
+
+ CHARACTER(len=*)             ,INTENT(in)          :: keywordC
+ CHARACTER(len=*)             ,INTENT(in)          :: specifierC
+ INTEGER                      ,INTENT(in)          :: line
+ REAL(8),DIMENSION(:)         ,INTENT(in)          :: valuesV
+ LOGICAL                      ,INTENT(in),OPTIONAL :: DescendingL
+
+ LOGICAL                                           :: AscendingL
+ LOGICAL                                           :: ErrorL
+
+ ErrorL = .FALSE.
+
+ IF ( SIZE(valuesV) /= 2) THEN
+    WRITE(my_output_unit,'(A)') " dimension = 2 expected for array, hoever, I found:"
+    WRITE(my_output_unit,*)     " dimension = ",SIZE(valuesV)
+    WRITE(my_output_unit,*)     " valuesV = ",valuesV
+ END IF
+
+ AscendingL = .TRUE. ! By default, assume ascending order, i.e. [xmin < xmax].
+ IF ( PRESENT(DescendingL) ) THEN
+  IF (DescendingL) THEN
+   AscendingL = .FALSE.
+  END IF
+ END IF
+
+ IF (AscendingL) THEN
+  IF ( valuesV(1) >= valuesV(2) ) THEN
+    WRITE(my_output_unit,'(A)')        " Ascending order of values is expected."
+    ErrorL = .TRUE.
+  END IF
+ ELSE
+  IF ( valuesV(2) >= valuesV(1) ) THEN
+    WRITE(my_output_unit,'(A)')        " Descending order of values is expected."
+    ErrorL = .TRUE.
+  END IF
+ END IF
+
+ IF ( ErrorL ) THEN
+   WRITE(my_output_unit,('(A)'))       " However, you specified:"
+   WRITE(my_output_unit,*)               TRIM(specifierC)," = ",valuesV
+   CALL Print_Keyword_Specifier_Line(keywordC,specifierC,line,STOP_L=.TRUE.)
+ END IF
+
+!------------------------------------------------------------------------------
+ END SUBROUTINE Error_Check_Order
 !------------------------------------------------------------------------------
 !
 !

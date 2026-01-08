@@ -24,6 +24,7 @@
  USE system_specific_parser   ,ONLY:OperatingSystemC   , &
                                     ParseInputFileOnlyL, &
                                     WriteCompactFileL  , &
+                                    Write_INI_FileL    , &
                                     OutputDirC
  USE parser_parameters        ,ONLY:DATA_FileC
  USE mod_CallSystem           ,ONLY:Execute_Command_in_Directory
@@ -64,6 +65,7 @@
  
  ParseInputFileOnlyL = .TRUE. ! If .TRUE., an .xml     file is written out.
  WriteCompactFileL   = .TRUE. ! If .TRUE., a  .compact file is written out.
+ Write_INI_FileL     = .TRUE. ! If .TRUE., a  .ini     file is written out.
 
  !--------------------------
  ! Update operating system.
