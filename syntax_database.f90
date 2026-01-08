@@ -104,7 +104,8 @@ ELSE
  sC=sC// "!------------------------------------------------------------------------------!"//nC
  sC=sC// "$input_filename                                                    optional    !"//nC
 !sC=sC// " ../Syntax/database.in                            character        optional    !"//nC
- sC=sC// " " // DefaultFilenameC //"                        character        optional    !"//nC
+ sC=sC// " " // DefaultFilenameC // &
+                           "                                character        optional    !"//nC
  sC=sC// "$end_input_filename                                                optional    !"//nC
  sC=sC// "!------------------------------------------------------------------------------!"//nC
  sC=sC//                                                                                 ""//nC

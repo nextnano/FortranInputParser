@@ -2,7 +2,7 @@
 ! This must be the first keyword. Do not change the order.
 !------------------------------------------------------------------------------!
 $input_filename                                                     optional   ! Do not change this. This must be the first keyword in this file. Do not change the order!
- input/inputfile.in                        character        optional   ! Do not change this. This must be the first specifier in case no input file is specified.
+ input/inputfile.in                                character        optional   ! Do not change this. This must be the first specifier in case no input file is specified.
 $end_input_filename                                                 optional   !
 !------------------------------------------------------------------------------!
 ! End of first keyword. Now the order does not matter.

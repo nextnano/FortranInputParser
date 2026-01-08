@@ -107,7 +107,8 @@ ELSE
               " Do not change this. This must be the first keyword in this file. Do not change the order!"//nC
 !sC=sC// " inputfile.in.in                                   character        optional   !"// &
 !             " Do not change this. This must be the first specifier in case no input file is specified."//nC
- sC=sC// " "//DefaultFilenameC//    "                        character        optional   !"// &
+ sC=sC// " "//DefaultFilenameC// &
+                            "                                character        optional   !"// &
               " Do not change this. This must be the first specifier in case no input file is specified."//nC
  sC=sC// "$end_input_filename                                                 optional   !"//nC
  sC=sC// "!------------------------------------------------------------------------------!"//nC
